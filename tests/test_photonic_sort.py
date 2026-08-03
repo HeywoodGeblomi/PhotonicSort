@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import random
+import time
 import unittest
 
 from photonic_sort import (
     photonic_sort,
     photonic_probe,
     photonic_collapse,
-    negative_time_early_exit,
     compute_ranks,
+    __version__,
 )
 
 
@@ -21,6 +22,9 @@ class TestPhotonicSort(unittest.TestCase):
         self.assertEqual(out, expected)
         self.assertEqual(len(out), len(data))
 
+    def test_version(self):
+        self.assertTrue(__version__.startswith("1."))
+
     def test_empty_and_singleton(self):
         self.assertEqual(photonic_sort([]), [])
         self.assertEqual(photonic_sort([42]), [42])
@@ -30,12 +34,14 @@ class TestPhotonicSort(unittest.TestCase):
         self.assert_sorted_eq(data)
         probe = photonic_probe(data)
         self.assertTrue(probe["is_negative_delay"])
+        self.assertEqual(probe["monotone_sign"], 1)
 
     def test_reverse_sorted(self):
         data = list(range(200, 0, -1))
         self.assert_sorted_eq(data)
         probe = photonic_probe(data)
         self.assertTrue(probe["is_negative_delay"])
+        self.assertEqual(probe["monotone_sign"], -1)
 
     def test_random(self):
         rng = random.Random(0)
@@ -45,7 +51,6 @@ class TestPhotonicSort(unittest.TestCase):
     def test_duplicates(self):
         data = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]
         self.assert_sorted_eq(data)
-        # stability: equal keys keep relative order of first occurrence ranks via stable collapse
         out = photonic_sort(data)
         self.assertEqual(out, sorted(data))
 
@@ -83,6 +88,29 @@ class TestPhotonicSort(unittest.TestCase):
         self.assertGreaterEqual(probe["sortedness"], 0.7)
         self.assertIn("group_delay_proxy", probe)
         self.assertIn("inv_ratio", probe)
+        self.assertIn("monotone_sign", probe)
+
+    def test_probe_deterministic(self):
+        data = [random.Random(1).randint(0, 1000) for _ in range(800)]
+        a = photonic_probe(data)
+        b = photonic_probe(data)
+        self.assertEqual(a, b)
+
+    def test_on_structure_fast_path(self):
+        n = 20_000
+        data = list(range(n))
+        t0 = time.perf_counter()
+        out = photonic_sort(data)
+        elapsed = time.perf_counter() - t0
+        self.assertEqual(out, data)
+        # O(n) reverse+copy should be well under 50ms on any reasonable host
+        self.assertLess(elapsed, 0.5)
+
+    def test_reverse_structure_fast_path(self):
+        n = 20_000
+        data = list(range(n, 0, -1))
+        out = photonic_sort(data)
+        self.assertEqual(out, list(range(1, n + 1)))
 
 
 if __name__ == "__main__":

@@ -85,6 +85,7 @@ Usage:
     python photonic_sort.py
 
 Team: Grok (lead) + Harper + Benjamin + Lucas | 2026-08-03
+Version: 1.0.1
 """
 
 from __future__ import annotations
@@ -95,6 +96,8 @@ import time
 import sys
 
 T = TypeVar("T")
+
+__version__ = "1.0.1"
 
 
 # ---------------------------------------------------------------------------
@@ -116,7 +119,7 @@ def photonic_probe(
 
     Metrics (inspired by GeblomiSort richer Gyro):
       - inv_ratio          : approximate fraction of inverted pairs
-      - max_run            : longest non-decreasing run length
+      - max_run            : longest monotonic run length (element-span scaled)
       - run_count          : number of runs
       - direction_changes  : number of times the local trend reverses
       - equal_count        : number of equal consecutive pairs
@@ -124,6 +127,7 @@ def photonic_probe(
       - group_delay_proxy  : 1 - sortedness; negative-like when near 0
       - is_negative_delay  : True when structure permits early exit
       - n                  : length
+      - monotone_sign      : +1 ascending, -1 descending, 0 mixed/flat
     """
     n = len(arr)
     if n <= 1:
@@ -138,6 +142,7 @@ def photonic_probe(
             "group_delay_proxy": 0.0,
             "is_negative_delay": True,
             "sortedness": 1.0,
+            "monotone_sign": 0 if n == 0 else 1,
         }
 
     def get(i: int) -> Any:
@@ -145,81 +150,97 @@ def photonic_probe(
 
     # Full scan for small n; stratified sample for large n (still “less energy”)
     if n <= sample_limit:
-        indices = list(range(n))
+        step = 1
+        indices = range(n)  # no materialised list
         confidence = 1.0
+        n_idx = n
     else:
-        # stratified + ends
         step = max(1, n // sample_limit)
-        indices = list(range(0, n, step))
-        if indices[-1] != n - 1:
-            indices.append(n - 1)
-        confidence = len(indices) / n
+        idx_list = list(range(0, n, step))
+        if idx_list[-1] != n - 1:
+            idx_list.append(n - 1)
+        indices = idx_list
+        n_idx = len(idx_list)
+        confidence = n_idx / n
 
-    # Run detection (non-decreasing + non-increasing) + direction changes + equals
-    # We track the longest monotonic run in either direction so pure reverse
-    # also registers as high structure (negative-delay friendly).
-    max_run = 1
+    # Single pass: runs + direction + equals + adjacent inversions
+    max_run_samples = 1
     run_count = 1
     direction_changes = 0
     equal_count = 0
     current_run = 1
     prev_dir = 0  # -1 decreasing, 0 flat, +1 increasing
+    inv_pairs = 0
+    total_pairs = 0
+    asc_edges = 0
+    desc_edges = 0
 
-    for k in range(1, len(indices)):
-        i, j = indices[k - 1], indices[k]
-        a, b = get(i), get(j)
-        if a == b:
-            equal_count += 1
-            current_run += 1
-            # flat continues the current run
-        elif a < b:
-            if prev_dir == -1:
-                direction_changes += 1
-                run_count += 1
-                if current_run > max_run:
-                    max_run = current_run
-                current_run = 1
-            else:
-                current_run += 1
-            prev_dir = 1
-        else:  # a > b
+    prev_i = None
+    for j in indices:
+        if prev_i is None:
+            prev_i = j
+            continue
+        a, b = get(prev_i), get(j)
+        # adjacent inversion on the probe chain
+        total_pairs += 1
+        if a > b:
+            inv_pairs += 1
+            desc_edges += 1
             if prev_dir == 1:
                 direction_changes += 1
                 run_count += 1
-                if current_run > max_run:
-                    max_run = current_run
+                if current_run > max_run_samples:
+                    max_run_samples = current_run
                 current_run = 1
             else:
                 current_run += 1
             prev_dir = -1
-        if current_run > max_run:
-            max_run = current_run
+        elif a < b:
+            asc_edges += 1
+            if prev_dir == -1:
+                direction_changes += 1
+                run_count += 1
+                if current_run > max_run_samples:
+                    max_run_samples = current_run
+                current_run = 1
+            else:
+                current_run += 1
+            prev_dir = 1
+        else:
+            equal_count += 1
+            current_run += 1
+        if current_run > max_run_samples:
+            max_run_samples = current_run
+        prev_i = j
 
-    # Approximate inversion ratio via consecutive pairs + a few random probes
-    inv_pairs = 0
-    total_pairs = 0
-    for k in range(1, len(indices)):
-        i, j = indices[k - 1], indices[k]
-        if get(i) > get(j):
-            inv_pairs += 1
-        total_pairs += 1
+    # Scale sample-run length to approximate element span
+    max_run = min(n, max_run_samples * step)
 
-    # extra random pairs for better inv estimate when sampled
+    # Deterministic extra pair probes (no global RNG pollution)
     extra = min(256, n // 4)
-    for _ in range(extra):
-        i = random.randrange(n)
-        j = random.randrange(n)
-        if i == j:
-            continue
-        if i > j:
-            i, j = j, i
-        total_pairs += 1
-        if get(i) > get(j):
-            inv_pairs += 1
+    if extra > 0 and n > 2:
+        rng = random.Random(n ^ 0x9E3779B9)
+        for _ in range(extra):
+            i = rng.randrange(n)
+            j = rng.randrange(n)
+            if i == j:
+                continue
+            if i > j:
+                i, j = j, i
+            total_pairs += 1
+            if get(i) > get(j):
+                inv_pairs += 1
 
     inv_ratio = inv_pairs / max(1, total_pairs)
 
-    # Sortedness score: long runs + low inversions + few direction changes
+    # Global monotone sign from edge majority (helps pure reverse O(n) exit)
+    if desc_edges > 0 and asc_edges == 0:
+        monotone_sign = -1
+    elif asc_edges > 0 and desc_edges == 0:
+        monotone_sign = 1
+    else:
+        monotone_sign = 0
+
     run_fraction = max_run / n
     sortedness = (
         0.45 * (1.0 - min(1.0, inv_ratio * 2.0))
@@ -228,15 +249,14 @@ def photonic_probe(
     )
     sortedness = max(0.0, min(1.0, sortedness))
 
-    group_delay_proxy = 1.0 - sortedness  # ~0 → “negative time” friendly
+    group_delay_proxy = 1.0 - sortedness
 
-    # Decision threshold: high structure → negative-delay path
-    # Pure reverse or pure sorted both get long monotonic runs → early path.
     is_neg = (
         sortedness >= 0.72
         or max_run >= n * 0.45
         or (direction_changes <= 3 and inv_ratio < 0.15)
         or (max_run >= n * 0.25 and inv_ratio < 0.05)
+        or (monotone_sign != 0 and direction_changes == 0)
     )
 
     return {
@@ -250,6 +270,7 @@ def photonic_probe(
         "group_delay_proxy": group_delay_proxy,
         "is_negative_delay": is_neg,
         "sortedness": sortedness,
+        "monotone_sign": monotone_sign,
     }
 
 
@@ -290,15 +311,26 @@ def negative_time_early_exit(
 
     Preferentially honour long leading runs (the photons that already appear
     ordered) and only spend positive work on the residual disordered bulk.
-    For the demo we still guarantee a correct result by falling back to a
-    stable sort of the whole array when the structure is not extreme; the
-    probe has already told us the data is highly structured, so Timsort /
-    Python’s sorted will also finish quickly.
+    Pure ascending / descending inputs take true O(n) exits; other structured
+    inputs fall through to Timsort (near-linear on long runs).
     """
-    # When structure is extreme, a full stable sort is still near-linear
-    # because of the runs; we keep the path simple and correct.
-    result = sorted(arr, key=key, reverse=reverse)
-    return result
+    n = len(arr)
+    if n <= 1:
+        return list(arr)
+
+    # O(n) pure-structure exits when the probe saw a single monotone chain
+    # and no key transform is required (key would need re-evaluation).
+    if key is None and probe.get("direction_changes", 1) == 0:
+        sign = probe.get("monotone_sign", 0)
+        if sign == 1:
+            # already non-decreasing
+            return list(reversed(arr)) if reverse else list(arr)
+        if sign == -1:
+            # already non-increasing → reverse yields non-decreasing
+            return list(arr) if reverse else list(reversed(arr))
+
+    # Structured residual: Timsort is near-linear on long runs
+    return sorted(arr, key=key, reverse=reverse)
 
 
 # ---------------------------------------------------------------------------
@@ -316,8 +348,10 @@ def compute_ranks(
     element must appear once the sorted boundary condition is imposed.
     """
     n = len(arr)
-    # stable argsort
-    indices = sorted(range(n), key=lambda i: (key(arr[i]) if key else arr[i], i))
+    if key is None:
+        indices = sorted(range(n), key=lambda i: (arr[i], i))
+    else:
+        indices = sorted(range(n), key=lambda i: (key(arr[i]), i))
     ranks = [0] * n
     for rank, orig in enumerate(indices):
         ranks[orig] = rank
@@ -340,10 +374,12 @@ def photonic_collapse(
     if n <= 1:
         return list(arr)
 
-    # ranks relative to the non-reversed order
-    order = sorted(range(n), key=lambda i: (key(arr[i]) if key else arr[i], i))
+    if key is None:
+        order = sorted(range(n), key=lambda i: (arr[i], i))
+    else:
+        order = sorted(range(n), key=lambda i: (key(arr[i]), i))
     if reverse:
-        order = order[::-1]
+        order.reverse()
 
     result: List[T] = [None] * n  # type: ignore
     for rank, orig_idx in enumerate(order):
@@ -415,8 +451,10 @@ def photonic_sort(
         )
     result = photonic_collapse(arr, key=key, reverse=reverse)
     if verbose:
-        print("  [Photonic] Collapse complete. The photon has exited at the ranks. "
-              "Died at the answer.")
+        print(
+            "  [Photonic] Collapse complete. The photon has exited at the ranks. "
+            "Died at the answer."
+        )
     return result
 
 
@@ -427,8 +465,10 @@ def photonic_sort(
 def _is_sorted(a: Sequence[T], key=None, reverse=False) -> bool:
     if len(a) <= 1:
         return True
+
     def get(i):
         return key(a[i]) if key else a[i]
+
     if reverse:
         return all(get(i) >= get(i + 1) for i in range(len(a) - 1))
     return all(get(i) <= get(i + 1) for i in range(len(a) - 1))
@@ -436,7 +476,7 @@ def _is_sorted(a: Sequence[T], key=None, reverse=False) -> bool:
 
 def demo() -> None:
     print("=" * 72)
-    print("PhotonicSort — Give everything. Take nothing. Become photonic.")
+    print(f"PhotonicSort {__version__} — Give everything. Take nothing. Become photonic.")
     print("=" * 72)
     print()
     print("Research anchor: Angulo, Steinberg et al., arXiv:2409.03680")
@@ -479,7 +519,6 @@ def demo() -> None:
     print("-" * 72)
     print()
 
-    # Verbose walk-through on a small illustrative case
     print("Verbose walk-through on a small disordered haystack:")
     small = [7, 2, 9, 1, 5, 3, 8, 4, 6, 0]
     print(f"  Input : {small}")
@@ -488,13 +527,24 @@ def demo() -> None:
     print(f"  Verified sorted: {_is_sorted(result)}")
     print()
 
-    # Force the pure collapse path for demonstration
     print("Forced pure retrocausal collapse on the same data:")
     result2 = photonic_sort(small, force_collapse=True, verbose=True)
     print(f"  Output: {result2}")
     print()
 
-    if all_ok:
+    # O(n) pure-structure micro-bench
+    big = list(range(50_000))
+    t0 = time.perf_counter()
+    out_s = photonic_sort(big)
+    t_sorted = (time.perf_counter() - t0) * 1000.0
+    t0 = time.perf_counter()
+    out_r = photonic_sort(list(reversed(big)))
+    t_rev = (time.perf_counter() - t0) * 1000.0
+    print(f"O(n) structure check (n=50000): sorted={t_sorted:.3f} ms  reverse={t_rev:.3f} ms")
+    print(f"  verified: {out_s == big and out_r == big}")
+    print()
+
+    if all_ok and out_s == big and out_r == big:
         print("All correctness checks passed.")
     else:
         print("WARNING: some correctness checks failed.")

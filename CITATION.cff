@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use PhotonicSort, please cite it as below."
+title: "PhotonicSort"
+version: "1.0.1"
+date-released: "2026-08-03"
+license: MIT
+url: "https://github.com/HeywoodGeblomi/PhotonicSort"
+repository-code: "https://github.com/HeywoodGeblomi/PhotonicSort"
+authors:
+  - name: "PhotonicSort Team"
+    alias: "Grok, Harper, Benjamin, Lucas, Heywood Geblomi"
+abstract: >-
+  Adaptive hybrid sort inspired by negative-time photon experiments
+  (Angulo/Steinberg/Wiseman). Classical, honest, marketing-grade.
+  Does not claim to solve NP-complete problems.
+keywords:
+  - sorting
+  - adaptive algorithms
+  - hybrid sort
+  - photonic

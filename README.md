@@ -7,7 +7,9 @@
 [![Companion](https://img.shields.io/badge/companion-GeblomiSort-purple)](https://github.com/HeywoodGeblomi/GeblomiSort)
 [![X](https://img.shields.io/badge/X-%40HeywoodGeblomi-black?logo=x)](https://x.com/HeywoodGeblomi)
 
-Adaptive hybrid sorting algorithm that turns a philosophical analogy into **objective, executable, marketing-grade code** — while remaining honest about physics and complexity.
+**v1.0.1** · Adaptive hybrid sorting algorithm that turns a philosophical analogy into **objective, executable, marketing-grade code** — while remaining honest about physics and complexity.
+
+> Optimizations: single-pass probe, deterministic sampling, true O(n) exits on pure ascending/descending structure, element-span `max_run` scaling.
 
 ---
 

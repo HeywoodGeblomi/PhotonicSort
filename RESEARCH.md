@@ -38,7 +38,8 @@ PhotonicSort **borrows the design metaphor** (boundary condition as attractor; d
 | Survivors that transmit early | Long monotonic runs / high sortedness path |
 | Die at the objective answer | `photonic_collapse` via stable argsort ranks |
 | Only consistent exit points | Rank placement is uniquely determined by sorted order |
-| Give everything | Probe metrics fully committed |
+| Give everything | Probe metrics fully committed (single-pass) |
+| Pure monotone haystack | O(n) reverse/copy early exit via `monotone_sign` |
 | Take nothing | Output is pure ordered state |
 | Become photonic | Tagline for the ordered result |
 
