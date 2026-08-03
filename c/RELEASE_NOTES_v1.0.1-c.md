@@ -43,40 +43,83 @@ Add highly optimized C11 port (c/)
 
 ---
 
-## 2. SHA-256 verification index (canonical tree)
+## 2. Full SHA-256 checksum catalog
 
-Verify after clone:
+**Algorithm:** SHA-256 (FIPS 180-4)  
+**Implementation commit:** `841882d906dc3fbf3bbc5c8dfa97f2773c0c1818`  
+**Tag:** `v1.0.1-c`
 
-```bash
-git checkout v1.0.1-c
-cd c
-sha256sum -c <<'HASHES'
-# Paste block below, or recompute and diff against this section
-HASHES
+| Machine-readable file | Scope |
+|-----------------------|--------|
+| [`SHA256SUMS_v1.0.1-c.txt`](../SHA256SUMS_v1.0.1-c.txt) | Full repository tree @ `841882d` |
+| [`c/SHA256SUMS`](./SHA256SUMS) | C code artifacts (live-check on `main`) |
+
+### 2.1 Complete repository tree @ `841882d` (all 14 files)
+
+| SHA-256 | Bytes | Path |
+|---------|------:|------|
+| `c5a4e48ca579d8be5584b1f26b01cfbe753b59c1bba219be3d8f8be30921c61f` | 225 | `.gitignore` |
+| `27bb8f20a000f0cae81eefa18d9c9c9e312199f4b26a6b428004fd475018911a` | 649 | `CITATION.cff` |
+| `b7de01ba944dd7ef1fa8f9feef55769cdc9bfdfd9681c314e95d87bac9632521` | 1123 | `LICENSE` |
+| `da849e28e0ce605bacf9b26201f06f9ee6387d7bf3e1d33f587cef17dd11182a` | 5803 | `README.md` |
+| `7ec498f28fb3345e359fd6f7c406934b4a63ca115115b82af6fcfe70ce8bf6a1` | 4295 | `RESEARCH.md` |
+| `ff71d4adb893a87c72dc0c0fa33ef89b3fe5267bd044e930b9613db25c494715` | 921 | `c/Makefile` |
+| `4dc00cb880af4bdd28149f1e9628683ed6783b6eb1c8cfd3941779309c28b8e6` | 1830 | `c/README.md` |
+| `d453c678f19b2d4f6378eed640ac328bf914a71d9d0e331e698bc64c5ca1339a` | 4980 | `c/examples/demo.c` |
+| `e4d4446e136b8b03c95dbb5a53ea4884db0351491a235e7c4e63eb4ad68ffb54` | 16905 | `c/photonic_sort.c` |
+| `16b795d5150d59e4d0bcf5a16182be041f351a3e8d0ecdc1fb667814b348e622` | 3497 | `c/photonic_sort.h` |
+| `1637f73a1adfb88ce638a0102e1a921cae746ca4a4aaa861721f045e7b11fd59` | 4392 | `c/tests/test_photonic_sort.c` |
+| `2bbdd552e0782d07c5d5f5d72983331f21d41b376c6ad0f530352be97589e89c` | 19688 | `photonic_sort.py` |
+| `2e250763a95d26346a8eaa888aabb691556b08465f7c370de06b00d7af9c375d` | 1271 | `pyproject.toml` |
+| `03197caa57e33f92e6aecae8a82dc4e5aa4e8286c637121652de494c49238798` | 3833 | `tests/test_photonic_sort.py` |
+
+**GNU `sha256sum` block (copy into a file and run `sha256sum -c` against a tree extracted at `841882d`):**
+
+```
+c5a4e48ca579d8be5584b1f26b01cfbe753b59c1bba219be3d8f8be30921c61f  .gitignore
+27bb8f20a000f0cae81eefa18d9c9c9e312199f4b26a6b428004fd475018911a  CITATION.cff
+b7de01ba944dd7ef1fa8f9feef55769cdc9bfdfd9681c314e95d87bac9632521  LICENSE
+da849e28e0ce605bacf9b26201f06f9ee6387d7bf3e1d33f587cef17dd11182a  README.md
+7ec498f28fb3345e359fd6f7c406934b4a63ca115115b82af6fcfe70ce8bf6a1  RESEARCH.md
+ff71d4adb893a87c72dc0c0fa33ef89b3fe5267bd044e930b9613db25c494715  c/Makefile
+4dc00cb880af4bdd28149f1e9628683ed6783b6eb1c8cfd3941779309c28b8e6  c/README.md
+d453c678f19b2d4f6378eed640ac328bf914a71d9d0e331e698bc64c5ca1339a  c/examples/demo.c
+e4d4446e136b8b03c95dbb5a53ea4884db0351491a235e7c4e63eb4ad68ffb54  c/photonic_sort.c
+16b795d5150d59e4d0bcf5a16182be041f351a3e8d0ecdc1fb667814b348e622  c/photonic_sort.h
+1637f73a1adfb88ce638a0102e1a921cae746ca4a4aaa861721f045e7b11fd59  c/tests/test_photonic_sort.c
+2bbdd552e0782d07c5d5f5d72983331f21d41b376c6ad0f530352be97589e89c  photonic_sort.py
+2e250763a95d26346a8eaa888aabb691556b08465f7c370de06b00d7af9c375d  pyproject.toml
+03197caa57e33f92e6aecae8a82dc4e5aa4e8286c637121652de494c49238798  tests/test_photonic_sort.py
 ```
 
-| File | Bytes | Lines | SHA-256 |
-|------|------:|------:|---------|
-| `c/photonic_sort.h` | 3497 | 93 | `16b795d5150d59e4d0bcf5a16182be041f351a3e8d0ecdc1fb667814b348e622` |
-| `c/photonic_sort.c` | 16905 | 551 | `e4d4446e136b8b03c95dbb5a53ea4884db0351491a235e7c4e63eb4ad68ffb54` |
-| `c/Makefile` | 921 | 35 | `ff71d4adb893a87c72dc0c0fa33ef89b3fe5267bd044e930b9613db25c494715` |
-| `c/README.md` | 1830 | 79 | `4dc00cb880af4bdd28149f1e9628683ed6783b6eb1c8cfd3941779309c28b8e6` |
-| `c/examples/demo.c` | 4980 | 136 | `d453c678f19b2d4f6378eed640ac328bf914a71d9d0e331e698bc64c5ca1339a` |
-| `c/tests/test_photonic_sort.c` | 4392 | 138 | `1637f73a1adfb88ce638a0102e1a921cae746ca4a4aaa861721f045e7b11fd59` |
+### 2.2 Primary C implementation digests
 
-**Pinned tree OID (tag target):** `841882d906dc3fbf3bbc5c8dfa97f2773c0c1818`  
-**Tag object (annotated):** resolve with `git rev-parse v1.0.1-c`
+```
+e4d4446e136b8b03c95dbb5a53ea4884db0351491a235e7c4e63eb4ad68ffb54  c/photonic_sort.c
+16b795d5150d59e4d0bcf5a16182be041f351a3e8d0ecdc1fb667814b348e622  c/photonic_sort.h
+ff71d4adb893a87c72dc0c0fa33ef89b3fe5267bd044e930b9613db25c494715  c/Makefile
+d453c678f19b2d4f6378eed640ac328bf914a71d9d0e331e698bc64c5ca1339a  c/examples/demo.c
+1637f73a1adfb88ce638a0102e1a921cae746ca4a4aaa861721f045e7b11fd59  c/tests/test_photonic_sort.c
+```
 
-> Note: This RELEASE_NOTES file is added **after** the original tag blob set.  
-> Hashes above describe the **C implementation sources at commit `841882d`**.  
-> After this notes commit, re-verify implementation files with:
->
-> ```bash
-> git show 841882d:c/photonic_sort.c | sha256sum
-> git show 841882d:c/photonic_sort.h | sha256sum
-> ```
+### 2.3 Verify commands
 
----
+```bash
+# Live check of code artifacts on main (docs may differ; code must match)
+sha256sum -c c/SHA256SUMS
+
+# Per-file from implementation commit
+git show 841882d:c/photonic_sort.c | sha256sum
+# expect e4d4446e136b8b03c95dbb5a53ea4884db0351491a235e7c4e63eb4ad68ffb54
+
+git show 841882d:c/photonic_sort.h | sha256sum
+# expect 16b795d5150d59e4d0bcf5a16182be041f351a3e8d0ecdc1fb667814b348e622
+
+# Full tree @ 841882d
+git archive --format=tar 841882d | tar -x -C /tmp/ps-v
+cd /tmp/ps-v && sha256sum -c /path/to/SHA256SUMS_v1.0.1-c.txt
+```
+
 
 ## 3. Public API surface (change contract)
 
