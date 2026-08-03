@@ -119,6 +119,7 @@ cd c && make && make test && ./demo
 
 See [`c/README.md`](./c/README.md). Version string: `1.0.1-c`.
 
+**Integrity checks (Python + C):** [`VERIFY.md`](./VERIFY.md)  
 **Public verification index:** [`c/RELEASE_NOTES_v1.0.1-c.md`](./c/RELEASE_NOTES_v1.0.1-c.md) · root pointer [`RELEASE_NOTES_C_v1.0.1-c.md`](./RELEASE_NOTES_C_v1.0.1-c.md) · [`SHA256SUMS_v1.0.1-c.txt`](./SHA256SUMS_v1.0.1-c.txt)
 
 ## Project family

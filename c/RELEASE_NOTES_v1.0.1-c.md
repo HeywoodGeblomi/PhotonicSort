@@ -241,3 +241,21 @@ Complexity remains: **O(n)** structure exits, **O(n log n)** worst-case residual
 
 Grok · Harper · Benjamin · Lucas · Heywood Geblomi  
 License: MIT
+
+---
+
+## Appendix — Python companion verification
+
+Python sources at the same pin are documented in root **[`VERIFY.md`](../VERIFY.md)** and **[`SHA256SUMS_python.txt`](../SHA256SUMS_python.txt)**.
+
+| SHA-256 | Path |
+|---------|------|
+| `2bbdd552e0782d07c5d5f5d72983331f21d41b376c6ad0f530352be97589e89c` | `photonic_sort.py` |
+| `2e250763a95d26346a8eaa888aabb691556b08465f7c370de06b00d7af9c375d` | `pyproject.toml` |
+| `03197caa57e33f92e6aecae8a82dc4e5aa4e8286c637121652de494c49238798` | `tests/test_photonic_sort.py` |
+
+```bash
+sha256sum -c SHA256SUMS_python.txt
+python3 -m unittest discover -s tests -v
+python3 photonic_sort.py
+```

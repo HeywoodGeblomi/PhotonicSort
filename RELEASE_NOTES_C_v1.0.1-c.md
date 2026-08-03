@@ -46,3 +46,21 @@ sha256sum -c c/SHA256SUMS
 git show 841882d:c/photonic_sort.c | sha256sum
 git show 841882d:c/photonic_sort.h | sha256sum
 ```
+
+---
+
+## Python verification (companion)
+
+See **[`VERIFY.md`](./VERIFY.md)** §1 and **[`SHA256SUMS_python.txt`](./SHA256SUMS_python.txt)**.
+
+```
+2bbdd552e0782d07c5d5f5d72983331f21d41b376c6ad0f530352be97589e89c  photonic_sort.py
+2e250763a95d26346a8eaa888aabb691556b08465f7c370de06b00d7af9c375d  pyproject.toml
+03197caa57e33f92e6aecae8a82dc4e5aa4e8286c637121652de494c49238798  tests/test_photonic_sort.py
+```
+
+```bash
+sha256sum -c SHA256SUMS_python.txt
+python3 -m unittest discover -s tests -v
+python3 photonic_sort.py
+```
