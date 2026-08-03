@@ -99,6 +99,26 @@ print(photonic_probe(data))
 
 ---
 
+---
+
+## Highly optimized C
+
+A full C11 port lives in [`c/`](./c/):
+
+```bash
+cd c && make && make test && ./demo
+```
+
+| Feature | C path |
+|---------|--------|
+| Fast path | `photonic_sort_i64` (in-place) |
+| Generic | `photonic_sort(base, n, size, cmp)` |
+| Structure exit | O(n) reverse / no-op |
+| Residual | Stable bottom-up mergesort + insertion (n≤32) |
+| Deps | libc only |
+
+See [`c/README.md`](./c/README.md). Version string: `1.0.1-c`.
+
 ## Project family
 
 | Artifact | Role |

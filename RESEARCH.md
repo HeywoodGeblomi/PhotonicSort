@@ -62,3 +62,12 @@ PhotonicSort **borrows the design metaphor** (boundary condition as attractor; d
 ## Citation
 
 If you use PhotonicSort in academic or commercial work, cite this repository and, for the physics analogy, the Angulo/Steinberg line (arXiv:2409.03680). Do not cite PhotonicSort as experimental physics or as a P=NP result.
+
+## C implementation
+
+`c/photonic_sort.c` is a fidelity port of the Python adaptive logic:
+
+- Same probe thresholds and negative-delay decision
+- O(n) monotone exits via `monotone_sign`
+- Residual is **stable** bottom-up mergesort (matches Timsort stability class on equals)
+- No claim of asymptotic superiority over comparison sorting
