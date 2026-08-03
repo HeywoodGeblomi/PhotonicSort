@@ -116,7 +116,28 @@ print("All digests match.")
 PY
 ```
 
+### Windows PowerShell equivalents
+
+```powershell
+# One-shot
+pwsh -File .\scripts\verify-sha256.ps1
+
+# Live files
+(Get-FileHash -Algorithm SHA256 .\photonic_sort.py).Hash.ToLower()
+(Get-FileHash -Algorithm SHA256 .\c\photonic_sort.c).Hash.ToLower()
+
+# SUMS files (see SHA256_VERIFY_COMMANDS.md for Test-Sha256SumsFile helper)
+# or run: pwsh -File .\scripts\verify-sha256.ps1
+
+# certutil
+certutil -hashfile photonic_sort.py SHA256
+certutil -hashfile c\photonic_sort.c SHA256
+```
+
+Full PowerShell command sheet: [`SHA256_VERIFY_COMMANDS.md`](./SHA256_VERIFY_COMMANDS.md) · script: [`scripts/verify-sha256.ps1`](./scripts/verify-sha256.ps1)
+
 ---
+
 
 ## 1. Python verification
 
