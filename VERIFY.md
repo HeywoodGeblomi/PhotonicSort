@@ -11,7 +11,110 @@ Implementation pin (C port + Python companion at tag time):
 | [`SHA256SUMS_python.txt`](./SHA256SUMS_python.txt) | Python sources (live-check on `main`) |
 | [`c/SHA256SUMS`](./c/SHA256SUMS) | C code artifacts (live-check on `main`) |
 | [`SHA256SUMS_v1.0.1-c.txt`](./SHA256SUMS_v1.0.1-c.txt) | Full repo tree @ `841882d` (14 files) |
-| [`c/RELEASE_NOTES_v1.0.1-c.md`](./c/RELEASE_NOTES_v1.0.1-c.md) | C change index + full tables |
+| [`SHA256_VERIFY_COMMANDS.md`](./SHA256_VERIFY_COMMANDS.md) | Command-only sheet |
+| [`scripts/verify-sha256.sh`](./scripts/verify-sha256.sh) | One-shot verifier |
+
+---
+
+## SHA-256 verification commands (copy-paste)
+
+Run from the **repository root** after clone.
+
+### One-shot script
+
+```bash
+git clone https://github.com/HeywoodGeblomi/PhotonicSort.git
+cd PhotonicSort
+chmod +x scripts/verify-sha256.sh
+./scripts/verify-sha256.sh
+```
+
+### Manual — live working tree
+
+```bash
+# Python sources
+sha256sum -c SHA256SUMS_python.txt
+
+# C implementation artifacts
+sha256sum -c c/SHA256SUMS
+```
+
+Expected output (abbreviated):
+
+```
+photonic_sort.py: OK
+pyproject.toml: OK
+tests/test_photonic_sort.py: OK
+c/photonic_sort.c: OK
+c/photonic_sort.h: OK
+c/Makefile: OK
+c/examples/demo.c: OK
+c/tests/test_photonic_sort.c: OK
+```
+
+### Manual — per-file via git pin `841882d`
+
+```bash
+PIN=841882d906dc3fbf3bbc5c8dfa97f2773c0c1818
+
+# Python
+git show $PIN:photonic_sort.py | sha256sum
+# → 2bbdd552e0782d07c5d5f5d72983331f21d41b376c6ad0f530352be97589e89c
+
+git show $PIN:pyproject.toml | sha256sum
+# → 2e250763a95d26346a8eaa888aabb691556b08465f7c370de06b00d7af9c375d
+
+git show $PIN:tests/test_photonic_sort.py | sha256sum
+# → 03197caa57e33f92e6aecae8a82dc4e5aa4e8286c637121652de494c49238798
+
+# C
+git show $PIN:c/photonic_sort.c | sha256sum
+# → e4d4446e136b8b03c95dbb5a53ea4884db0351491a235e7c4e63eb4ad68ffb54
+
+git show $PIN:c/photonic_sort.h | sha256sum
+# → 16b795d5150d59e4d0bcf5a16182be041f351a3e8d0ecdc1fb667814b348e622
+```
+
+### Manual — full repository tree @ pin
+
+```bash
+PIN=841882d906dc3fbf3bbc5c8dfa97f2773c0c1818
+tmp=$(mktemp -d)
+git archive --format=tar "$PIN" | tar -x -C "$tmp"
+grep -E '^[0-9a-f]{64}  ' SHA256SUMS_v1.0.1-c.txt > "$tmp/SUMS"
+(cd "$tmp" && sha256sum -c SUMS)
+rm -rf "$tmp"
+```
+
+### Manual — OpenSSL (if `sha256sum` is unavailable)
+
+```bash
+openssl dgst -sha256 photonic_sort.py
+openssl dgst -sha256 c/photonic_sort.c
+openssl dgst -sha256 c/photonic_sort.h
+```
+
+### Manual — Python `hashlib` (stdlib)
+
+```bash
+python3 - <<'PY'
+import hashlib, pathlib
+files = [
+    ("photonic_sort.py", "2bbdd552e0782d07c5d5f5d72983331f21d41b376c6ad0f530352be97589e89c"),
+    ("pyproject.toml", "2e250763a95d26346a8eaa888aabb691556b08465f7c370de06b00d7af9c375d"),
+    ("tests/test_photonic_sort.py", "03197caa57e33f92e6aecae8a82dc4e5aa4e8286c637121652de494c49238798"),
+    ("c/photonic_sort.c", "e4d4446e136b8b03c95dbb5a53ea4884db0351491a235e7c4e63eb4ad68ffb54"),
+    ("c/photonic_sort.h", "16b795d5150d59e4d0bcf5a16182be041f351a3e8d0ecdc1fb667814b348e622"),
+]
+for path, want in files:
+    got = hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
+    status = "OK" if got == want else "BAD"
+    print(f"{status}  {got}  {path}")
+    if got != want:
+        raise SystemExit(1)
+print("All digests match.")
+PY
+```
 
 ---
 
