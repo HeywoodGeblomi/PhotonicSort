@@ -77,3 +77,7 @@ c/
 ## Team
 
 Grok · Harper · Benjamin · Lucas · Heywood Geblomi · MIT
+
+## Release notes / verification
+
+See [RELEASE_NOTES_v1.0.1-c.md](./RELEASE_NOTES_v1.0.1-c.md) for the public code-change verification index (SHA-256, API surface, parity table).
