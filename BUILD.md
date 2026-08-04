@@ -11,158 +11,125 @@ No third-party libraries are required for either layer.
 
 ---
 
-## Prerequisites
-
-### C11 core
-
-| Requirement | Notes |
-|-------------|--------|
-| C11 compiler | `gcc` 7+ or `clang` 6+ (`CC=clang make` works) |
-| `make` | GNU Make or compatible |
-| libc | ISO C library with `stdlib.h`, `string.h`, `stdint.h` |
-
-Optional: `g++` if you rebuild the benchmark harness that compares against `std::sort` (not required for the library).
-
-### Python reference
-
-| Requirement | Notes |
-|-------------|--------|
-| Python | 3.10 or newer |
-| pip / build (optional) | Only if installing as a package |
-
----
-
 ## C11 core
 
 ```bash
 git clone https://github.com/HeywoodGeblomi/PhotonicSort.git
 cd PhotonicSort/c
+make && make test && ./demo
 ```
-
-### Build library objects, demo, and tests
 
 ```bash
-make            # builds lib + demo + test_photonic_sort
-make test       # run unit tests
-./demo          # small timing / path-routing demo
+make release    # -DNDEBUG -O3 -flto (dynamic, portable)
+make static     # fully static (-static) for scratch/distroless
+make native     # -march=native -flto (local only)
+make lib && make install PREFIX=/usr/local
 ```
 
-Default flags (safe performance — no `-Ofast` / no fast-math):
-
-```text
--O3 -std=c11 -Wall -Wextra -Wpedantic
--fno-strict-aliasing -fomit-frame-pointer -pipe
--ffunction-sections -fdata-sections
--Wl,--gc-sections          # at link time
-```
-
-### Release build (portable, recommended)
-
-```bash
-make release    # clean + -DNDEBUG -O3 -flto + lib + demo + test
-```
-
-Produces `libphotonic_sort.a`, `demo`, and `test_photonic_sort`.
-
-### Alternate compiler / toggles
-
-```bash
-make clean all test CC=clang
-make clean all test LTO=1          # link-time optimization
-make native                        # -march=native -mtune=native -flto (local only)
-```
-
-### Machine-local peak
-
-Portable releases and Docker images **omit** `-march=native`. For local microbenchmarks:
-
-```bash
-make native
-```
-
-### Link into your program
-
-```bash
-cd c
-make lib
-$(CC) -O3 -std=c11 your_app.c -I. -L. -lphotonic_sort -o your_app
-```
-
-Header: `#include "photonic_sort.h"` with `-I path/to/PhotonicSort/c`.
-
-### Install (optional)
-
-```bash
-sudo make install PREFIX=/usr/local
-```
-
-### Makefile targets
-
-| Target | Action |
-|--------|--------|
-| `all` | Static lib + demo + tests binary |
-| `lib` | `libphotonic_sort.a` |
-| `test` | Build and run unit tests |
-| `release` | Portable `-DNDEBUG -flto` rebuild + test |
-| `native` | Local CPU peak |
-| `install` | Header + static lib to `PREFIX` |
-| `clean` / `help` | Clean / list options |
-
-### Windows
-
-MinGW / MSYS2 / WSL recommended (`make`). MSVC: add `photonic_sort.c` to a C project and include the header.
+Default flags: `-O3 -fomit-frame-pointer -ffunction-sections -Wl,--gc-sections` (no `-Ofast`).
 
 ---
 
 ## Python reference
 
 ```bash
-cd PhotonicSort
 python3 photonic_sort.py
 python3 -m unittest discover -s tests -v
-python3 -m pip install -e .    # optional
 ```
 
 ---
 
 ## Docker
 
-Multi-stage `Dockerfile` at repo root builds the **C11 release profile** (`make release`: `-O3 -DNDEBUG -flto`), runs tests, and optionally the Python suite.
+Multi-stage `Dockerfile` (BuildKit). Stages are separate machines; `COPY --from` moves artifacts; `--target` selects which stage to tag; the final image is the last `FROM` unless `--target` overrides.
 
-### Build
+```text
+c-builder ─────────────► test
+       │                   runtime          (default tag)
+       │
+c-builder-static ──────► test-static
+       ├────────────────► runtime-static    (scratch)
+       ├────────────────► runtime-distroless
+       └────────────────► lib-export        (.a + .h only)
+
+python-ref   (parallel; no C toolchain)
+```
 
 ```bash
-docker build -t photonicsort .
+export DOCKER_BUILDKIT=1
+```
+
+### Build targets
+
+```bash
+docker build -t photonicsort .                              # default runtime
 docker build --target test -t photonicsort:test .
+docker build --target test-static -t photonicsort:test-static .
 docker build --target python-ref -t photonicsort:python .
+docker build --target lib-export -t photonicsort:lib .      # .a + .h only
+docker build --target runtime-static -t photonicsort:static .
+docker build --target runtime-distroless -t photonicsort:distroless .
 ```
 
 ### Run
 
 ```bash
-docker run --rm photonicsort           # C tests + demo
-docker run --rm photonicsort:test      # C tests only
-docker run --rm photonicsort:python    # Python demo
+docker run --rm photonicsort
+docker run --rm photonicsort:test
+docker run --rm photonicsort:static
+docker run --rm photonicsort:python
 ```
 
-### Artifacts in the default image
-
-| Path | Content |
-|------|---------|
-| `/opt/photonicsort/demo` | C demo |
-| `/opt/photonicsort/test_photonic_sort` | C unit tests |
-| `/opt/photonicsort/lib/libphotonic_sort.a` | Static library |
-| `/opt/photonicsort/include/photonic_sort.h` | Public header |
-| `/opt/photonicsort/src/photonic_sort.c` | Source |
+### Extract the static library (`lib-export`)
 
 ```bash
-docker create --name ps photonicsort
-docker cp ps:/opt/photonicsort/lib/libphotonic_sort.a .
-docker cp ps:/opt/photonicsort/include/photonic_sort.h .
-docker rm ps
+docker build --target lib-export -t photonicsort:lib .
+docker create --name ps-lib photonicsort:lib
+docker cp ps-lib:/libphotonic_sort.a .
+docker cp ps-lib:/photonic_sort.h .
+docker rm ps-lib
 ```
 
-Docker uses the **portable** flag set (no `-march=native`). Bases: `debian:bookworm-slim`, `python:3.12-slim-bookworm`.
+### BuildKit cache mounts
+
+C builder stages use `RUN --mount=type=cache` for apt (Debian) and apk (Alpine). Package downloads stay on the **builder host** across rebuilds and are **not** baked into image layers.
+
+### Static / scratch / distroless
+
+| Stage | Base | Linkage | Use when |
+|-------|------|---------|----------|
+| `runtime` | `debian:bookworm-slim` | dynamic glibc | Default; shell + easy debug |
+| `runtime-static` | `scratch` | fully static (musl) | Minimal attack surface |
+| `runtime-distroless` | `gcr.io/distroless/static-debian12` | fully static | Distroless policy environments |
+| `lib-export` | `scratch` | static `.a` | Depend on PhotonicSort from other builds |
+
+Static path: Alpine `c-builder-static` runs `make static`.
+
+### Provenance and SBOM
+
+```bash
+docker buildx create --name photonicsort-builder --use --driver docker-container 2>/dev/null \
+  || docker buildx use photonicsort-builder
+
+docker buildx build \
+  --sbom=true \
+  --provenance=mode=max \
+  -t photonicsort:prov \
+  --load \
+  .
+
+docker buildx build \
+  --target runtime-static \
+  --sbom=true \
+  --provenance=mode=max \
+  -t photonicsort:static-prov \
+  --load \
+  .
+
+# Registry example:
+# docker buildx build --sbom=true --provenance=mode=max \
+#   -t ghcr.io/you/photonicsort:1.0.1 --push .
+```
 
 ---
 
@@ -170,6 +137,7 @@ Docker uses the **portable** flag set (no `-march=native`). Bases: `debian:bookw
 
 ```bash
 cd c && make test && ./demo
+cd c && make static && make test
 python3 -m unittest discover -s tests -v
 docker build -t photonicsort . && docker run --rm photonicsort
 ```
