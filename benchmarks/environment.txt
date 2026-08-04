@@ -1,8 +1,8 @@
-os: Linux-6.12.8+-x86_64-with-glibc2.39
-python: 3.12.3 (main, Mar 23 2026, 19:04:32) [GCC 13.3.0]
+os: Linux-6.12.8+-x86_64
 machine: x86_64
 cpu: Intel(R) Xeon(R) Platinum 8481C CPU @ 2.70GHz
 g++: g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
 cc: cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
 flags: -O3 -std=c11 / -O3 -std=c++17
-photonic_sort: v1.0.1 / C 1.0.1-c
+photonic_sort: v1.3.1-c
+date: 2026-08-04T05:18:25Z
