@@ -1,0 +1,18 @@
+[package]
+name = "photonic-sort-sys"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Low-level FFI bindings to PhotonicSort C11 (v1.3.1-c)"
+links = "photonic_sort"
+build = "build.rs"
+
+[features]
+default = ["vendored"]
+# Compile the C sources shipped in this repository (../../c).
+vendored = []
+
+[build-dependencies]
+cc = "1.0"
