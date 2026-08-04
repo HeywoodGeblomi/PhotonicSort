@@ -19,7 +19,8 @@ PhotonicSort is a **classical** adaptive sorting algorithm: a single-pass disord
 
 **Not** optical hardware. **Not** a claim of light-speed sorting or P = NP. See [Non-claims](#non-claims).
 
-**Build:** [BUILD.md](./BUILD.md) · **Benchmarks:** [BENCHMARKS.md](./BENCHMARKS.md)
+**Technical site:** https://heywoodgeblomi.github.io/PhotonicSort/  
+**Build:** [BUILD.md](./BUILD.md) · **Benchmarks:** [BENCHMARKS.md](./BENCHMARKS.md) · **Show HN package:** [SHOW_HN.md](./SHOW_HN.md)
 
 ---
 
@@ -28,109 +29,48 @@ PhotonicSort is a **classical** adaptive sorting algorithm: a single-pass disord
 ```
 PhotonicSort/
 ├── c/                      # C11 performance core (primary)
-│   ├── photonic_sort.h     # public API
-│   ├── photonic_sort.c     # probe + early-exit + residual
-│   ├── Makefile
-│   ├── examples/demo.c
-│   └── tests/
 ├── photonic_sort.py        # Python reference (stdlib)
-├── tests/                  # Python unit tests
-├── benchmarks/             # measured timings + environment
-├── BUILD.md                # full build instructions
-├── BENCHMARKS.md           # C vs std::sort, Python vs Timsort
-├── RESEARCH.md             # naming metaphor + citations
-└── VERIFY.md               # integrity / SHA-256 procedures
+├── docs/                   # GitHub Pages site (index.html)
+├── BUILD.md
+├── BENCHMARKS.md
+├── RESEARCH.md
+└── VERIFY.md
 ```
 
-**Data path (both languages)**
-
-1. **Probe** — one O(n) (or stratified-sample) pass: inversion ratio, max run, run count, direction changes, sortedness.
-2. **Structure early-exit** — fully sorted → no-op; fully reverse → in-place reverse; other high-structure cases take a near-linear path when eligible.
-3. **Residual sort** — stable bottom-up mergesort (C) or Timsort/`sorted` (Python) when the probe does not authorize an early exit.
-
-Path codes (C): `0` trivial · `1` structure early path · `2` residual · `-1` allocation failure.
+**Data path:** probe → structure early-exit → residual sort (stable mergesort in C).
 
 ---
 
 ## Build (quick start)
 
-### C11 core (recommended)
-
 ```bash
 git clone https://github.com/HeywoodGeblomi/PhotonicSort.git
 cd PhotonicSort/c
-make            # demo + tests
-make test       # unit tests
-./demo
+make && make test && ./demo
+make release    # portable -O3 -DNDEBUG -flto
+make static     # fully static for scratch/distroless
 ```
 
-Requirements: C11 compiler (`gcc` or `clang`) and `make`. Default flags: `-O3 -std=c11 -Wall -Wextra -Wpedantic`.
-
-```bash
-make release              # clean + -DNDEBUG + test
-make clean all CC=clang   # alternate compiler
-```
-
-Link into your code:
-
-```bash
-$(CC) -O3 -std=c11 -c photonic_sort.c -o photonic_sort.o
-$(CC) -O3 -std=c11 your_app.c photonic_sort.o -o your_app
-```
-
-### Python reference
-
-```bash
-cd PhotonicSort
-python3 photonic_sort.py
-python3 -m unittest discover -s tests -v
-
-# optional package install
-python3 -m pip install -e .
-```
-
-Full platform notes, MSVC/MinGW, and troubleshooting: **[BUILD.md](./BUILD.md)**.
+Docker: `docker build -t photonicsort . && docker run --rm photonicsort`  
+Full guide: [BUILD.md](./BUILD.md).
 
 ---
 
 ## C11 API
 
-### Fast path (`int64_t`)
-
 ```c
 #include "photonic_sort.h"
-
 int64_t a[] = {7, 2, 9, 1, 5, 3, 8, 4, 6, 0};
-photonic_sort_i64(a, 10);           /* in-place adaptive */
-
-photonic_probe_t p;
-photonic_probe_i64(a, 10, &p);      /* inspect disorder profile */
+photonic_sort_i64(a, 10);
 ```
 
-### Generic path
-
-```c
-int cmp(const void *x, const void *y);   /* qsort-style */
-photonic_sort(base, n, sizeof(*elem), cmp);
-```
-
-| API | Role |
-|-----|------|
-| `photonic_probe_i64` / `photonic_probe_generic` | Disorder profile |
-| `photonic_sort_i64` | In-place adaptive `int64_t` |
-| `photonic_sort_i64_force_collapse` | Force residual path |
-| `photonic_sort_i64_copy` | Out-of-place |
-| `photonic_sort` | Generic `void *` + comparator |
-
-Details: [`c/README.md`](./c/README.md) · release index: [`c/RELEASE_NOTES_v1.0.1-c.md`](./c/RELEASE_NOTES_v1.0.1-c.md).
+Details: [`c/README.md`](./c/README.md).
 
 ---
 
 ## Benchmarks
 
-Measured on Linux x86_64, `-O3`, best of 5. Correctness checked against `std::sort` each trial.
-
-**C · n = 1,000,000 · `int64_t`**
+**C · n = 1,000,000 · `int64_t`** (best of 5, `-O3`)
 
 | Pattern | PhotonicSort C | `std::sort` | Ratio |
 |---------|---------------:|------------:|------:|
@@ -139,58 +79,18 @@ Measured on Linux x86_64, `-O3`, best of 5. Correctness checked against `std::so
 | Organpipe | **26.2 ms** | 89.0 ms | ~3.4× |
 | Random | 105 ms | **78 ms** | `std::sort` faster |
 
-Structure early-exits explain the sorted/reverse wins. On unstructured random input, a tuned introsort remains competitive — expected for adaptive designs.
-
-Full tables, Python vs Timsort honesty panel, CSV, and host notes: **[BENCHMARKS.md](./BENCHMARKS.md)**.
-
----
-
-## Python usage
-
-```python
-from photonic_sort import photonic_sort, photonic_probe
-
-data = [7, 2, 9, 1, 5, 3, 8, 4, 6, 0]
-print(photonic_sort(data))
-# [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-
-print(photonic_probe(data))
-```
-
-CPython’s `list.sort` (Timsort) is native C and will typically beat pure-Python PhotonicSort on bulk paths. Prefer the **C11 library** for performance work.
-
----
-
-## Integrity
-
-| Document | Purpose |
-|----------|---------|
-| [VERIFY.md](./VERIFY.md) | Functional + digest checks |
-| [SHA256_VERIFY_COMMANDS.md](./SHA256_VERIFY_COMMANDS.md) | Shell / PowerShell commands |
-| [scripts/verify-sha256.sh](./scripts/verify-sha256.sh) | Automated verifier |
-| [SHA256SUMS_v1.0.1-c.txt](./SHA256SUMS_v1.0.1-c.txt) | C release digests |
+Full tables: [BENCHMARKS.md](./BENCHMARKS.md).
 
 ---
 
 ## Non-claims
 
-1. PhotonicSort does **not** use photonic or optical processors.
-2. It does **not** sort “at the speed of light” or bypass ordinary RAM/CPU limits.
-3. It does **not** prove P = NP or solve NP-complete problems.
-4. Worst-case complexity remains **O(n log n)**.
-5. The name and research notes refer to a **design metaphor** drawn from published weak-value / negative group-delay photon experiments (arXiv:2409.03680), not to physical retrocausality in software. Details: [RESEARCH.md](./RESEARCH.md).
-
----
-
-## Related projects
-
-| Project | Role |
-|---------|------|
-| [GeblomiSort](https://github.com/HeywoodGeblomi/GeblomiSort) | C++20 production 1-D hybrid (probe / pdqsort / ska / Verge) |
-| ImplosionSort (2-D+) | Multi-dimensional disposition research |
-
----
+1. No photonic/optical processors.
+2. Does not sort “at the speed of light.”
+3. Does not prove P = NP.
+4. Worst case remains **O(n log n)**.
+5. Name is a design metaphor (arXiv:2409.03680) — [RESEARCH.md](./RESEARCH.md).
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+MIT — [LICENSE](./LICENSE).
