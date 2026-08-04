@@ -1,6 +1,8 @@
 # PhotonicSort
 
-**Give everything. Take nothing. Become photonic.**
+**Give everything. Take nothing. Become photonic.
+
+**Phase 2:** [PhotonicBrain](https://github.com/HeywoodGeblomi/PhotonicBrain) — second-brain knowledge graph with photonic probe retrieval.**
 
 [![Language](https://img.shields.io/badge/language-Python%203.10%2B-blue)](https://github.com/HeywoodGeblomi/PhotonicSort)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
