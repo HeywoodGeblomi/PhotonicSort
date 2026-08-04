@@ -42,141 +42,136 @@ cd PhotonicSort/c
 ### Build library objects, demo, and tests
 
 ```bash
-make            # builds demo + test_photonic_sort
+make            # builds lib + demo + test_photonic_sort
 make test       # run unit tests
 ./demo          # small timing / path-routing demo
 ```
 
-Default flags:
+Default flags (safe performance — no `-Ofast` / no fast-math):
 
 ```text
--O3 -std=c11 -Wall -Wextra -Wpedantic -fno-strict-aliasing
+-O3 -std=c11 -Wall -Wextra -Wpedantic
+-fno-strict-aliasing -fomit-frame-pointer -pipe
+-ffunction-sections -fdata-sections
+-Wl,--gc-sections          # at link time
 ```
 
-### Release build
+### Release build (portable, recommended)
 
 ```bash
-make release    # clean + -DNDEBUG -O3 + rebuild + test
+make release    # clean + -DNDEBUG -O3 -flto + lib + demo + test
 ```
 
-### Alternate compiler
+Produces `libphotonic_sort.a`, `demo`, and `test_photonic_sort`.
+
+### Alternate compiler / toggles
 
 ```bash
 make clean all test CC=clang
-# or
-make clean all test CC=gcc-13
+make clean all test LTO=1          # link-time optimization
+make native                        # -march=native -mtune=native -flto (local only)
 ```
 
-### Machine-local peak (optional)
+### Machine-local peak
 
-Portable releases should **omit** these. For local microbenchmarks only:
+Portable releases and Docker images **omit** `-march=native`. For local microbenchmarks:
 
 ```bash
-make clean all CFLAGS="-O3 -std=c11 -march=native -flto -Wall -Wextra -fno-strict-aliasing -I."
+make native
 ```
 
 ### Link into your program
 
 ```bash
-# Compile the single translation unit once
-$(CC) -O3 -std=c11 -c photonic_sort.c -o photonic_sort.o
-
-# Link with your code
-$(CC) -O3 -std=c11 your_app.c photonic_sort.o -o your_app
+cd c
+make lib
+$(CC) -O3 -std=c11 your_app.c -I. -L. -lphotonic_sort -o your_app
 ```
 
-Header:
+Header: `#include "photonic_sort.h"` with `-I path/to/PhotonicSort/c`.
 
-```c
-#include "photonic_sort.h"   /* add -I path/to/PhotonicSort/c when compiling */
+### Install (optional)
+
+```bash
+sudo make install PREFIX=/usr/local
 ```
-
-There is no install target yet; copy `photonic_sort.h` + `photonic_sort.c` (or the `.o`) into your tree, or point `-I` / link flags at `c/`.
 
 ### Makefile targets
 
 | Target | Action |
 |--------|--------|
-| `all` (default) | Build `demo` and `test_photonic_sort` |
-| `test` | Build tests if needed and run them |
-| `demo` | Build `./demo` |
-| `demo-run` | Build and run `./demo` |
-| `release` | `clean` + `-DNDEBUG` rebuild + `test` |
-| `clean` | Remove objects and binaries |
+| `all` | Static lib + demo + tests binary |
+| `lib` | `libphotonic_sort.a` |
+| `test` | Build and run unit tests |
+| `release` | Portable `-DNDEBUG -flto` rebuild + test |
+| `native` | Local CPU peak |
+| `install` | Header + static lib to `PREFIX` |
+| `clean` / `help` | Clean / list options |
 
-### Windows (MSVC)
+### Windows
 
-The primary path is Makefile + GCC/Clang (MinGW, MSYS2, or WSL recommended):
-
-```bash
-# MSYS2 / MinGW example
-pacman -S mingw-w64-x86_64-gcc make
-cd c
-make
-```
-
-MSVC project files are not shipped. You can add `photonic_sort.c` to a Visual Studio project as a C file, define nothing special beyond a C11-capable toolset, and include `photonic_sort.h`.
-
-### Troubleshooting (C)
-
-| Symptom | Check |
-|---------|--------|
-| `restrict` errors under C++ | Compile as C, or `#define restrict` before including the header from C++ (see header `extern "C"` block) |
-| Link errors for `photonic_sort_*` | Ensure `photonic_sort.o` is on the link line |
-| Tests fail | Run `make clean all test`; confirm `sizeof(int64_t) == 8` |
+MinGW / MSYS2 / WSL recommended (`make`). MSVC: add `photonic_sort.c` to a C project and include the header.
 
 ---
 
 ## Python reference
 
-### Run without installing
-
-```bash
-git clone https://github.com/HeywoodGeblomi/PhotonicSort.git
-cd PhotonicSort
-
-python3 photonic_sort.py                    # demo / self-check
-python3 -m unittest discover -s tests -v    # unit tests
-```
-
-### Import from the repo root
-
 ```bash
 cd PhotonicSort
-python3 -c "from photonic_sort import photonic_sort; print(photonic_sort([3,1,2]))"
+python3 photonic_sort.py
+python3 -m unittest discover -s tests -v
+python3 -m pip install -e .    # optional
 ```
-
-### Install editable (optional)
-
-```bash
-python3 -m pip install -e .
-photonic-sort-demo    # console script from pyproject.toml
-```
-
-Dependencies: **none** beyond the standard library.
-
-### Troubleshooting (Python)
-
-| Symptom | Check |
-|---------|--------|
-| `ModuleNotFoundError: photonic_sort` | Run from repo root, or `pip install -e .` |
-| Import works but tests missing | Ensure `tests/` is present; use `python3 -m unittest discover -s tests -v` |
 
 ---
 
-## Verify a build
+## Docker
 
-After building:
+Multi-stage `Dockerfile` at repo root builds the **C11 release profile** (`make release`: `-O3 -DNDEBUG -flto`), runs tests, and optionally the Python suite.
+
+### Build
 
 ```bash
-# C
-cd c && make test && ./demo
-
-# Python
-python3 -m unittest discover -s tests -v
-
-# Optional digest checks (release artifacts)
-# see VERIFY.md and scripts/verify-sha256.sh
+docker build -t photonicsort .
+docker build --target test -t photonicsort:test .
+docker build --target python-ref -t photonicsort:python .
 ```
 
-Performance numbers and methodology: [BENCHMARKS.md](./BENCHMARKS.md).
+### Run
+
+```bash
+docker run --rm photonicsort           # C tests + demo
+docker run --rm photonicsort:test      # C tests only
+docker run --rm photonicsort:python    # Python demo
+```
+
+### Artifacts in the default image
+
+| Path | Content |
+|------|---------|
+| `/opt/photonicsort/demo` | C demo |
+| `/opt/photonicsort/test_photonic_sort` | C unit tests |
+| `/opt/photonicsort/lib/libphotonic_sort.a` | Static library |
+| `/opt/photonicsort/include/photonic_sort.h` | Public header |
+| `/opt/photonicsort/src/photonic_sort.c` | Source |
+
+```bash
+docker create --name ps photonicsort
+docker cp ps:/opt/photonicsort/lib/libphotonic_sort.a .
+docker cp ps:/opt/photonicsort/include/photonic_sort.h .
+docker rm ps
+```
+
+Docker uses the **portable** flag set (no `-march=native`). Bases: `debian:bookworm-slim`, `python:3.12-slim-bookworm`.
+
+---
+
+## Verify
+
+```bash
+cd c && make test && ./demo
+python3 -m unittest discover -s tests -v
+docker build -t photonicsort . && docker run --rm photonicsort
+```
+
+Performance methodology: [BENCHMARKS.md](./BENCHMARKS.md).
