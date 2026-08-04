@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PhotonicSort — Adaptive hybrid sorting (C11 + Python)</title>
+  <meta name="description" content="PhotonicSort is a classical adaptive hybrid sorting library: C11 performance core and pure-stdlib Python reference. O(n log n) worst case; structure-aware early exits on sorted and reverse input." />
+  <meta name="robots" content="index,follow" />
+  <link rel="canonical" href="https://heywoodgeblomi.github.io/PhotonicSort/" />
+  <style>
+    :root { color-scheme: light dark; --fg: #1f2328; --muted: #656d76; --border: #d0d7de; --bg: #ffffff; --code: #f6f8fa; }
+    @media (prefers-color-scheme: dark) {
+      :root { --fg: #e6edf3; --muted: #8b949e; --border: #30363d; --bg: #0d1117; --code: #161b22; }
+    }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+           line-height: 1.55; max-width: 44rem; margin: 2rem auto; padding: 0 1.25rem; color: var(--fg); background: var(--bg); }
+    h1,h2,h3 { line-height: 1.25; }
+    h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
+    .sub { color: var(--muted); margin-top: 0; }
+    a { color: #0969da; }
+    @media (prefers-color-scheme: dark) { a { color: #2f81f7; } }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.95rem; }
+    th, td { border: 1px solid var(--border); padding: 0.45rem 0.6rem; text-align: left; }
+    th { background: var(--code); }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
+    pre { background: var(--code); padding: 0.85rem 1rem; overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; }
+    .note { border-left: 3px solid var(--border); padding-left: 0.85rem; color: var(--muted); }
+    footer { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <h1>PhotonicSort</h1>
+  <p class="sub">Adaptive hybrid sorting library — C11 core + Python reference · MIT · v1.0.1</p>
+
+  <p>
+    PhotonicSort is a <strong>classical</strong> adaptive sorting algorithm.
+    A single-pass disorder probe chooses between structure-aware early exits
+    and a stable residual sort. The production implementation is a
+    <strong>C11 library</strong> (<code>libc</code> only). A pure-stdlib Python module
+    serves as a reference and research harness.
+  </p>
+
+  <p class="note">
+    This is not optical hardware, not a claim of light-speed sorting, and not a P = NP result.
+    Worst-case complexity remains <strong>O(n log n)</strong>.
+  </p>
+
+  <h2>Properties</h2>
+  <table>
+    <tr><th>Property</th><th>Value</th></tr>
+    <tr><td>Correctness</td><td>Always correct; stable residual path</td></tr>
+    <tr><td>Worst case</td><td>O(n log n)</td></tr>
+    <tr><td>Best case</td><td>Near-linear on sorted / reverse / long-run input</td></tr>
+    <tr><td>C dependencies</td><td>libc only</td></tr>
+    <tr><td>Python dependencies</td><td>stdlib only</td></tr>
+  </table>
+
+  <h2>Algorithm sketch</h2>
+  <ol>
+    <li><strong>Probe</strong> — one O(n) (or stratified-sample) pass: inversion ratio, max run, run count, direction changes, sortedness.</li>
+    <li><strong>Structure early-exit</strong> — sorted → no-op; reverse → in-place reverse; other high-structure cases may take a near-linear path.</li>
+    <li><strong>Residual sort</strong> — stable bottom-up mergesort (C) when an early exit is not authorized.</li>
+  </ol>
+
+  <h2>Measured timings (C, n = 1,000,000, int64)</h2>
+  <p>Linux x86_64, <code>-O3</code>, best of 5. Correctness checked against <code>std::sort</code> each trial.</p>
+  <table>
+    <tr><th>Pattern</th><th>PhotonicSort C</th><th>std::sort</th><th>Ratio</th></tr>
+    <tr><td>Sorted</td><td><strong>0.019 ms</strong></td><td>15.03 ms</td><td>~800×</td></tr>
+    <tr><td>Reverse</td><td><strong>0.44 ms</strong></td><td>9.34 ms</td><td>~21×</td></tr>
+    <tr><td>Organpipe</td><td><strong>26.2 ms</strong></td><td>89.0 ms</td><td>~3.4×</td></tr>
+    <tr><td>Random</td><td>105 ms</td><td><strong>78 ms</strong></td><td>std::sort faster</td></tr>
+  </table>
+  <p>
+    Structure early-exits explain sorted/reverse wins. On unstructured random input,
+    tuned introsort remains competitive — expected for adaptive designs.
+  </p>
+
+  <h2>C11 usage</h2>
+  <pre><code>#include "photonic_sort.h"
+
+int64_t a[] = {7, 2, 9, 1, 5, 3, 8, 4, 6, 0};
+photonic_sort_i64(a, 10);   /* in-place adaptive */</code></pre>
+
+  <pre><code>cd c &amp;&amp; make &amp;&amp; make test
+make release    # -O3 -DNDEBUG -flto
+make static     # fully static (scratch / distroless)</code></pre>
+
+  <h2>Architecture note</h2>
+  <p>
+    The C library is a <strong>standalone</strong> C11 translation unit, not a Python C-extension.
+    It does not touch the Python GIL. The Python package is a separate pure-stdlib reference.
+  </p>
+
+  <h2>Links</h2>
+  <ul>
+    <li><a href="https://github.com/HeywoodGeblomi/PhotonicSort">Source repository</a></li>
+    <li><a href="https://github.com/HeywoodGeblomi/PhotonicSort/blob/main/BENCHMARKS.md">BENCHMARKS.md</a></li>
+    <li><a href="https://github.com/HeywoodGeblomi/PhotonicSort/blob/main/BUILD.md">BUILD.md</a> (native + Docker)</li>
+    <li><a href="https://github.com/HeywoodGeblomi/PhotonicSort/blob/main/RESEARCH.md">RESEARCH.md</a> (naming metaphor + non-claims)</li>
+    <li><a href="https://github.com/HeywoodGeblomi/PhotonicSort/blob/main/VERIFY.md">VERIFY.md</a> (SHA-256 integrity)</li>
+  </ul>
+
+  <footer>
+    MIT License · PhotonicSort v1.0.1 · Classical adaptive sort · Name is a design metaphor only
+  </footer>
+</body>
+</html>
