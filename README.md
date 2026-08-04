@@ -19,6 +19,8 @@ PhotonicSort is a **classical** adaptive sorting algorithm: a single-pass disord
 
 **Not** optical hardware. **Not** a claim of light-speed sorting or P = NP. See [Non-claims](#non-claims).
 
+**Build:** [BUILD.md](./BUILD.md) · **Benchmarks:** [BENCHMARKS.md](./BENCHMARKS.md)
+
 ---
 
 ## Architecture
@@ -34,6 +36,7 @@ PhotonicSort/
 ├── photonic_sort.py        # Python reference (stdlib)
 ├── tests/                  # Python unit tests
 ├── benchmarks/             # measured timings + environment
+├── BUILD.md                # full build instructions
 ├── BENCHMARKS.md           # C vs std::sort, Python vs Timsort
 ├── RESEARCH.md             # naming metaphor + citations
 └── VERIFY.md               # integrity / SHA-256 procedures
@@ -49,14 +52,48 @@ Path codes (C): `0` trivial · `1` structure early path · `2` residual · `-1` 
 
 ---
 
-## C11 core (recommended)
+## Build (quick start)
+
+### C11 core (recommended)
 
 ```bash
-cd c
-make            # build demo + tests
-make test
+git clone https://github.com/HeywoodGeblomi/PhotonicSort.git
+cd PhotonicSort/c
+make            # demo + tests
+make test       # unit tests
 ./demo
 ```
+
+Requirements: C11 compiler (`gcc` or `clang`) and `make`. Default flags: `-O3 -std=c11 -Wall -Wextra -Wpedantic`.
+
+```bash
+make release              # clean + -DNDEBUG + test
+make clean all CC=clang   # alternate compiler
+```
+
+Link into your code:
+
+```bash
+$(CC) -O3 -std=c11 -c photonic_sort.c -o photonic_sort.o
+$(CC) -O3 -std=c11 your_app.c photonic_sort.o -o your_app
+```
+
+### Python reference
+
+```bash
+cd PhotonicSort
+python3 photonic_sort.py
+python3 -m unittest discover -s tests -v
+
+# optional package install
+python3 -m pip install -e .
+```
+
+Full platform notes, MSVC/MinGW, and troubleshooting: **[BUILD.md](./BUILD.md)**.
+
+---
+
+## C11 API
 
 ### Fast path (`int64_t`)
 
@@ -85,7 +122,7 @@ photonic_sort(base, n, sizeof(*elem), cmp);
 | `photonic_sort_i64_copy` | Out-of-place |
 | `photonic_sort` | Generic `void *` + comparator |
 
-Full notes: [`c/README.md`](./c/README.md) · release index: [`c/RELEASE_NOTES_v1.0.1-c.md`](./c/RELEASE_NOTES_v1.0.1-c.md).
+Details: [`c/README.md`](./c/README.md) · release index: [`c/RELEASE_NOTES_v1.0.1-c.md`](./c/RELEASE_NOTES_v1.0.1-c.md).
 
 ---
 
@@ -108,12 +145,7 @@ Full tables, Python vs Timsort honesty panel, CSV, and host notes: **[BENCHMARKS
 
 ---
 
-## Python reference
-
-```bash
-python photonic_sort.py
-python -m unittest discover -s tests -v
-```
+## Python usage
 
 ```python
 from photonic_sort import photonic_sort, photonic_probe
