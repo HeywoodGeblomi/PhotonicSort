@@ -1,67 +1,117 @@
 # PhotonicSort
 
-**Give everything. Take nothing. Become photonic.**
+**Adaptive hybrid sorting library** — C11 performance core + Python reference implementation.
 
-[![Language](https://img.shields.io/badge/language-Python%203.10%2B-blue)](https://github.com/HeywoodGeblomi/PhotonicSort)
-[![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
-[![Companion](https://img.shields.io/badge/companion-GeblomiSort-purple)](https://github.com/HeywoodGeblomi/GeblomiSort)
-[![X](https://img.shields.io/badge/X-%40HeywoodGeblomi-black?logo=x)](https://x.com/HeywoodGeblomi)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+[![C11](https://img.shields.io/badge/C-11-blue.svg)](./c/)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](./photonic_sort.py)
+[![Version](https://img.shields.io/badge/version-1.0.1-informational.svg)](./BENCHMARKS.md)
 
-**v1.0.1** · Adaptive hybrid sorting algorithm that turns a philosophical analogy into **objective, executable, marketing-grade code** — while remaining honest about physics and complexity.
-
-> Optimizations: single-pass probe, deterministic sampling, true O(n) exits on pure ascending/descending structure, element-span `max_run` scaling.
-
-**Benchmarks (C vs `std::sort`, Python vs Timsort):** [`BENCHMARKS.md`](./BENCHMARKS.md) — hard numbers, not vibes.
-
-## The analogy, objectively reconstructed
-
-Physics presents a striking experimental fact (University of Toronto, **Angulo, Steinberg, Wiseman et al.**, 2024–2026):
-
-> A photon transmitted through an ultracold rubidium atom cloud can register a **negative** mean atomic excitation time (weak value). The photon can appear to exit the medium *before* it enters. Group delay and measured dwell time as excitation can both be negative.  
-> **arXiv:2409.03680** · later *Physical Review Letters* (2026).
-
-No information travels backward. Causality and special relativity remain intact. The effect is a quantum post-selected / weak-value phenomenon.
-
-A related theoretical thread (**Castagnoli**, arXiv:2505.08346) interprets quantum computational speedups as teleological evolutions whose attractor is the future solution. We treat that strictly as **inspirational metaphor**.
-
-### Design ethos
-
-| Phrase | Algorithm meaning |
-|--------|-------------------|
-| **Give everything** | Probe commits fully to measuring structure (O(n) disorder profile) |
-| **Take nothing** | Result retains no residual disorder — pure ordered state |
-| **Become photonic** | Exit at the ranks (the only consistent boundary condition) |
-| **Die at the answer** | Collapse terminates when every element sits in its required rank |
-
-**This does not solve NP-complete problems and does not prove P = NP.** The retrocausality is design metaphor, not a physical claim inside the computer.
-
----
-
-## What PhotonicSort actually is
-
-A classical adaptive hybrid:
-
-1. **Photonic probe** — single O(n) pass (full scan or stratified sample) computing a Gyro-style disorder profile: inversion ratio, max monotonic run, direction changes, equals, sortedness, `group_delay_proxy`, and a negative-delay decision flag.
-2. **Negative-time early-exit path** — when structure is high (sorted, reverse, long runs / organpipe), preferentially honour the “survivors” that can exit with minimal work (near-linear Timsort / stable sort on structured data).
-3. **Retrocausal collapse** — compute the unique ranks required by the final sorted configuration and place every element into its rank. The way out of the dataset is via the answer.
+PhotonicSort is a **classical** adaptive sorting algorithm: a single-pass disorder probe selects between structure-aware early exits and a stable residual sort. The production path is a **C11 library** (`c/`); Python provides a pure-stdlib reference and research harness.
 
 | Property | Value |
 |----------|-------|
-| Correctness | Always correct (stable on equal keys) |
+| Correctness | Always correct; stable residual path |
 | Worst case | O(n log n) |
-| Best case | Near-linear on highly structured input |
-| Space | O(n) out-of-place (cycle-follow in-place variant possible) |
-| Dependencies | **Pure stdlib** |
+| Best case | Near-linear on sorted / reverse / long-run input |
+| C dependencies | libc only |
+| Python dependencies | stdlib only |
+
+**Not** optical hardware. **Not** a claim of light-speed sorting or P = NP. See [Non-claims](#non-claims).
 
 ---
 
-## Quick start
+## Architecture
+
+```
+PhotonicSort/
+├── c/                      # C11 performance core (primary)
+│   ├── photonic_sort.h     # public API
+│   ├── photonic_sort.c     # probe + early-exit + residual
+│   ├── Makefile
+│   ├── examples/demo.c
+│   └── tests/
+├── photonic_sort.py        # Python reference (stdlib)
+├── tests/                  # Python unit tests
+├── benchmarks/             # measured timings + environment
+├── BENCHMARKS.md           # C vs std::sort, Python vs Timsort
+├── RESEARCH.md             # naming metaphor + citations
+└── VERIFY.md               # integrity / SHA-256 procedures
+```
+
+**Data path (both languages)**
+
+1. **Probe** — one O(n) (or stratified-sample) pass: inversion ratio, max run, run count, direction changes, sortedness.
+2. **Structure early-exit** — fully sorted → no-op; fully reverse → in-place reverse; other high-structure cases take a near-linear path when eligible.
+3. **Residual sort** — stable bottom-up mergesort (C) or Timsort/`sorted` (Python) when the probe does not authorize an early exit.
+
+Path codes (C): `0` trivial · `1` structure early path · `2` residual · `-1` allocation failure.
+
+---
+
+## C11 core (recommended)
 
 ```bash
-# Demo (self-test + timing table + verbose narration)
-python photonic_sort.py
+cd c
+make            # build demo + tests
+make test
+./demo
+```
 
-# Unit tests
+### Fast path (`int64_t`)
+
+```c
+#include "photonic_sort.h"
+
+int64_t a[] = {7, 2, 9, 1, 5, 3, 8, 4, 6, 0};
+photonic_sort_i64(a, 10);           /* in-place adaptive */
+
+photonic_probe_t p;
+photonic_probe_i64(a, 10, &p);      /* inspect disorder profile */
+```
+
+### Generic path
+
+```c
+int cmp(const void *x, const void *y);   /* qsort-style */
+photonic_sort(base, n, sizeof(*elem), cmp);
+```
+
+| API | Role |
+|-----|------|
+| `photonic_probe_i64` / `photonic_probe_generic` | Disorder profile |
+| `photonic_sort_i64` | In-place adaptive `int64_t` |
+| `photonic_sort_i64_force_collapse` | Force residual path |
+| `photonic_sort_i64_copy` | Out-of-place |
+| `photonic_sort` | Generic `void *` + comparator |
+
+Full notes: [`c/README.md`](./c/README.md) · release index: [`c/RELEASE_NOTES_v1.0.1-c.md`](./c/RELEASE_NOTES_v1.0.1-c.md).
+
+---
+
+## Benchmarks
+
+Measured on Linux x86_64, `-O3`, best of 5. Correctness checked against `std::sort` each trial.
+
+**C · n = 1,000,000 · `int64_t`**
+
+| Pattern | PhotonicSort C | `std::sort` | Ratio |
+|---------|---------------:|------------:|------:|
+| Sorted | **0.019 ms** | 15.03 ms | ~800× |
+| Reverse | **0.44 ms** | 9.34 ms | ~21× |
+| Organpipe | **26.2 ms** | 89.0 ms | ~3.4× |
+| Random | 105 ms | **78 ms** | `std::sort` faster |
+
+Structure early-exits explain the sorted/reverse wins. On unstructured random input, a tuned introsort remains competitive — expected for adaptive designs.
+
+Full tables, Python vs Timsort honesty panel, CSV, and host notes: **[BENCHMARKS.md](./BENCHMARKS.md)**.
+
+---
+
+## Python reference
+
+```bash
+python photonic_sort.py
 python -m unittest discover -s tests -v
 ```
 
@@ -70,90 +120,45 @@ from photonic_sort import photonic_sort, photonic_probe
 
 data = [7, 2, 9, 1, 5, 3, 8, 4, 6, 0]
 print(photonic_sort(data))
-# → [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+# [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
-# Adaptive with narration
-photonic_sort(data, verbose=True)
-
-# Force pure rank-collapse path
-photonic_sort(data, force_collapse=True)
-
-# Standard key / reverse semantics
-photonic_sort(words, key=len, reverse=True)
-
-# Inspect the probe only
 print(photonic_probe(data))
 ```
 
----
-
-## Adaptive routing (demo)
-
-| Case | Path | Notes |
-|------|------|--------|
-| Already sorted | `neg-time` | Early survivors |
-| Reverse sorted | `neg-time` | Long monotonic run |
-| Organpipe | `neg-time` | High structure |
-| Random / sawtooth | `collapse` | Rank attractor |
-| Few unique | `collapse` | Residual bulk |
+CPython’s `list.sort` (Timsort) is native C and will typically beat pure-Python PhotonicSort on bulk paths. Prefer the **C11 library** for performance work.
 
 ---
 
----
+## Integrity
 
-## Highly optimized C
-
-A full C11 port lives in [`c/`](./c/):
-
-```bash
-cd c && make && make test && ./demo
-```
-
-| Feature | C path |
-|---------|--------|
-| Fast path | `photonic_sort_i64` (in-place) |
-| Generic | `photonic_sort(base, n, size, cmp)` |
-| Structure exit | O(n) reverse / no-op |
-| Residual | Stable bottom-up mergesort + insertion (n≤32) |
-| Deps | libc only |
-
-See [`c/README.md`](./c/README.md). Version string: `1.0.1-c`.
-
-**Integrity checks (Python + C):** [`VERIFY.md`](./VERIFY.md) · [`SHA256_VERIFY_COMMANDS.md`](./SHA256_VERIFY_COMMANDS.md) · [`scripts/verify-sha256.sh`](./scripts/verify-sha256.sh) · Windows: [`scripts/verify-sha256.ps1`](./scripts/verify-sha256.ps1)  
-**Public verification index:** [`c/RELEASE_NOTES_v1.0.1-c.md`](./c/RELEASE_NOTES_v1.0.1-c.md) · root pointer [`RELEASE_NOTES_C_v1.0.1-c.md`](./RELEASE_NOTES_C_v1.0.1-c.md) · [`SHA256SUMS_v1.0.1-c.txt`](./SHA256SUMS_v1.0.1-c.txt)
-
-## Project family
-
-| Artifact | Role |
-|----------|------|
-| **PhotonicSort** (this repo) | Python adaptive hybrid — philosophy → code |
-| [**GeblomiSort**](https://github.com/HeywoodGeblomi/GeblomiSort) | C++20 production 1-D hybrid (probe / pdqsort / ska / Verge) |
-| **ImplosionSort_2D** | Multi-D fiber disposition (row then column residual) |
-| **residual_automaton** | Capacity-guard / cycle spirit for in-place variants |
-
-Future multi-D work can apply the photonic probe and collapse along each axis or as a joint attractor.
+| Document | Purpose |
+|----------|---------|
+| [VERIFY.md](./VERIFY.md) | Functional + digest checks |
+| [SHA256_VERIFY_COMMANDS.md](./SHA256_VERIFY_COMMANDS.md) | Shell / PowerShell commands |
+| [scripts/verify-sha256.sh](./scripts/verify-sha256.sh) | Automated verifier |
+| [SHA256SUMS_v1.0.1-c.txt](./SHA256SUMS_v1.0.1-c.txt) | C release digests |
 
 ---
 
-## Research pointers
+## Non-claims
 
-See **[RESEARCH.md](./RESEARCH.md)** for the physics mapping, citations, and explicit non-claims.
+1. PhotonicSort does **not** use photonic or optical processors.
+2. It does **not** sort “at the speed of light” or bypass ordinary RAM/CPU limits.
+3. It does **not** prove P = NP or solve NP-complete problems.
+4. Worst-case complexity remains **O(n log n)**.
+5. The name and research notes refer to a **design metaphor** drawn from published weak-value / negative group-delay photon experiments (arXiv:2409.03680), not to physical retrocausality in software. Details: [RESEARCH.md](./RESEARCH.md).
 
-Primary anchors:
+---
 
-- Angulo, Steinberg, Wiseman et al. — negative atomic excitation time / negative group delay (arXiv:2409.03680; PRL 2026)
-- Castagnoli — quantum speedup and retrocausality as teleological attractor (arXiv:2505.08346) — metaphor only
+## Related projects
+
+| Project | Role |
+|---------|------|
+| [GeblomiSort](https://github.com/HeywoodGeblomi/GeblomiSort) | C++20 production 1-D hybrid (probe / pdqsort / ska / Verge) |
+| ImplosionSort (2-D+) | Multi-dimensional disposition research |
 
 ---
 
 ## License
 
 MIT — see [LICENSE](./LICENSE).
-
----
-
-## Team
-
-**Grok** (lead) · **Harper** · **Benjamin** · **Lucas** · **Heywood Geblomi**
-
-> Become photonic.
