@@ -12,10 +12,13 @@ probe → structure early-exit → residual talent menu
 
 | Crate | Role |
 |-------|------|
-| [`photonic-sort-sys`](./photonic-sort-sys) | Low-level FFI (`extern "C"`) + `cc` build of `../c/photonic_sort.c` |
+| [`photonic-sort-sys`](./photonic-sort-sys) | Low-level FFI (`extern "C"`) + `cc` build of vendored C |
 | [`photonic-sort`](./photonic-sort) | Safe idiomatic wrapper (`sort_i64`, `probe_i64`, `PathCode`) |
 
-The C sources under `c/` remain the **single source of truth**. This workspace does not duplicate algorithm code.
+`photonic-sort-sys` ships a **vendored** copy of `c/photonic_sort.{c,h}` under
+`vendor/` so the crate builds offline and is crates.io-ready. When building
+inside this monorepo, `build.rs` falls back to `../../c` if the vendor tree is
+absent.
 
 ## Build
 
@@ -26,8 +29,6 @@ cd rust
 cargo build --release
 cargo test -p photonic-sort
 ```
-
-The sys crate’s `build.rs` compiles `../c/photonic_sort.c` with `-O3 -std=c11`.
 
 ## Quick start
 
@@ -40,10 +41,9 @@ assert!(data.windows(2).all(|w| w[0] <= w[1]));
 assert!(matches!(path, PathCode::Structure | PathCode::Residual | PathCode::Trivial));
 ```
 
-## Feature flags
+## crates.io
 
-- **sys / `vendored` (default)**: compile bundled C from this repo’s `c/` directory.
-- Future: `system` link against an installed `libphotonic_sort` (not yet implemented).
+See [PUBLISH.md](./PUBLISH.md) for dry-run and publish order.
 
 ## Non-claims
 

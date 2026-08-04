@@ -1,8 +1,17 @@
 # photonic-sort-sys
 
-Low-level FFI to [PhotonicSort](https://github.com/HeywoodGeblomi/PhotonicSort) C11 v1.3.1-c.
+Low-level FFI bindings to **PhotonicSort C11 v1.3.1-c**.
 
-- Builds `../../c/photonic_sort.c` via the `cc` crate (`vendored` feature, default).
-- Hand-written `extern "C"` bindings matching `c/photonic_sort.h`.
+Prefer the safe [`photonic-sort`](https://crates.io/crates/photonic-sort) crate for application code.
 
-Prefer the safe [`photonic-sort`](../photonic-sort) crate.
+## Build
+
+Compiles the vendored sources under `vendor/` with the `cc` crate (`-std=c11`).
+When used inside the PhotonicSort monorepo and `vendor/` is absent, falls back to
+`../../c`.
+
+Requires a C11 toolchain.
+
+## License
+
+MIT — Primary contributor: **Heywood Geblomi**
