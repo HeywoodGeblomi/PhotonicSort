@@ -1,16 +1,17 @@
 # photonic-sort
 
-Safe Rust API for **PhotonicSort** — adaptive hybrid sorting with a C11 performance core.
+Safe Rust API for **PhotonicSort** — adaptive hybrid sort (C11 core v1.3.1-c).
 
 ```rust
-use photonic_sort::{sort_i64, PathCode};
+use photonic_sort::{sort_i64, is_sorted_i64};
 
-let mut data = vec![3_i64, 1, 4, 1, 5, 9];
-let path = sort_i64(&mut data).unwrap();
-assert!(data.windows(2).all(|w| w[0] <= w[1]));
-println!("path = {path:?}");
+let mut v = vec![5_i64, 1, 4, 2, 3];
+sort_i64(&mut v).expect("sort");
+assert!(is_sorted_i64(&v));
 ```
 
-See the [workspace README](../README.md) and the C library docs in `../../c/`.
+Brand contract: **probe → structure early-exit → residual talent menu**.
 
-**Contributor credit:** Heywood Geblomi (design) · Grok / Harper / Benjamin / Lucas (implementation).
+See the [workspace README](../README.md) and [PUBLISH.md](../PUBLISH.md).
+
+Primary contributor: **Heywood Geblomi** · License: MIT

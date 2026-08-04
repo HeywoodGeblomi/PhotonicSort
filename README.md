@@ -1,9 +1,10 @@
 # PhotonicSort
 
-**Adaptive hybrid sorting library** — C11 performance core + Python reference.
+**Adaptive hybrid sorting library** — C11 performance core + Python reference + Rust FFI bindings.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 [![C11](https://img.shields.io/badge/C-11-blue.svg)](./c/)
+[![Rust](https://img.shields.io/badge/Rust-FFI-orange.svg)](./rust/)
 [![Version](https://img.shields.io/badge/version-1.3.1--c-informational.svg)](./c/RELEASE_NOTES_v1.3.1-c.md)
 
 PhotonicSort is a **classical** adaptive sort: a GyroRank-style pilot probe selects structure early-exits or a residual talent menu (counting, insertion/pdq, run-merge, radix).
@@ -15,6 +16,7 @@ PhotonicSort is a **classical** adaptive sort: a GyroRank-style pilot probe sele
 | Best case | Near-linear on sorted / reverse / long runs |
 | C dependencies | libc only |
 | Python dependencies | stdlib only |
+| Rust | Safe FFI over the C11 core (`rust/`) |
 
 **Not** optical hardware. **Not** light-speed sorting or P = NP. See [Non-claims](#non-claims).
 
@@ -61,6 +63,23 @@ photonic_sort_i64(a, 10);   /* path code: 0 trivial, 1 structure, 2 residual */
 ```
 
 Version string: `photonic_sort_version()` → `"1.3.1-c"`.
+
+---
+
+## Rust
+
+Safe FFI bindings over the C11 core live in [`rust/`](./rust/):
+
+```bash
+cd rust && cargo test -p photonic-sort
+```
+
+| Crate | Role |
+|-------|------|
+| [`photonic-sort`](./rust/photonic-sort) | Safe API (`sort_i64`, `probe_i64`, `PathCode`) |
+| [`photonic-sort-sys`](./rust/photonic-sort-sys) | Low-level `extern "C"` + vendored C build |
+
+The sys crate vendors the 1.3.1-c sources so it builds offline and is crates.io-ready. See [rust/README.md](./rust/README.md) and [rust/PUBLISH.md](./rust/PUBLISH.md).
 
 ---
 
