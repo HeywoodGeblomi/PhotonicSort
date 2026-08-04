@@ -1,0 +1,11 @@
+pattern,n,algo,ms_best,ms_median
+sorted,1000000,photonic_c,0.018642,0.019093
+sorted,1000000,std_sort,15.029102,15.298865
+reverse,1000000,photonic_c,0.444196,0.444842
+reverse,1000000,std_sort,9.337808,9.459603
+organpipe,1000000,photonic_c,26.240094,27.421767
+organpipe,1000000,std_sort,88.986052,92.325794
+sawtooth,1000000,photonic_c,27.097898,27.897051
+sawtooth,1000000,std_sort,23.917428,24.257327
+random,1000000,photonic_c,105.040600,105.356346
+random,1000000,std_sort,78.148706,79.760004
