@@ -1,203 +1,182 @@
-/* PhotonicSort — highly optimized C implementation
- * Give everything. Take nothing. Become photonic.
+/* PhotonicSort C11 — adaptive hybrid sort
+ * Brand contract: probe → structure early-exit → residual talent menu
  *
- * Build:  make -C c
- * Demo:   ./c/demo
+ * Residual menu (Geblomi-infused):
+ *   - Joint merge gate (max_run ∧ low dir_change)
+ *   - Capacity-checked run merge (patterned, half-buffer)
+ *   - pdqsort-class introsort (random comparable path)
+ *   - LSD radix on int64 (scalar random fast path)
+ *   - Equal-heavy bias + confidence routing
+ *   - force_collapse → stable mergesort
  *
- * Complexity: O(n) structure exits; O(n log n) worst-case stable residual.
- * No P=NP claims. Retrocausality is design metaphor only.
+ * Version 1.1.0-c  MIT
  */
 #include "photonic_sort.h"
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <limits.h>
 
-/* ---------- small helpers ------------------------------------------------ */
+#ifndef PS_INSERTION_LIMIT
+#define PS_INSERTION_LIMIT 32u
+#endif
+#ifndef PS_MAX_TRACKED_RUNS
+#define PS_MAX_TRACKED_RUNS 8u
+#endif
+#ifndef PS_NINTHER_THRESH
+#define PS_NINTHER_THRESH 128u
+#endif
 
-static inline size_t ps_min_sz(size_t a, size_t b) { return a < b ? a : b; }
-static inline size_t ps_max_sz(size_t a, size_t b) { return a > b ? a : b; }
-
-static inline double ps_clamp01(double x) {
+static size_t ps_min_sz(size_t a, size_t b) { return a < b ? a : b; }
+static size_t ps_max_sz(size_t a, size_t b) { return a > b ? a : b; }
+static double ps_clamp01(double x) {
     if (x < 0.0) return 0.0;
     if (x > 1.0) return 1.0;
     return x;
 }
 
-/* Deterministic LCG for extra pair samples (no global RNG). */
-static inline uint32_t ps_lcg(uint32_t *s) {
-    *s = (*s) * 1664525u + 1013904223u;
-    return *s;
-}
-
-static inline void ps_swap_i64(int64_t *a, int64_t *b) {
+static void ps_swap_i64(int64_t *a, int64_t *b) {
     int64_t t = *a;
     *a = *b;
     *b = t;
 }
 
-/* In-place reverse of a[0..n). */
 static void ps_reverse_i64(int64_t *restrict a, size_t n) {
-    size_t i = 0, j = n;
-    while (i < j) {
+    for (size_t i = 0, j = n; i < j; ++i) {
         --j;
         if (i >= j) break;
         ps_swap_i64(&a[i], &a[j]);
-        ++i;
     }
 }
 
-/* ---------- probe i64 ---------------------------------------------------- */
+static int ps_merge_eligible(const photonic_probe_t *pr) {
+    if (pr->n < 2) return 0;
+    double run_frac = (double)pr->max_run / (double)pr->n;
+    size_t scale = pr->n > PHOTONIC_SAMPLE_LIMIT ? PHOTONIC_SAMPLE_LIMIT : pr->n;
+    if (scale < 1) scale = 1;
+    double dir_rate = (double)pr->direction_changes / (double)scale;
+    int strong_runs = (pr->max_run > pr->n / 6) || (run_frac > 0.12);
+    int low_flips = (dir_rate <= 0.12) ||
+                    (pr->direction_changes <= ps_max_sz(4, scale / 16));
+    return strong_runs && low_flips;
+}
 
 void photonic_probe_i64(const int64_t *restrict a, size_t n,
                         photonic_probe_t *restrict out) {
     memset(out, 0, sizeof(*out));
     out->n = n;
-    if (n <= 1) {
-        out->max_run = n;
-        out->run_count = n ? 1 : 0;
-        out->confidence = 1.0;
+    out->confidence = 1.0;
+    if (n == 0) {
         out->sortedness = 1.0;
         out->is_negative_delay = 1;
-        out->monotone_sign = n ? 1 : 0;
+        out->monotone_sign = 1;
+        out->max_run = 0;
+        return;
+    }
+    if (n == 1) {
+        out->max_run = 1;
+        out->run_count = 1;
+        out->sortedness = 1.0;
+        out->is_negative_delay = 1;
+        out->monotone_sign = 1;
+        out->confidence = 1.0;
         return;
     }
 
-    size_t step;
-    size_t n_idx;
-    int full;
-
-    if (n <= (size_t)PHOTONIC_SAMPLE_LIMIT) {
-        step = 1;
-        n_idx = n;
-        full = 1;
-        out->confidence = 1.0;
-    } else {
-        step = n / (size_t)PHOTONIC_SAMPLE_LIMIT;
+    size_t limit = n;
+    size_t step = 1;
+    if (n > PHOTONIC_SAMPLE_LIMIT) {
+        step = n / PHOTONIC_SAMPLE_LIMIT;
         if (step < 1) step = 1;
-        n_idx = (n + step - 1) / step;
-        if ((n - 1) % step != 0) {
-            /* endpoint always included via explicit last check below */
-        }
-        full = 0;
-        out->confidence = (double)n_idx / (double)n;
-        if (out->confidence > 1.0) out->confidence = 1.0;
+        limit = PHOTONIC_SAMPLE_LIMIT;
     }
 
+    size_t inversions = 0;
+    size_t pairs = 0;
     size_t max_run_samples = 1;
     size_t run_count = 1;
     size_t direction_changes = 0;
     size_t equal_count = 0;
     size_t current_run = 1;
-    int prev_dir = 0; /* -1 desc, 0 flat, +1 asc */
-    size_t inv_pairs = 0;
-    size_t total_pairs = 0;
-    size_t asc_edges = 0;
-    size_t desc_edges = 0;
+    int prev_sign = 0;
+    int monotone_sign = 0;
+    int broken_mono = 0;
 
-    size_t prev_i = 0;
-    size_t k = step;
-    /* Walk stratified indices 0, step, 2*step, ... and ensure last element. */
-    for (;;) {
-        size_t j;
-        if (full) {
-            if (k >= n) break;
-            j = k;
-        } else {
-            if (k >= n) {
-                if (prev_i != n - 1) {
-                    j = n - 1;
-                } else {
-                    break;
-                }
-            } else {
-                j = k;
-            }
-        }
+    for (size_t s = 1; s < limit; ++s) {
+        size_t i = s * step;
+        if (i >= n) i = n - 1;
+        size_t ip = (s - 1) * step;
+        if (ip >= n) ip = n - 1;
+        int64_t x = a[ip], y = a[i];
+        pairs++;
+        if (y < x) inversions++;
+        if (y == x) equal_count++;
 
-        int64_t av = a[prev_i];
-        int64_t bv = a[j];
-        total_pairs++;
-
-        if (av > bv) {
-            inv_pairs++;
-            desc_edges++;
-            if (prev_dir == 1) {
+        int sign = (y > x) ? 1 : (y < x) ? -1 : 0;
+        if (sign != 0) {
+            if (prev_sign == 0) {
+                prev_sign = sign;
+                if (!broken_mono) monotone_sign = sign;
+            } else if (sign != prev_sign) {
                 direction_changes++;
                 run_count++;
                 if (current_run > max_run_samples) max_run_samples = current_run;
                 current_run = 1;
+                prev_sign = sign;
+                broken_mono = 1;
+                monotone_sign = 0;
             } else {
                 current_run++;
             }
-            prev_dir = -1;
-        } else if (av < bv) {
-            asc_edges++;
-            if (prev_dir == -1) {
-                direction_changes++;
-                run_count++;
-                if (current_run > max_run_samples) max_run_samples = current_run;
-                current_run = 1;
-            } else {
-                current_run++;
-            }
-            prev_dir = 1;
         } else {
-            equal_count++;
             current_run++;
         }
-        if (current_run > max_run_samples) max_run_samples = current_run;
-
-        prev_i = j;
-        if (!full && j == n - 1 && (k >= n || k != j)) break;
-        k += step;
-        if (full && k >= n) break;
     }
+    if (current_run > max_run_samples) max_run_samples = current_run;
 
-    size_t max_run = ps_min_sz(n, max_run_samples * step);
-
-    /* Deterministic extra pair probes */
-    size_t extra = ps_min_sz((size_t)256, n / 4);
-    if (extra > 0 && n > 2) {
-        uint32_t state = (uint32_t)(n ^ 0x9E3779B9u);
-        for (size_t e = 0; e < extra; e++) {
-            size_t i = (size_t)(ps_lcg(&state) % (uint32_t)n);
-            size_t j = (size_t)(ps_lcg(&state) % (uint32_t)n);
-            if (i == j) continue;
-            if (i > j) {
-                size_t t = i;
-                i = j;
-                j = t;
-            }
-            total_pairs++;
-            if (a[i] > a[j]) inv_pairs++;
+    if (step > 1) {
+        size_t extra[] = {0, n / 4, n / 2, (3 * n) / 4, n > 0 ? n - 2 : 0};
+        for (size_t k = 0; k < 5; ++k) {
+            size_t i = extra[k];
+            if (i + 1 >= n) continue;
+            pairs++;
+            if (a[i + 1] < a[i]) inversions++;
+            if (a[i + 1] == a[i]) equal_count++;
         }
     }
 
-    double inv_ratio = total_pairs ? (double)inv_pairs / (double)total_pairs : 0.0;
+    double inv_ratio = pairs ? (double)inversions / (double)pairs : 0.0;
+    size_t max_run = ps_min_sz(n, max_run_samples * step);
+    double equal_ratio = pairs ? (double)equal_count / (double)pairs : 0.0;
 
-    int monotone_sign;
-    if (desc_edges > 0 && asc_edges == 0)
-        monotone_sign = -1;
-    else if (asc_edges > 0 && desc_edges == 0)
-        monotone_sign = 1;
-    else
-        monotone_sign = 0;
+    if (equal_ratio > 0.45)
+        inv_ratio *= (1.0 - 0.5 * equal_ratio);
 
+    double inv_term = 1.0 - inv_ratio;
     double run_fraction = (double)max_run / (double)n;
-    double inv_term = 1.0 - (inv_ratio * 2.0 < 1.0 ? inv_ratio * 2.0 : 1.0);
-    double dir_den = (double)ps_max_sz((size_t)1, n / 8);
-    double dir_term = 1.0 - ((double)direction_changes / dir_den < 1.0
-                                 ? (double)direction_changes / dir_den
-                                 : 1.0);
+    double dir_term = 1.0 / (1.0 + (double)direction_changes * 0.15);
     double sortedness = ps_clamp01(0.45 * inv_term + 0.35 * run_fraction + 0.20 * dir_term);
+    if (equal_ratio > 0.6)
+        sortedness = ps_clamp01(sortedness + 0.08);
 
     int is_neg =
-        (sortedness >= 0.72) ||
-        (max_run >= (size_t)(n * 0.45)) ||
+        (sortedness >= 0.72) || (max_run >= (size_t)(n * 0.45)) ||
         (direction_changes <= 3 && inv_ratio < 0.15) ||
         (max_run >= (size_t)(n * 0.25) && inv_ratio < 0.05) ||
         (monotone_sign != 0 && direction_changes == 0);
+
+    {
+        double thr = 0.22;
+        double dist = inv_ratio < thr ? (thr - inv_ratio) : (inv_ratio - thr);
+        if (dist < 0) dist = -dist;
+        double conf = 0.35 + dist / (thr + 1e-9) * 0.45;
+        if (max_run > n / 4) conf += 0.1;
+        if (equal_ratio > 0.5) conf += 0.15;
+        double dir_rate = (double)direction_changes / (double)(limit > 0 ? limit : 1);
+        if (max_run > n / 6 && dir_rate > 0.12) conf -= 0.12;
+        out->confidence = ps_clamp01(conf);
+    }
 
     out->inv_ratio = inv_ratio;
     out->max_run = max_run;
@@ -210,13 +189,22 @@ void photonic_probe_i64(const int64_t *restrict a, size_t n,
     out->monotone_sign = monotone_sign;
 }
 
-/* ---------- stable bottom-up mergesort (int64) --------------------------- */
+static void ps_insertion_i64(int64_t *restrict a, size_t n) {
+    for (size_t i = 1; i < n; ++i) {
+        int64_t key = a[i];
+        size_t j = i;
+        while (j > 0 && a[j - 1] > key) {
+            a[j] = a[j - 1];
+            --j;
+        }
+        a[j] = key;
+    }
+}
 
 static void ps_merge_i64(int64_t *restrict a, int64_t *restrict tmp,
                          size_t left, size_t mid, size_t right) {
     size_t i = left, j = mid, k = left;
     while (i < mid && j < right) {
-        /* stable: take left on equal */
         if (a[i] <= a[j])
             tmp[k++] = a[i++];
         else
@@ -224,14 +212,13 @@ static void ps_merge_i64(int64_t *restrict a, int64_t *restrict tmp,
     }
     while (i < mid) tmp[k++] = a[i++];
     while (j < right) tmp[k++] = a[j++];
-    for (k = left; k < right; k++) a[k] = tmp[k];
+    for (size_t t = left; t < right; ++t) a[t] = tmp[t];
 }
 
 static int ps_mergesort_i64(int64_t *restrict a, size_t n) {
     if (n < 2) return 0;
     int64_t *tmp = (int64_t *)malloc(n * sizeof(int64_t));
     if (!tmp) return -1;
-
     for (size_t width = 1; width < n; width <<= 1) {
         for (size_t i = 0; i < n; i += width << 1) {
             size_t left = i;
@@ -244,55 +231,298 @@ static int ps_mergesort_i64(int64_t *restrict a, size_t n) {
     return 0;
 }
 
-/* Tiny insertion sort for small n (cache friendly). */
-static void ps_insertion_i64(int64_t *restrict a, size_t n) {
-    for (size_t i = 1; i < n; i++) {
-        int64_t key = a[i];
-        size_t j = i;
-        while (j > 0 && a[j - 1] > key) {
-            a[j] = a[j - 1];
-            j--;
-        }
-        a[j] = key;
-    }
-}
-
-/* Hybrid residual: insertion for tiny, stable mergesort otherwise. */
-static int ps_residual_i64(int64_t *restrict a, size_t n) {
+static int ps_run_merge_i64(int64_t *restrict a, size_t n) {
     if (n < 2) return 0;
-    if (n <= 32) {
+    if (n <= PS_INSERTION_LIMIT) {
         ps_insertion_i64(a, n);
         return 0;
     }
-    return ps_mergesort_i64(a, n);
+
+    size_t starts[PS_MAX_TRACKED_RUNS + 1];
+    size_t run_count = 0;
+    size_t i = 0;
+    starts[0] = 0;
+
+    while (i < n) {
+        if (run_count >= PS_MAX_TRACKED_RUNS) return 1;
+        size_t j = i + 1;
+        if (j >= n) {
+            starts[++run_count] = n;
+            break;
+        }
+        if (a[j] >= a[i]) {
+            while (j + 1 < n && a[j + 1] >= a[j]) ++j;
+            ++j;
+        } else {
+            while (j + 1 < n && a[j + 1] < a[j]) ++j;
+            ++j;
+            ps_reverse_i64(a + i, j - i);
+        }
+        starts[++run_count] = j;
+        i = j;
+        if (run_count > PS_MAX_TRACKED_RUNS) return 1;
+    }
+
+    if (run_count <= 1) return 0;
+
+    size_t buf_cap = n / 2 + 1;
+    int64_t *buf = (int64_t *)malloc(buf_cap * sizeof(int64_t));
+    if (!buf) return -1;
+
+    for (size_t width = 1; width < run_count; width <<= 1) {
+        for (size_t ri = 0; ri + width < run_count; ri += 2 * width) {
+            size_t left = starts[ri];
+            size_t mid = starts[ri + width];
+            size_t right = (ri + 2 * width <= run_count) ? starts[ri + 2 * width]
+                                                         : starts[run_count];
+            size_t len_l = mid - left;
+            size_t len_r = right - mid;
+            if (len_l == 0 || len_r == 0) continue;
+
+            if (len_l <= len_r) {
+                if (len_l > buf_cap) {
+                    int64_t *tmp = (int64_t *)malloc((len_l + len_r) * sizeof(int64_t));
+                    if (!tmp) { free(buf); return -1; }
+                    size_t p = left, q = mid, k = 0;
+                    while (p < mid && q < right) {
+                        if (a[p] <= a[q]) tmp[k++] = a[p++];
+                        else tmp[k++] = a[q++];
+                    }
+                    while (p < mid) tmp[k++] = a[p++];
+                    while (q < right) tmp[k++] = a[q++];
+                    memcpy(a + left, tmp, k * sizeof(int64_t));
+                    free(tmp);
+                } else {
+                    memcpy(buf, a + left, len_l * sizeof(int64_t));
+                    size_t bi = 0, q = mid, k = left;
+                    while (bi < len_l && q < right) {
+                        if (a[q] < buf[bi]) a[k++] = a[q++];
+                        else a[k++] = buf[bi++];
+                    }
+                    while (bi < len_l) a[k++] = buf[bi++];
+                }
+            } else {
+                if (len_r > buf_cap) {
+                    int64_t *tmp = (int64_t *)malloc((len_l + len_r) * sizeof(int64_t));
+                    if (!tmp) { free(buf); return -1; }
+                    size_t p = left, q = mid, k = 0;
+                    while (p < mid && q < right) {
+                        if (a[p] <= a[q]) tmp[k++] = a[p++];
+                        else tmp[k++] = a[q++];
+                    }
+                    while (p < mid) tmp[k++] = a[p++];
+                    while (q < right) tmp[k++] = a[q++];
+                    memcpy(a + left, tmp, k * sizeof(int64_t));
+                    free(tmp);
+                } else {
+                    memcpy(buf, a + mid, len_r * sizeof(int64_t));
+                    size_t bi = len_r;
+                    size_t p = mid;
+                    size_t k = right;
+                    while (bi > 0 && p > left) {
+                        if (buf[bi - 1] < a[p - 1]) a[--k] = a[--p];
+                        else a[--k] = buf[--bi];
+                    }
+                    while (bi > 0) a[--k] = buf[--bi];
+                }
+            }
+        }
+    }
+
+    free(buf);
+    return 0;
 }
 
-/* ---------- main i64 entry ----------------------------------------------- */
+static size_t ps_ilog2(size_t n) {
+    size_t r = 0;
+    while (n >>= 1) ++r;
+    return r;
+}
+
+static int64_t ps_median3(int64_t a, int64_t b, int64_t c) {
+    if (a < b) {
+        if (b < c) return b;
+        return (a < c) ? c : a;
+    }
+    if (a < c) return a;
+    return (b < c) ? c : b;
+}
+
+static void ps_sift_down_i64(int64_t *a, size_t root, size_t end) {
+    while (1) {
+        size_t child = root * 2 + 1;
+        if (child >= end) break;
+        if (child + 1 < end && a[child] < a[child + 1]) child++;
+        if (a[root] >= a[child]) break;
+        ps_swap_i64(&a[root], &a[child]);
+        root = child;
+    }
+}
+
+static void ps_heapsort_i64(int64_t *a, size_t n) {
+    if (n < 2) return;
+    for (size_t i = n / 2; i-- > 0;) ps_sift_down_i64(a, i, n);
+    for (size_t end = n; end-- > 1;) {
+        ps_swap_i64(&a[0], &a[end]);
+        ps_sift_down_i64(a, 0, end);
+    }
+}
+
+static void ps_introsort_i64(int64_t *a, size_t n, unsigned depth) {
+    while (n > PS_INSERTION_LIMIT) {
+        if (depth == 0) {
+            ps_heapsort_i64(a, n);
+            return;
+        }
+        --depth;
+
+        size_t m = n / 2;
+        if (n >= PS_NINTHER_THRESH) {
+            size_t q = n / 4;
+            int64_t p1 = ps_median3(a[0], a[q], a[m / 2]);
+            int64_t p2 = ps_median3(a[m - q / 2], a[m], a[m + q / 2]);
+            int64_t p3 = ps_median3(a[n - 1 - q], a[n - 1 - m / 2], a[n - 1]);
+            int64_t piv = ps_median3(p1, p2, p3);
+            for (size_t i = 0; i < n; ++i) {
+                if (a[i] == piv) {
+                    ps_swap_i64(&a[i], &a[m]);
+                    break;
+                }
+            }
+        } else {
+            int64_t piv = ps_median3(a[0], a[m], a[n - 1]);
+            if (a[m] != piv) {
+                if (a[0] == piv) ps_swap_i64(&a[0], &a[m]);
+                else ps_swap_i64(&a[n - 1], &a[m]);
+            }
+        }
+
+        int64_t pivot = a[m];
+        size_t lo = 0, hi = n;
+        while (lo < hi) {
+            if (a[lo] < pivot) ++lo;
+            else if (a[hi - 1] > pivot) --hi;
+            else if (a[lo] > pivot) {
+                ps_swap_i64(&a[lo], &a[hi - 1]);
+                --hi;
+            } else ++lo;
+        }
+        size_t first_ge = 0;
+        while (first_ge < n && a[first_ge] < pivot) ++first_ge;
+        size_t first_gt = first_ge;
+        while (first_gt < n && a[first_gt] <= pivot) ++first_gt;
+
+        if (first_ge > 1)
+            ps_introsort_i64(a, first_ge, depth);
+        if (first_gt < n)
+            ps_introsort_i64(a + first_gt, n - first_gt, depth);
+        return;
+    }
+    ps_insertion_i64(a, n);
+}
+
+static void ps_pdq_i64(int64_t *a, size_t n) {
+    if (n < 2) return;
+    unsigned depth = (unsigned)(2 * ps_ilog2(n + 1) + 1);
+    ps_introsort_i64(a, n, depth);
+}
+
+static int ps_radix_i64(int64_t *restrict a, size_t n) {
+    if (n < 2) return 0;
+    if (n <= PS_INSERTION_LIMIT) {
+        ps_insertion_i64(a, n);
+        return 0;
+    }
+
+    uint64_t *u = (uint64_t *)a;
+    for (size_t i = 0; i < n; ++i)
+        u[i] ^= (uint64_t)1 << 63;
+
+    uint64_t *tmp = (uint64_t *)malloc(n * sizeof(uint64_t));
+    if (!tmp) {
+        for (size_t i = 0; i < n; ++i) u[i] ^= (uint64_t)1 << 63;
+        return -1;
+    }
+
+    size_t count[256];
+    for (unsigned shift = 0; shift < 64; shift += 8) {
+        memset(count, 0, sizeof(count));
+        for (size_t i = 0; i < n; ++i)
+            count[(u[i] >> shift) & 0xFFu]++;
+        size_t sum = 0;
+        for (unsigned b = 0; b < 256; ++b) {
+            size_t c = count[b];
+            count[b] = sum;
+            sum += c;
+        }
+        for (size_t i = 0; i < n; ++i) {
+            unsigned b = (unsigned)((u[i] >> shift) & 0xFFu);
+            tmp[count[b]++] = u[i];
+        }
+        memcpy(u, tmp, n * sizeof(uint64_t));
+    }
+
+    free(tmp);
+    for (size_t i = 0; i < n; ++i)
+        u[i] ^= (uint64_t)1 << 63;
+    return 0;
+}
+
+static int ps_random_residual_i64(int64_t *a, size_t n, const photonic_probe_t *pr) {
+    double eq = (pr->n > 0 && pr->equal_count > 0)
+                    ? (double)pr->equal_count /
+                          (double)(pr->n > PHOTONIC_SAMPLE_LIMIT ? PHOTONIC_SAMPLE_LIMIT
+                                                                 : pr->n)
+                    : 0.0;
+    if (eq > 0.35 || pr->confidence < 0.35 || n < 64) {
+        ps_pdq_i64(a, n);
+        return 0;
+    }
+    int rc = ps_radix_i64(a, n);
+    if (rc != 0) {
+        ps_pdq_i64(a, n);
+        return 0;
+    }
+    return 0;
+}
 
 static int photonic_sort_i64_impl(int64_t *restrict a, size_t n, int force_collapse) {
     if (n <= 1) return 0;
 
+    if (force_collapse) {
+        if (n <= PS_INSERTION_LIMIT) {
+            ps_insertion_i64(a, n);
+            return 2;
+        }
+        if (ps_mergesort_i64(a, n) != 0) return -1;
+        return 2;
+    }
+
     photonic_probe_t probe;
     photonic_probe_i64(a, n, &probe);
 
-    if (!force_collapse && probe.is_negative_delay) {
-        /* O(n) pure monotone exits */
-        if (probe.direction_changes == 0) {
-            if (probe.monotone_sign == 1) {
-                return 1; /* already sorted */
-            }
-            if (probe.monotone_sign == -1) {
-                ps_reverse_i64(a, n);
-                return 1;
-            }
-        }
-        /* Structured residual — stable merge (Timsort-class on long runs) */
-        if (ps_residual_i64(a, n) != 0) return -1;
+    if (probe.direction_changes == 0 && probe.monotone_sign == 1) {
+        return 1;
+    }
+    if (probe.direction_changes == 0 && probe.monotone_sign == -1) {
+        ps_reverse_i64(a, n);
         return 1;
     }
 
-    /* Retrocausal collapse ≡ stable place-by-rank (mergesort stable order) */
-    if (ps_residual_i64(a, n) != 0) return -1;
+    if (ps_merge_eligible(&probe)) {
+        int rm = ps_run_merge_i64(a, n);
+        if (rm == 0) return 2;
+        if (rm < 0) return -1;
+    }
+
+    if (probe.sortedness >= 0.55 && probe.confidence >= 0.5 &&
+        probe.max_run > probe.n / 8) {
+        int rm = ps_run_merge_i64(a, n);
+        if (rm == 0) return 2;
+        if (rm < 0) return -1;
+    }
+
+    if (ps_random_residual_i64(a, n, &probe) != 0) return -1;
     return 2;
 }
 
@@ -306,212 +536,116 @@ int photonic_sort_i64_force_collapse(int64_t *restrict a, size_t n) {
 
 int photonic_sort_i64_copy(const int64_t *restrict src, int64_t *restrict dst,
                            size_t n) {
-    if (dst != src) {
-        if (n) memcpy(dst, src, n * sizeof(int64_t));
-    }
+    if (n == 0) return 0;
+    if (src != dst) memcpy(dst, src, n * sizeof(int64_t));
     return photonic_sort_i64(dst, n);
 }
 
 int photonic_is_sorted_i64(const int64_t *a, size_t n) {
-    for (size_t i = 1; i < n; i++) {
-        if (a[i - 1] > a[i]) return 0;
-    }
+    for (size_t i = 1; i < n; ++i)
+        if (a[i] < a[i - 1]) return 0;
     return 1;
 }
 
-const char *photonic_sort_version(void) {
-    return PHOTONIC_SORT_VERSION_STRING;
-}
-
-/* ---------- generic path (element size + cmp) ---------------------------- */
-
-static inline const char *ps_at(const void *base, size_t size, size_t i) {
-    return (const char *)base + i * size;
-}
-
-static inline char *ps_at_mut(void *base, size_t size, size_t i) {
-    return (char *)base + i * size;
-}
-
-static void ps_swap_bytes(char *a, char *b, size_t size) {
-    /* Word-sized swaps when possible */
-    while (size >= sizeof(size_t)) {
-        size_t t;
-        memcpy(&t, a, sizeof(size_t));
-        memcpy(a, b, sizeof(size_t));
-        memcpy(b, &t, sizeof(size_t));
-        a += sizeof(size_t);
-        b += sizeof(size_t);
-        size -= sizeof(size_t);
-    }
-    while (size--) {
-        char t = *a;
-        *a++ = *b;
-        *b++ = t;
-    }
-}
-
-static void ps_reverse_generic(void *base, size_t n, size_t size) {
-    size_t i = 0, j = n;
-    while (i < j) {
-        --j;
-        if (i >= j) break;
-        ps_swap_bytes(ps_at_mut(base, size, i), ps_at_mut(base, size, j), size);
-        ++i;
-    }
-}
+const char *photonic_sort_version(void) { return PHOTONIC_SORT_VERSION_STRING; }
 
 void photonic_probe_generic(const void *base, size_t n, size_t size,
                             photonic_cmp_fn cmp, photonic_probe_t *out) {
     memset(out, 0, sizeof(*out));
     out->n = n;
+    out->confidence = 1.0;
     if (n <= 1) {
-        out->max_run = n;
-        out->run_count = n ? 1 : 0;
-        out->confidence = 1.0;
         out->sortedness = 1.0;
         out->is_negative_delay = 1;
-        out->monotone_sign = n ? 1 : 0;
+        out->monotone_sign = 1;
+        out->max_run = n;
+        out->run_count = n ? 1 : 0;
         return;
     }
+    const char *a = (const char *)base;
+    size_t limit = n > PHOTONIC_SAMPLE_LIMIT ? PHOTONIC_SAMPLE_LIMIT : n;
+    size_t step = n > PHOTONIC_SAMPLE_LIMIT ? n / PHOTONIC_SAMPLE_LIMIT : 1;
+    if (step < 1) step = 1;
 
-    size_t step;
-    int full;
-    if (n <= (size_t)PHOTONIC_SAMPLE_LIMIT) {
-        step = 1;
-        full = 1;
-        out->confidence = 1.0;
-    } else {
-        step = n / (size_t)PHOTONIC_SAMPLE_LIMIT;
-        if (step < 1) step = 1;
-        full = 0;
-        size_t n_idx = (n + step - 1) / step;
-        out->confidence = (double)n_idx / (double)n;
-    }
+    size_t inversions = 0, pairs = 0, equal_count = 0;
+    size_t max_run_samples = 1, run_count = 1, direction_changes = 0, current_run = 1;
+    int prev_sign = 0, monotone_sign = 0, broken = 0;
 
-    size_t max_run_samples = 1, run_count = 1, direction_changes = 0;
-    size_t equal_count = 0, current_run = 1;
-    int prev_dir = 0;
-    size_t inv_pairs = 0, total_pairs = 0, asc_edges = 0, desc_edges = 0;
-    size_t prev_i = 0;
-    size_t k = step;
-
-    for (;;) {
-        size_t j;
-        if (full) {
-            if (k >= n) break;
-            j = k;
-        } else {
-            if (k >= n) {
-                if (prev_i != n - 1)
-                    j = n - 1;
-                else
-                    break;
-            } else {
-                j = k;
-            }
-        }
-
-        int c = cmp(ps_at(base, size, prev_i), ps_at(base, size, j));
-        total_pairs++;
-        if (c > 0) {
-            inv_pairs++;
-            desc_edges++;
-            if (prev_dir == 1) {
+    for (size_t s = 1; s < limit; ++s) {
+        size_t i = s * step;
+        if (i >= n) i = n - 1;
+        size_t ip = (s - 1) * step;
+        if (ip >= n) ip = n - 1;
+        int c = cmp(a + i * size, a + ip * size);
+        pairs++;
+        if (c < 0) inversions++;
+        if (c == 0) equal_count++;
+        int sign = (c > 0) ? 1 : (c < 0) ? -1 : 0;
+        if (sign != 0) {
+            if (prev_sign == 0) {
+                prev_sign = sign;
+                if (!broken) monotone_sign = sign;
+            } else if (sign != prev_sign) {
                 direction_changes++;
                 run_count++;
                 if (current_run > max_run_samples) max_run_samples = current_run;
                 current_run = 1;
-            } else {
+                prev_sign = sign;
+                broken = 1;
+                monotone_sign = 0;
+            } else
                 current_run++;
-            }
-            prev_dir = -1;
-        } else if (c < 0) {
-            asc_edges++;
-            if (prev_dir == -1) {
-                direction_changes++;
-                run_count++;
-                if (current_run > max_run_samples) max_run_samples = current_run;
-                current_run = 1;
-            } else {
-                current_run++;
-            }
-            prev_dir = 1;
-        } else {
-            equal_count++;
+        } else
             current_run++;
-        }
-        if (current_run > max_run_samples) max_run_samples = current_run;
-
-        prev_i = j;
-        if (!full && j == n - 1 && (k >= n || k != j)) break;
-        k += step;
-        if (full && k >= n) break;
     }
+    if (current_run > max_run_samples) max_run_samples = current_run;
 
+    double inv_ratio = pairs ? (double)inversions / (double)pairs : 0.0;
+    double equal_ratio = pairs ? (double)equal_count / (double)pairs : 0.0;
+    if (equal_ratio > 0.45) inv_ratio *= (1.0 - 0.5 * equal_ratio);
     size_t max_run = ps_min_sz(n, max_run_samples * step);
-
-    size_t extra = ps_min_sz((size_t)256, n / 4);
-    if (extra > 0 && n > 2) {
-        uint32_t state = (uint32_t)(n ^ 0x9E3779B9u);
-        for (size_t e = 0; e < extra; e++) {
-            size_t i = (size_t)(ps_lcg(&state) % (uint32_t)n);
-            size_t j = (size_t)(ps_lcg(&state) % (uint32_t)n);
-            if (i == j) continue;
-            if (i > j) {
-                size_t t = i;
-                i = j;
-                j = t;
-            }
-            total_pairs++;
-            if (cmp(ps_at(base, size, i), ps_at(base, size, j)) > 0) inv_pairs++;
-        }
-    }
-
-    double inv_ratio = total_pairs ? (double)inv_pairs / (double)total_pairs : 0.0;
-    int monotone_sign = (desc_edges > 0 && asc_edges == 0)   ? -1
-                        : (asc_edges > 0 && desc_edges == 0) ? 1
-                                                            : 0;
-
+    double inv_term = 1.0 - inv_ratio;
     double run_fraction = (double)max_run / (double)n;
-    double inv_term = 1.0 - (inv_ratio * 2.0 < 1.0 ? inv_ratio * 2.0 : 1.0);
-    double dir_den = (double)ps_max_sz((size_t)1, n / 8);
-    double dir_term = 1.0 - ((double)direction_changes / dir_den < 1.0
-                                 ? (double)direction_changes / dir_den
-                                 : 1.0);
+    double dir_term = 1.0 / (1.0 + (double)direction_changes * 0.15);
     double sortedness = ps_clamp01(0.45 * inv_term + 0.35 * run_fraction + 0.20 * dir_term);
-
-    int is_neg =
-        (sortedness >= 0.72) || (max_run >= (size_t)(n * 0.45)) ||
-        (direction_changes <= 3 && inv_ratio < 0.15) ||
-        (max_run >= (size_t)(n * 0.25) && inv_ratio < 0.05) ||
-        (monotone_sign != 0 && direction_changes == 0);
 
     out->inv_ratio = inv_ratio;
     out->max_run = max_run;
     out->run_count = run_count;
     out->direction_changes = direction_changes;
     out->equal_count = equal_count;
-    out->group_delay_proxy = 1.0 - sortedness;
     out->sortedness = sortedness;
-    out->is_negative_delay = is_neg ? 1 : 0;
+    out->group_delay_proxy = 1.0 - sortedness;
+    out->is_negative_delay =
+        (sortedness >= 0.72) || (monotone_sign != 0 && direction_changes == 0);
     out->monotone_sign = monotone_sign;
+    out->confidence = 0.7;
 }
 
-/* Stable bottom-up mergesort for generic elements. */
+static void ps_reverse_generic(void *base, size_t n, size_t size) {
+    char *a = (char *)base;
+    char *tmp = (char *)malloc(size);
+    if (!tmp) return;
+    for (size_t i = 0, j = n; i < j; ++i) {
+        --j;
+        if (i >= j) break;
+        memcpy(tmp, a + i * size, size);
+        memcpy(a + i * size, a + j * size, size);
+        memcpy(a + j * size, tmp, size);
+    }
+    free(tmp);
+}
+
 static int ps_mergesort_generic(void *base, size_t n, size_t size, photonic_cmp_fn cmp) {
     if (n < 2) return 0;
     char *tmp = (char *)malloc(n * size);
     if (!tmp) return -1;
     char *a = (char *)base;
-
     for (size_t width = 1; width < n; width <<= 1) {
         for (size_t i = 0; i < n; i += width << 1) {
-            size_t left = i;
-            size_t mid = ps_min_sz(i + width, n);
-            size_t right = ps_min_sz(i + (width << 1), n);
+            size_t left = i, mid = ps_min_sz(i + width, n),
+                   right = ps_min_sz(i + (width << 1), n);
             if (mid >= right) continue;
-
             size_t p = left, q = mid, k = left;
             while (p < mid && q < right) {
                 if (cmp(a + p * size, a + q * size) <= 0) {
@@ -534,18 +668,13 @@ static int ps_mergesort_generic(void *base, size_t n, size_t size, photonic_cmp_
 
 int photonic_sort(void *base, size_t n, size_t size, photonic_cmp_fn cmp) {
     if (n <= 1 || size == 0) return 0;
-
     photonic_probe_t probe;
     photonic_probe_generic(base, n, size, cmp, &probe);
-
-    if (probe.is_negative_delay && probe.direction_changes == 0) {
-        if (probe.monotone_sign == 1) return 1;
-        if (probe.monotone_sign == -1) {
-            ps_reverse_generic(base, n, size);
-            return 1;
-        }
+    if (probe.direction_changes == 0 && probe.monotone_sign == 1) return 1;
+    if (probe.direction_changes == 0 && probe.monotone_sign == -1) {
+        ps_reverse_generic(base, n, size);
+        return 1;
     }
-
     if (ps_mergesort_generic(base, n, size, cmp) != 0) return -1;
-    return probe.is_negative_delay ? 1 : 2;
+    return 2;
 }
