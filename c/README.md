@@ -1,25 +1,24 @@
-# PhotonicSort — Highly Optimized C
+# PhotonicSort — C11 core
 
-**Give everything. Take nothing. Become photonic.**
-
-C11 port of [PhotonicSort](https://github.com/HeywoodGeblomi/PhotonicSort) with:
+Performance implementation of PhotonicSort: adaptive hybrid sort with a single-pass probe, structure-aware early exits, and a stable residual path.
 
 - Single-pass O(n) probe (`restrict`, stratified sampling)
-- True O(n) exits on pure ascending / descending runs
+- O(n) exits on pure ascending / descending input
 - Stable bottom-up mergesort residual (insertion sort for n ≤ 32)
 - Fast `int64_t` path + generic `void *` + comparator path
-- Zero external dependencies (libc only)
+- Dependencies: **libc only**
 
-> Classical adaptive hybrid. **Does not** solve NP-complete problems.  
-> Retrocausality is design metaphor only (arXiv:2409.03680).
+Version: **1.0.1-c** · License: MIT
+
+Classical algorithm only. Does not claim photonic hardware, light-speed sorting, or P = NP. Naming metaphor: [RESEARCH.md](../RESEARCH.md).
 
 ## Build
 
 ```bash
 cd c
 make          # demo + tests
-make test     # unit tests
-./demo        # marketing bench table
+make test
+./demo
 ```
 
 Release flags (portable):
@@ -28,29 +27,31 @@ Release flags (portable):
 make release CFLAGS="-O3 -std=c11 -Wall -Wextra -DNDEBUG"
 ```
 
-Peak local (optional, not for portable CI):
+Optional local peak (not for portable CI):
 
 ```bash
 make clean all CFLAGS="-O3 -std=c11 -march=native -flto -Wall -Wextra"
 ```
 
-## API (int64 fast path)
+## API
+
+### `int64_t` fast path
 
 ```c
 #include "photonic_sort.h"
 
 int64_t a[] = {7, 2, 9, 1, 5};
-photonic_sort_i64(a, 5);              // in-place adaptive
-photonic_sort_i64_force_collapse(a, 5); // force residual path
+photonic_sort_i64(a, 5);                 /* in-place adaptive */
+photonic_sort_i64_force_collapse(a, 5);  /* force residual */
 
 photonic_probe_t p;
-photonic_probe_i64(a, 5, &p);         // inspect disorder profile
+photonic_probe_i64(a, 5, &p);            /* disorder profile */
 ```
 
-Generic:
+### Generic path
 
 ```c
-int cmp(const void *x, const void *y); /* qsort-style */
+int cmp(const void *x, const void *y);   /* qsort-style */
 photonic_sort(base, n, sizeof(*base), cmp);
 ```
 
@@ -58,8 +59,8 @@ photonic_sort(base, n, sizeof(*base), cmp);
 
 ```
 c/
-├── photonic_sort.h      # public API
-├── photonic_sort.c      # implementation
+├── photonic_sort.h
+├── photonic_sort.c
 ├── Makefile
 ├── examples/demo.c
 └── tests/test_photonic_sort.c
@@ -70,14 +71,11 @@ c/
 | Return | Meaning |
 |--------|---------|
 | `0` | trivial (n ≤ 1) |
-| `1` | negative-time / structure early path |
-| `2` | collapse / residual sort |
+| `1` | structure early path |
+| `2` | residual sort |
 | `-1` | allocation failure |
 
-## Team
+## Benchmarks and verification
 
-Grok · Harper · Benjamin · Lucas · Heywood Geblomi · MIT
-
-## Release notes / verification
-
-See [RELEASE_NOTES_v1.0.1-c.md](./RELEASE_NOTES_v1.0.1-c.md) for the public code-change verification index (SHA-256, API surface, parity table).
+- Root [BENCHMARKS.md](../BENCHMARKS.md) — C vs `std::sort`
+- [RELEASE_NOTES_v1.0.1-c.md](./RELEASE_NOTES_v1.0.1-c.md) — SHA-256 index and API surface
