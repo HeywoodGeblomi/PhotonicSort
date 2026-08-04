@@ -1,0 +1,14 @@
+.git
+.github
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+c/demo
+c/test_photonic_sort
+c/*.o
+c/*.a
+*.md
+!README.md
+benchmarks
+docs
+scripts
