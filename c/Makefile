@@ -1,13 +1,11 @@
 # PhotonicSort C11 — adaptive hybrid sort
-# Profiles: default (dev+bench), release (portable), native (local peak)
+# Profiles: default, release (portable), native (local), STATIC=1 (fully static)
 
 CC       ?= gcc
 AR       ?= ar
 STD      := -std=c11
 WARN     := -Wall -Wextra -Wpedantic
-# Safe performance defaults (no -Ofast / no fast-math)
 OPT_BASE := -O3 -fno-strict-aliasing -fomit-frame-pointer -pipe
-# Section GC shrinks linked demos/tests without changing algorithm semantics
 OPT_SEC  := -ffunction-sections -fdata-sections
 LDFLAGS_GC := -Wl,--gc-sections
 
@@ -16,18 +14,21 @@ CFLAGS   += -I.
 LDFLAGS  ?= $(LDFLAGS_GC)
 LDLIBS   ?=
 
-# Optional: make LTO=1 all
 ifeq ($(LTO),1)
   CFLAGS  += -flto
   LDFLAGS += -flto
 endif
 
-# Optional: make NATIVE=1 all  (local CPU only — not for portable release)
 ifeq ($(NATIVE),1)
   CFLAGS += -march=native -mtune=native
 endif
 
-.PHONY: all clean test demo release native lib install help
+# Fully static link (glibc or musl). Required for scratch/distroless-static images.
+ifeq ($(STATIC),1)
+  LDFLAGS += -static
+endif
+
+.PHONY: all clean test demo release native static lib install help
 
 all: lib demo test_bin
 
@@ -51,17 +52,19 @@ test: test_bin
 demo-run: demo
 	./demo
 
-# Portable release: NDEBUG + O3 + LTO, no -march=native
 release:
 	$(MAKE) clean
 	$(MAKE) all test CFLAGS="$(STD) $(WARN) $(OPT_BASE) $(OPT_SEC) -DNDEBUG -flto -I." LDFLAGS="$(LDFLAGS_GC) -flto"
 
-# Local machine peak (not portable)
+# Portable fully-static release (for scratch / distroless-static)
+static:
+	$(MAKE) clean
+	$(MAKE) all test CFLAGS="$(STD) $(WARN) $(OPT_BASE) $(OPT_SEC) -DNDEBUG -I." LDFLAGS="$(LDFLAGS_GC) -static" STATIC=1
+
 native:
 	$(MAKE) clean
 	$(MAKE) all test NATIVE=1 LTO=1
 
-# Prefix install (headers + static lib)
 PREFIX  ?= /usr/local
 INCLUDEDIR ?= $(PREFIX)/include
 LIBDIR     ?= $(PREFIX)/lib
@@ -75,5 +78,5 @@ clean:
 	rm -f photonic_sort.o demo test_photonic_sort libphotonic_sort.a
 
 help:
-	@echo "Targets: all lib demo test release native install clean"
-	@echo "Options: LTO=1  NATIVE=1  CC=clang  PREFIX=/usr/local"
+	@echo "Targets: all lib demo test release static native install clean"
+	@echo "Options: LTO=1  NATIVE=1  STATIC=1  CC=clang  PREFIX=/usr/local"
