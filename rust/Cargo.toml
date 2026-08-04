@@ -1,0 +1,22 @@
+[workspace]
+resolver = "2"
+members = [
+    "photonic-sort-sys",
+    "photonic-sort",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = [
+    "Heywood Geblomi",
+    "Grok (xAI)",
+    "Harper",
+    "Benjamin",
+    "Lucas",
+]
+repository = "https://github.com/HeywoodGeblomi/PhotonicSort"
+
+[workspace.dependencies]
+photonic-sort-sys = { path = "photonic-sort-sys", version = "0.1.0" }

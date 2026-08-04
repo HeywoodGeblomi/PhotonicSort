@@ -1,0 +1,16 @@
+[package]
+name = "photonic-sort"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Safe Rust API for PhotonicSort — adaptive hybrid sort (C11 core)"
+readme = "README.md"
+keywords = ["sort", "adaptive", "hybrid", "photonic"]
+categories = ["algorithms", "api-bindings"]
+
+[dependencies]
+photonic-sort-sys = { workspace = true }
+
+[dev-dependencies]
