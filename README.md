@@ -11,7 +11,7 @@
 
 > Optimizations: single-pass probe, deterministic sampling, true O(n) exits on pure ascending/descending structure, element-span `max_run` scaling.
 
----
+**Benchmarks (C vs `std::sort`, Python vs Timsort):** [`BENCHMARKS.md`](./BENCHMARKS.md) — hard numbers, not vibes.
 
 ## The analogy, objectively reconstructed
 
