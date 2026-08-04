@@ -134,7 +134,7 @@ certutil -hashfile photonic_sort.py SHA256
 certutil -hashfile c\photonic_sort.c SHA256
 ```
 
-Full PowerShell command sheet: [`SHA256_VERIFY_COMMANDS.md`](./SHA256_VERIFY_COMMANDS.md) · script: [`scripts/verify-sha256.ps1`](./scripts/verify-sha256.ps1)
+Full PowerShell command sheet: [`SHA256_VERIFY_COMMANDS.md`](./SHA256_VERIFY_COMMANDS.md) · script: [`scripts/verify-sha256.ps1`](./scripts/verify-sha256.ps1) · error model: [`docs/POWERSHELL_ERROR_HANDLING.md`](./docs/POWERSHELL_ERROR_HANDLING.md)
 
 ---
 

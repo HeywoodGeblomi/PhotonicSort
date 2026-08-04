@@ -186,3 +186,11 @@ make clean all test
 | `git show REV:PATH \| sha256sum` | `Get-GitPathSha256 "REV:PATH"` (above) |
 | `openssl dgst -sha256 FILE` | `Get-FileHash` or `certutil -hashfile FILE SHA256` |
 | `./scripts/verify-sha256.sh` | `pwsh -File .\scripts\verify-sha256.ps1` |
+
+---
+
+## PowerShell error handling
+
+Design notes for `$ErrorActionPreference`, `$LASTEXITCODE`, `$script:` scopes, and binary-safe git reads:
+
+→ [`docs/POWERSHELL_ERROR_HANDLING.md`](./docs/POWERSHELL_ERROR_HANDLING.md)
