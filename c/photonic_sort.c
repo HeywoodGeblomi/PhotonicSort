@@ -282,6 +282,39 @@ void photonic_probe_i64(const int64_t *restrict a, size_t n,
     double p_ir = p_pairs ? (double)p_inv / (double)p_pairs : 0.0;
     double p_dr = p_pairs ? (double)p_dc / (double)p_pairs : 0.0;
     double p_er = p_pairs ? (double)p_eq / (double)p_pairs : 0.0;
+    /* Fully monotone pilot → STRUCTURE only if multi-point sample agrees.
+     * Prefix-only monotone (e.g. organpipe ascending half) must NOT early-exit. */
+    if (p_pairs >= 8 && p_dc == 0 && p_prev != 0 &&
+        (p_inv == 0 || p_inv == p_pairs)) {
+        int ends_agree = 0;
+        size_t m = n / 2, q = (3 * n) / 4;
+        if (m >= n) m = n - 1;
+        if (q >= n) q = n - 1;
+        if (p_inv == 0) {
+            /* ascending candidate: endpoints + mid + 3/4 must be nondecreasing */
+            if (a[n - 1] >= a[0] && a[m] >= a[0] && a[q] >= a[m] && a[n - 1] >= a[q])
+                ends_agree = 1;
+        } else {
+            /* descending candidate */
+            if (a[n - 1] <= a[0] && a[m] <= a[0] && a[q] <= a[m] && a[n - 1] <= a[q])
+                ends_agree = 1;
+        }
+        if (ends_agree) {
+            out->inv_ratio = p_ir;
+            out->direction_changes = 0;
+            out->equal_count = p_eq;
+            out->max_run = n;
+            out->run_count = 1;
+            out->sortedness = (p_inv == 0) ? 1.0 : 0.0;
+            out->group_delay_proxy = 1.0 - out->sortedness;
+            out->confidence = 0.95;
+            out->monotone_sign = p_prev;
+            out->is_negative_delay = 1;
+            out->route = PHOTONIC_ROUTE_STRUCTURE;
+            out->pilot_aborted = 1;
+            return;
+        }
+    }
     int low_card = 0;
     if (!uset.overflow && uset.count > 0 && uset.count <= 256) low_card = 1;
     else if (smax > smin) {
@@ -368,8 +401,18 @@ static int photonic_sort_i64_impl(int64_t *restrict a, size_t n, int force_colla
         return ps_mergesort_i64(a, n) ? -1 : 2;
     }
     photonic_probe_t probe; photonic_probe_i64(a, n, &probe);
-    if (probe.direction_changes == 0 && probe.monotone_sign == 1) return 1;
-    if (probe.direction_changes == 0 && probe.monotone_sign == -1) { ps_reverse_i64(a, n); return 1; }
+    /* Structure early-exit only after O(n) verification (pilot can false-positive). */
+    if (probe.direction_changes == 0 && probe.monotone_sign == 1) {
+        if (photonic_is_sorted_i64(a, n)) return 1;
+        /* fall through — residual will finish */
+    }
+    if (probe.direction_changes == 0 && probe.monotone_sign == -1) {
+        int fully_rev = 1;
+        for (size_t i = 1; i < n; ++i) {
+            if (a[i] > a[i - 1]) { fully_rev = 0; break; }
+        }
+        if (fully_rev) { ps_reverse_i64(a, n); return 1; }
+    }
     if (probe.route == PHOTONIC_ROUTE_LOW_DISORDER) {
         if (n <= 4096) ps_insertion_i64(a, n); else ps_pdq_i64(a, n); return 2;
     }
