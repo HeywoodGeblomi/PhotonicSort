@@ -4,7 +4,7 @@
  * Research: Angulo/Steinberg negative-time photons (arXiv:2409.03680).
  * Metaphor only — does not claim P=NP or physical retrocausality.
  *
- * Version: 1.2.0-c
+ * Version: 1.3.1-c
  * License: MIT
  * Team: Grok + Harper + Benjamin + Lucas + Heywood Geblomi
  */
@@ -16,12 +16,15 @@
 
 #ifdef __cplusplus
 extern "C" {
+#ifndef restrict
+#define restrict
+#endif
 #endif
 
 #define PHOTONIC_SORT_VERSION_MAJOR 1
-#define PHOTONIC_SORT_VERSION_MINOR 2
-#define PHOTONIC_SORT_VERSION_PATCH 0
-#define PHOTONIC_SORT_VERSION_STRING "1.2.0-c"
+#define PHOTONIC_SORT_VERSION_MINOR 3
+#define PHOTONIC_SORT_VERSION_PATCH 1
+#define PHOTONIC_SORT_VERSION_STRING "1.3.1-c"
 
 #ifndef PHOTONIC_SAMPLE_LIMIT
 #define PHOTONIC_SAMPLE_LIMIT 4096u
@@ -29,9 +32,11 @@ extern "C" {
 
 /* GyroRank-style residual route (observe → gate). */
 enum {
-    PHOTONIC_ROUTE_STRUCTURE = 0, /* sorted / reverse early-exit */
-    PHOTONIC_ROUTE_PATTERNED = 1, /* run-merge eligible */
-    PHOTONIC_ROUTE_RANDOM    = 2  /* radix / introsort residual */
+    PHOTONIC_ROUTE_STRUCTURE    = 0,
+    PHOTONIC_ROUTE_PATTERNED    = 1,
+    PHOTONIC_ROUTE_RANDOM       = 2,
+    PHOTONIC_ROUTE_LOW_CARD     = 3, /* counting — few distinct */
+    PHOTONIC_ROUTE_LOW_DISORDER = 4  /* insertion/pdq — almost sorted */
 };
 
 typedef struct photonic_probe {
@@ -46,9 +51,12 @@ typedef struct photonic_probe {
     double sortedness;
     int is_negative_delay;
     int monotone_sign;
-    int route;                 /* PHOTONIC_ROUTE_* */
-    int pilot_aborted;         /* 1 if Gyro pilot short-circuited full probe */
-    size_t pilot_samples;      /* pairs observed before gate */
+    int route;
+    int pilot_aborted;
+    size_t pilot_samples;
+    size_t unique_est;
+    int64_t sample_min;
+    int64_t sample_max;
 } photonic_probe_t;
 
 void photonic_probe_i64(const int64_t *restrict a, size_t n,
@@ -57,8 +65,8 @@ void photonic_probe_i64(const int64_t *restrict a, size_t n,
 /*
  * In-place PhotonicSort for int64.
  * - O(n) exit if fully sorted or fully reverse.
- * - Residual talent menu: GyroRank pilot gate + run-merge / introsort / radix;
- *   force_collapse = stable merge.
+ * - Residual talent menu: GyroRank pilot + LOW_CARD counting + LOW_DISORDER
+ *   insertion/pdq + run-merge / introsort / radix; force_collapse = stable merge.
  * Returns path code: 0=trivial, 1=structure early-exit, 2=residual, -1=alloc fail.
  */
 int photonic_sort_i64(int64_t *restrict a, size_t n);
