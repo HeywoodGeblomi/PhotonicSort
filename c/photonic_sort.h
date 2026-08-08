@@ -1,1 +1,121 @@
-PLACEHOLDER_H
+/* PhotonicSort — Give everything. Take nothing. Become photonic.
+ *
+ * Highly optimized C port of the classical adaptive hybrid sort.
+ * Research: Angulo/Steinberg negative-time photons (arXiv:2409.03680).
+ * Metaphor only — does not claim P=NP or physical retrocausality.
+ *
+ * Version: 1.3.2-c  (Aggressive / ForceHole opt-in modes)
+ * License: MIT
+ * Team: Grok + Harper + Benjamin + Lucas + Heywood Geblomi
+ */
+#ifndef PHOTONIC_SORT_H
+#define PHOTONIC_SORT_H
+
+#include <stddef.h>
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#ifndef restrict
+#define restrict
+#endif
+#endif
+
+#define PHOTONIC_SORT_VERSION_MAJOR 1
+#define PHOTONIC_SORT_VERSION_MINOR 3
+#define PHOTONIC_SORT_VERSION_PATCH 2
+#define PHOTONIC_SORT_VERSION_STRING "1.3.2-c"
+
+#ifndef PHOTONIC_SAMPLE_LIMIT
+#define PHOTONIC_SAMPLE_LIMIT 4096u
+#endif
+
+/* GyroRank-style residual route (observe → gate). */
+enum {
+    PHOTONIC_ROUTE_STRUCTURE    = 0,
+    PHOTONIC_ROUTE_PATTERNED    = 1,
+    PHOTONIC_ROUTE_RANDOM       = 2,
+    PHOTONIC_ROUTE_LOW_CARD     = 3, /* counting — few distinct */
+    PHOTONIC_ROUTE_LOW_DISORDER = 4  /* insertion/pdq — almost sorted */
+};
+
+/*
+ * SortMode controls residual aggressiveness.
+ * NORMAL     — production baseline (safety-first)
+ * AGGRESSIVE — widened thresholds for higher early-exit rate
+ * FORCE_HOLE — maximum hole-in-one attempt (still verifies STRUCTURE)
+ *
+ * Default is NORMAL. ForceHole is opt-in only.
+ */
+typedef enum photonic_sort_mode {
+    PHOTONIC_MODE_NORMAL     = 0,
+    PHOTONIC_MODE_AGGRESSIVE = 1,
+    PHOTONIC_MODE_FORCE_HOLE = 2
+} photonic_sort_mode_t;
+
+typedef struct photonic_probe {
+    size_t n;
+    double inv_ratio;
+    size_t max_run;
+    size_t run_count;
+    size_t direction_changes;
+    size_t equal_count;
+    double confidence;
+    double group_delay_proxy;
+    double sortedness;
+    int is_negative_delay;
+    int monotone_sign;
+    int route;
+    int pilot_aborted;
+    size_t pilot_samples;
+    size_t unique_est;
+    int64_t sample_min;
+    int64_t sample_max;
+} photonic_probe_t;
+
+/* Mode control (process-wide; default NORMAL). */
+void photonic_sort_set_mode(photonic_sort_mode_t mode);
+photonic_sort_mode_t photonic_sort_get_mode(void);
+
+void photonic_probe_i64(const int64_t *restrict a, size_t n,
+                        photonic_probe_t *restrict out);
+
+/* Mode-aware probe (does not change global mode). */
+void photonic_probe_i64_ex(const int64_t *restrict a, size_t n,
+                           photonic_probe_t *restrict out,
+                           photonic_sort_mode_t mode);
+
+/*
+ * In-place PhotonicSort for int64.
+ * - O(n) exit if fully sorted or fully reverse (STRUCTURE verify mandatory).
+ * - Residual talent menu: GyroRank pilot + LOW_CARD counting + LOW_DISORDER
+ *   insertion/pdq + run-merge / introsort / radix; force_collapse = stable merge.
+ * Returns path code: 0=trivial, 1=structure early-exit, 2=residual, -1=alloc fail.
+ *
+ * photonic_sort_i64 uses current global mode (default NORMAL).
+ * photonic_sort_i64_ex takes an explicit mode (does not change global).
+ */
+int photonic_sort_i64(int64_t *restrict a, size_t n);
+int photonic_sort_i64_ex(int64_t *restrict a, size_t n, photonic_sort_mode_t mode);
+
+int photonic_sort_i64_force_collapse(int64_t *restrict a, size_t n);
+
+int photonic_sort_i64_copy(const int64_t *restrict src, int64_t *restrict dst,
+                           size_t n);
+
+typedef int (*photonic_cmp_fn)(const void *a, const void *b);
+
+void photonic_probe_generic(const void *base, size_t n, size_t size,
+                            photonic_cmp_fn cmp, photonic_probe_t *out);
+
+int photonic_sort(void *base, size_t n, size_t size, photonic_cmp_fn cmp);
+
+int photonic_is_sorted_i64(const int64_t *a, size_t n);
+const char *photonic_sort_version(void);
+const char *photonic_sort_mode_name(photonic_sort_mode_t mode);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* PHOTONIC_SORT_H */
