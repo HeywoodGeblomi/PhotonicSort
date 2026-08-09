@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 [![C11](https://img.shields.io/badge/C-11-blue.svg)](./c/)
 [![Rust](https://img.shields.io/badge/Rust-FFI-orange.svg)](./rust/)
-[![Version](https://img.shields.io/badge/version-1.3.1--c-informational.svg)](./c/RELEASE_NOTES_v1.3.1-c.md)
+[![Version](https://img.shields.io/badge/version-1.3.2--c-informational.svg)](./c/RELEASE_NOTES_v1.3.2-c.md)
 
 PhotonicSort is a **classical** adaptive sort: a GyroRank-style pilot probe selects structure early-exits or a residual talent menu (counting, insertion/pdq, run-merge, radix).
 
@@ -34,11 +34,21 @@ probe → structure early-exit → residual talent menu
 
 | Route | Residual |
 |-------|----------|
-| STRUCTURE | O(n) early-exit / reverse |
+| STRUCTURE | O(n) early-exit / reverse (**verified**) |
 | LOW_CARD | Counting sort (few distinct keys) |
 | LOW_DISORDER | Cache-local insertion (n≤4k) / pdq |
 | PATTERNED | Capacity-checked run merge |
 | RANDOM | LSD radix (int64) / introsort |
+
+### Sort modes (v1.3.2-c)
+
+| Mode | Intent |
+|------|--------|
+| `NORMAL` | Production baseline (default) |
+| `AGGRESSIVE` | Widened early-exit thresholds |
+| `FORCE_HOLE` | Max hole-in-one attempt (opt-in) |
+
+STRUCTURE O(n) verification remains mandatory on every mode.
 
 ---
 
@@ -59,10 +69,12 @@ Full guide: [BUILD.md](./BUILD.md).
 ```c
 #include "photonic_sort.h"
 int64_t a[] = {7, 2, 9, 1, 5, 3, 8, 4, 6, 0};
-photonic_sort_i64(a, 10);   /* path code: 0 trivial, 1 structure, 2 residual */
+photonic_sort_i64(a, 10);   /* NORMAL (default) */
+photonic_sort_i64_ex(a, 10, PHOTONIC_MODE_AGGRESSIVE);
+photonic_sort_i64_ex(a, 10, PHOTONIC_MODE_FORCE_HOLE);
 ```
 
-Version string: `photonic_sort_version()` → `"1.3.1-c"`.
+Version string: `photonic_sort_version()` → `"1.3.2-c"`.
 
 ---
 
@@ -79,7 +91,7 @@ cd rust && cargo test -p photonic-sort
 | [`photonic-sort`](./rust/photonic-sort) | Safe API (`sort_i64`, `probe_i64`, `PathCode`) |
 | [`photonic-sort-sys`](./rust/photonic-sort-sys) | Low-level `extern "C"` + vendored C build |
 
-The sys crate vendors the 1.3.1-c sources so it builds offline and is crates.io-ready. See [rust/README.md](./rust/README.md) and [rust/PUBLISH.md](./rust/PUBLISH.md).
+See [rust/README.md](./rust/README.md) and [rust/PUBLISH.md](./rust/PUBLISH.md).
 
 ---
 
@@ -96,6 +108,7 @@ The sys crate vendors the 1.3.1-c sources so it builds offline and is crates.io-
 | Almost-sorted | **12 ms** | 16 ms | **1.3×** |
 
 Plan A (v1.3) closed the previous gaps on sawtooth / few-unique / almost-sorted.
+v1.3.2-c adds opt-in AGGRESSIVE / FORCE_HOLE modes on top of the same residual menu.
 
 ---
 
@@ -106,6 +119,7 @@ Plan A (v1.3) closed the previous gaps on sawtooth / few-unique / almost-sorted.
 3. Does not prove P = NP.
 4. Worst case remains **O(n log n)**.
 5. Name is a design metaphor (arXiv:2409.03680).
+6. ForceHole does **not** claim hole-in-one on every input.
 
 ---
 
