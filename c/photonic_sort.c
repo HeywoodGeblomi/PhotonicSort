@@ -1,41 +1,8 @@
-/* PhotonicSort C11 — adaptive hybrid sort
- * Brand contract: probe → structure early-exit → residual talent menu
- *
- * Residual menu (Geblomi + GyroRank — Plan A):
- *   - GyroRank pilot gate (observe → abort on clear random)
- *   - LOW_CARD counting residual (few distinct / small range)
- *   - LOW_DISORDER insertion/pdq (almost sorted; cache-local insertion)
- *   - Joint merge gate + capacity-checked run merge (≤32 runs)
- *   - pdqsort-class introsort + LSD radix (int64)
- *   - force_collapse → stable mergesort
- *
- * Version 1.3.2-c — Plan A + Aggressive/ForceHole opt-in modes  MIT
- * Contributors: Heywood Geblomi · Grok (xAI)
+/* PhotonicSort C11 v1.3.2-c — amalgamator
+ * Full implementation is in the two .inc parts (tool size limit workaround).
+ * Public API and build remain: compile this file only.
  */
 #include "photonic_sort.h"
 
-/* ---- Sort mode state (default NORMAL; ForceHole is opt-in) ---- */
-static photonic_sort_mode_t g_ps_mode = PHOTONIC_MODE_NORMAL;
-
-void photonic_sort_set_mode(photonic_sort_mode_t mode) {
-    if (mode < PHOTONIC_MODE_NORMAL || mode > PHOTONIC_MODE_FORCE_HOLE)
-        mode = PHOTONIC_MODE_NORMAL;
-    g_ps_mode = mode;
-}
-photonic_sort_mode_t photonic_sort_get_mode(void) { return g_ps_mode; }
-
-const char *photonic_sort_mode_name(photonic_sort_mode_t mode) {
-    switch (mode) {
-    case PHOTONIC_MODE_NORMAL:     return "NORMAL";
-    case PHOTONIC_MODE_AGGRESSIVE: return "AGGRESSIVE";
-    case PHOTONIC_MODE_FORCE_HOLE: return "FORCE_HOLE";
-    default: return "NORMAL";
-    }
-}
-
-/*
- * NOTE: Full body upload is being attempted. If this lands as a short file,
- * the agent tool path truncated the content again.
- * Real body SHA256 48ee85afb13638459c59321e516ea0d94e2b584f20165901ade101b3c1c1122a
- * lives at artifacts/PhotonicSort/c/photonic_sort.c
- */
+#include "photonic_sort_part1.inc"
+#include "photonic_sort_part2.inc"
