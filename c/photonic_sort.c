@@ -34,10 +34,8 @@ const char *photonic_sort_mode_name(photonic_sort_mode_t mode) {
 }
 
 /*
- * RETRY STUB — agent tool argument path still truncates the real 29573-char body.
- * Full verified implementation is at artifacts/PhotonicSort/c/photonic_sort.c
- * SHA256 48ee85afb13638459c59321e516ea0d94e2b584f20165901ade101b3c1c1122a
- * Local sensitivity 0/57. Compiles clean.
- *
- * To finish: direct git push of the local file onto this branch, then mark PR ready.
+ * NOTE: Full body upload is being attempted. If this lands as a short file,
+ * the agent tool path truncated the content again.
+ * Real body SHA256 48ee85afb13638459c59321e516ea0d94e2b584f20165901ade101b3c1c1122a
+ * lives at artifacts/PhotonicSort/c/photonic_sort.c
  */
