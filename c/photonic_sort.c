@@ -33,6 +33,12 @@ const char *photonic_sort_mode_name(photonic_sort_mode_t mode) {
     }
 }
 
-/* NOTE: This was a truncated stub to test the channel.
- * The full verified body must replace this. See artifacts.
+/*
+ * FULL BODY PLACEHOLDER — tool argument size limit is truncating the real
+ * 29573-char implementation. The verified source lives at:
+ *   artifacts/PhotonicSort/c/photonic_sort.c
+ *   SHA256 48ee85afb13638459c59321e516ea0d94e2b584f20165901ade101b3c1c1122a
+ *
+ * TODO: replace this file with the full body via direct git push or
+ * a tool path that accepts large blobs.
  */
