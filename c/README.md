@@ -1,16 +1,33 @@
 # PhotonicSort — C11 core
 
-Performance implementation of PhotonicSort: adaptive hybrid sort with a single-pass probe, structure-aware early exits, and a stable residual path.
+Adaptive hybrid sort: single-pass probe → structure early-exit → residual talent menu.
 
 - Single-pass O(n) probe (`restrict`, stratified sampling)
-- O(n) exits on pure ascending / descending input
-- Stable bottom-up mergesort residual (insertion sort for n ≤ 32)
+- O(n) exits on pure ascending / descending input (**STRUCTURE verify mandatory**)
+- Residual menu: LOW_CARD counting · LOW_DISORDER insertion/pdq · run-merge · radix/pdq
 - Fast `int64_t` path + generic `void *` + comparator path
 - Dependencies: **libc only**
 
-Version: **1.0.1-c** · License: MIT
+Version: **1.3.2-c** · License: MIT
 
-Classical algorithm only. Does not claim photonic hardware, light-speed sorting, or P = NP. Naming metaphor: [RESEARCH.md](../RESEARCH.md).
+Classical algorithm only. Does not claim photonic hardware, light-speed sorting, or P = NP.
+
+## Sort modes (v1.3.2-c)
+
+| Mode | Intent |
+|------|--------|
+| `PHOTONIC_MODE_NORMAL` | Production baseline (default, safety-first) |
+| `PHOTONIC_MODE_AGGRESSIVE` | Widened LOW_DISORDER / LOW_CARD thresholds |
+| `PHOTONIC_MODE_FORCE_HOLE` | Max hole-in-one attempt (structure → low-card → residual) |
+
+Default is **NORMAL**. ForceHole is opt-in only. STRUCTURE O(n) verification is mandatory on every mode.
+
+```c
+photonic_sort_i64(a, n);                                    /* NORMAL */
+photonic_sort_i64_ex(a, n, PHOTONIC_MODE_AGGRESSIVE);
+photonic_sort_i64_ex(a, n, PHOTONIC_MODE_FORCE_HOLE);
+photonic_sort_set_mode(PHOTONIC_MODE_AGGRESSIVE);           /* process-wide */
+```
 
 ## Build
 
@@ -27,43 +44,19 @@ Release flags (portable):
 make release CFLAGS="-O3 -std=c11 -Wall -Wextra -DNDEBUG"
 ```
 
-Optional local peak (not for portable CI):
-
-```bash
-make clean all CFLAGS="-O3 -std=c11 -march=native -flto -Wall -Wextra"
-```
-
-## API
-
-### `int64_t` fast path
+## API (int64 fast path)
 
 ```c
 #include "photonic_sort.h"
 
 int64_t a[] = {7, 2, 9, 1, 5};
-photonic_sort_i64(a, 5);                 /* in-place adaptive */
-photonic_sort_i64_force_collapse(a, 5);  /* force residual */
+photonic_sort_i64(a, 5);                 /* in-place adaptive (current mode) */
+photonic_sort_i64_ex(a, 5, PHOTONIC_MODE_FORCE_HOLE);
+photonic_sort_i64_force_collapse(a, 5);  /* force residual mergesort */
 
 photonic_probe_t p;
 photonic_probe_i64(a, 5, &p);            /* disorder profile */
-```
-
-### Generic path
-
-```c
-int cmp(const void *x, const void *y);   /* qsort-style */
-photonic_sort(base, n, sizeof(*base), cmp);
-```
-
-## Layout
-
-```
-c/
-├── photonic_sort.h
-├── photonic_sort.c
-├── Makefile
-├── examples/demo.c
-└── tests/test_photonic_sort.c
+photonic_probe_i64_ex(a, 5, &p, PHOTONIC_MODE_AGGRESSIVE);
 ```
 
 ## Path codes
@@ -71,11 +64,25 @@ c/
 | Return | Meaning |
 |--------|---------|
 | `0` | trivial (n ≤ 1) |
-| `1` | structure early path |
+| `1` | structure early-exit (verified) |
 | `2` | residual sort |
 | `-1` | allocation failure |
 
+## Layout
+
+```
+c/
+├── photonic_sort.h
+├── photonic_sort.c          # single-file body (29 596 B)
+├── Makefile
+├── SHA256SUMS
+├── RELEASE_NOTES_v1.3.2-c.md
+├── examples/demo.c
+└── tests/test_photonic_sort.c
+```
+
 ## Benchmarks and verification
 
-- Root [BENCHMARKS.md](../BENCHMARKS.md) — C vs `std::sort`
-- [RELEASE_NOTES_v1.0.1-c.md](./RELEASE_NOTES_v1.0.1-c.md) — SHA-256 index and API surface
+- Root [BENCHMARKS.md](../BENCHMARKS.md)
+- [RELEASE_NOTES_v1.3.2-c.md](./RELEASE_NOTES_v1.3.2-c.md)
+- Local sensitivity: **0/57 fails** (n=200k)

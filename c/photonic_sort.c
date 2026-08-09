@@ -9,10 +9,96 @@
  *   - pdqsort-class introsort + LSD radix (int64)
  *   - force_collapse → stable mergesort
  *
- * Version 1.3.1-c — Plan A + cache-local insertion  MIT
+ * Version 1.3.2-c — Plan A + Aggressive/ForceHole opt-in modes  MIT
  * Contributors: Heywood Geblomi · Grok (xAI)
  */
 #include "photonic_sort.h"
+
+/* ---- Sort mode state (default NORMAL; ForceHole is opt-in) ---- */
+static photonic_sort_mode_t g_ps_mode = PHOTONIC_MODE_NORMAL;
+
+void photonic_sort_set_mode(photonic_sort_mode_t mode) {
+    if (mode < PHOTONIC_MODE_NORMAL || mode > PHOTONIC_MODE_FORCE_HOLE)
+        mode = PHOTONIC_MODE_NORMAL;
+    g_ps_mode = mode;
+}
+photonic_sort_mode_t photonic_sort_get_mode(void) { return g_ps_mode; }
+const char *photonic_sort_mode_name(photonic_sort_mode_t mode) {
+    switch (mode) {
+    case PHOTONIC_MODE_NORMAL:     return "NORMAL";
+    case PHOTONIC_MODE_AGGRESSIVE: return "AGGRESSIVE";
+    case PHOTONIC_MODE_FORCE_HOLE: return "FORCE_HOLE";
+    default: return "UNKNOWN";
+    }
+}
+
+/* Threshold table keyed by mode.
+ * NORMAL     = production baseline (moderate safety-first)
+ * AGGRESSIVE = widened early-exit band
+ * FORCE_HOLE = maximum hole-in-one attempt (STRUCTURE verify still mandatory)
+ */
+typedef struct ps_thresh {
+    double pilot_ld_inv_hi;   /* pilot LOW_DISORDER inv upper */
+    double pilot_ld_dir;      /* pilot LOW_DISORDER dir_rate upper */
+    double full_ld_inv;       /* full-probe LOW_DISORDER inv */
+    double full_ld_sort;      /* full-probe LOW_DISORDER sortedness */
+    size_t low_card_unique;   /* unique_est ceiling for LOW_CARD */
+    uint64_t low_card_range;  /* dense range ceiling */
+    double pat_sortedness;    /* PATTERNED sortedness floor */
+    size_t pat_run_div;       /* max_run > n/pat_run_div */
+    double rand_inv;          /* RANDOM pilot abort inv lower */
+    double rand_dir;          /* RANDOM pilot abort dir_rate lower */
+    double residual_ld_inv;   /* late residual LOW_DISORDER inv */
+    double residual_ld_sort;  /* late residual LOW_DISORDER sortedness */
+} ps_thresh_t;
+
+static ps_thresh_t ps_thresh_for(photonic_sort_mode_t mode) {
+    ps_thresh_t t;
+    if (mode == PHOTONIC_MODE_FORCE_HOLE) {
+        /* ForceHole: most aggressive; bets on structure / low-card */
+        t.pilot_ld_inv_hi  = 0.18;
+        t.pilot_ld_dir     = 0.28;
+        t.full_ld_inv      = 0.16;
+        t.full_ld_sort     = 0.65;
+        t.low_card_unique  = 1024;
+        t.low_card_range   = 2048;
+        t.pat_sortedness   = 0.40;
+        t.pat_run_div      = 16;
+        t.rand_inv         = 0.60;
+        t.rand_dir         = 0.40;
+        t.residual_ld_inv  = 0.18;
+        t.residual_ld_sort = 0.65;
+    } else if (mode == PHOTONIC_MODE_AGGRESSIVE) {
+        t.pilot_ld_inv_hi  = 0.14;
+        t.pilot_ld_dir     = 0.22;
+        t.full_ld_inv      = 0.12;
+        t.full_ld_sort     = 0.70;
+        t.low_card_unique  = 512;
+        t.low_card_range   = 1024;
+        t.pat_sortedness   = 0.45;
+        t.pat_run_div      = 12;
+        t.rand_inv         = 0.55;
+        t.rand_dir         = 0.35;
+        t.residual_ld_inv  = 0.12;
+        t.residual_ld_sort = 0.70;
+    } else {
+        /* NORMAL — current production baseline */
+        t.pilot_ld_inv_hi  = 0.08;
+        t.pilot_ld_dir     = 0.12;
+        t.full_ld_inv      = 0.06;
+        t.full_ld_sort     = 0.85;
+        t.low_card_unique  = 256;
+        t.low_card_range   = 512;
+        t.pat_sortedness   = 0.55;
+        t.pat_run_div      = 8;
+        t.rand_inv         = 0.42;
+        t.rand_dir         = 0.28;
+        t.residual_ld_inv  = 0.06;
+        t.residual_ld_sort = 0.80;
+    }
+    return t;
+}
+
 
 #include <stdlib.h>
 #include <string.h>
@@ -245,8 +331,15 @@ static int ps_counting_i64(int64_t *restrict a, size_t n) {
 
 void photonic_probe_i64(const int64_t *restrict a, size_t n,
                         photonic_probe_t *restrict out) {
+    photonic_probe_i64_ex(a, n, out, g_ps_mode);
+}
+
+void photonic_probe_i64_ex(const int64_t *restrict a, size_t n,
+                           photonic_probe_t *restrict out,
+                           photonic_sort_mode_t mode) {
     memset(out, 0, sizeof(*out));
     out->n = n; out->confidence = 1.0; out->route = PHOTONIC_ROUTE_RANDOM;
+    ps_thresh_t th = ps_thresh_for(mode);
     if (n == 0) {
         out->sortedness = 1.0; out->is_negative_delay = 1; out->monotone_sign = 1;
         out->route = PHOTONIC_ROUTE_STRUCTURE; return;
@@ -316,12 +409,13 @@ void photonic_probe_i64(const int64_t *restrict a, size_t n,
         }
     }
     int low_card = 0;
-    if (!uset.overflow && uset.count > 0 && uset.count <= 256) low_card = 1;
+    if (!uset.overflow && uset.count > 0 && uset.count <= th.low_card_unique) low_card = 1;
     else if (smax > smin) {
         uint64_t range = (uint64_t)(smax - smin);
-        if (range <= 512 && range + 1 <= (uint64_t)n) low_card = 1;
+        if (range <= th.low_card_range && range + 1 <= (uint64_t)n) low_card = 1;
     }
-    int low_disorder = (p_pairs >= 32 && p_ir > 0.002 && p_ir <= 0.06 && p_dr <= 0.12 && !low_card);
+    int low_disorder = (p_pairs >= 32 && p_ir > 0.002 && p_ir <= th.pilot_ld_inv_hi
+                        && p_dr <= th.pilot_ld_dir && !low_card);
     if (low_card) {
         out->inv_ratio = p_ir; out->direction_changes = p_dc; out->equal_count = p_eq;
         out->max_run = 1; out->run_count = p_dc + 1;
@@ -334,7 +428,7 @@ void photonic_probe_i64(const int64_t *restrict a, size_t n,
         out->sortedness = ps_clamp01(1.0 - p_ir); out->group_delay_proxy = 1.0 - out->sortedness;
         out->confidence = 0.8; out->route = PHOTONIC_ROUTE_LOW_DISORDER; out->pilot_aborted = 1; return;
     }
-    if (p_pairs >= 32 && p_ir >= 0.42 && p_dr >= 0.28 && p_er < 0.20) {
+    if (p_pairs >= 32 && p_ir >= th.rand_inv && p_dr >= th.rand_dir && p_er < 0.20) {
         out->inv_ratio = p_ir; out->direction_changes = p_dc; out->equal_count = p_eq;
         out->max_run = 1; out->run_count = p_dc + 1;
         out->sortedness = ps_clamp01(1.0 - p_ir); out->group_delay_proxy = 1.0 - out->sortedness;
@@ -377,8 +471,11 @@ void photonic_probe_i64(const int64_t *restrict a, size_t n,
     out->group_delay_proxy = 1.0 - sortedness; out->monotone_sign = monotone_sign;
     out->is_negative_delay = (sortedness >= 0.72) || (monotone_sign && !direction_changes);
     if (monotone_sign && !direction_changes) out->route = PHOTONIC_ROUTE_STRUCTURE;
-    else if (inv_ratio <= 0.05 && sortedness >= 0.85) out->route = PHOTONIC_ROUTE_LOW_DISORDER;
-    else if (ps_merge_eligible(out) || (sortedness >= 0.55 && max_run > n / 8)) out->route = PHOTONIC_ROUTE_PATTERNED;
+    else if (inv_ratio <= th.full_ld_inv && sortedness >= th.full_ld_sort)
+        out->route = PHOTONIC_ROUTE_LOW_DISORDER;
+    else if (ps_merge_eligible(out) ||
+             (sortedness >= th.pat_sortedness && max_run > n / th.pat_run_div))
+        out->route = PHOTONIC_ROUTE_PATTERNED;
     else out->route = PHOTONIC_ROUTE_RANDOM;
 }
 
@@ -394,30 +491,76 @@ static int ps_random_residual_i64(int64_t *a, size_t n, const photonic_probe_t *
     return 0;
 }
 
-static int photonic_sort_i64_impl(int64_t *restrict a, size_t n, int force_collapse) {
-    if (n <= 1) return 0;
-    if (force_collapse) {
-        if (n <= PS_INSERTION_LIMIT) { ps_insertion_i64(a, n); return 2; }
-        return ps_mergesort_i64(a, n) ? -1 : 2;
-    }
-    photonic_probe_t probe; photonic_probe_i64(a, n, &probe);
-    /* Structure early-exit only after O(n) verification (pilot can false-positive). */
-    if (probe.direction_changes == 0 && probe.monotone_sign == 1) {
+/* Try STRUCTURE early-exit with mandatory O(n) verification.
+ * Returns 1 on success (sorted or reversed), 0 if not fully structured. */
+static int ps_try_structure_verified(int64_t *restrict a, size_t n,
+                                     const photonic_probe_t *probe) {
+    if (probe->direction_changes == 0 && probe->monotone_sign == 1) {
         if (photonic_is_sorted_i64(a, n)) return 1;
-        /* fall through — residual will finish */
+        return 0;
     }
-    if (probe.direction_changes == 0 && probe.monotone_sign == -1) {
+    if (probe->direction_changes == 0 && probe->monotone_sign == -1) {
         int fully_rev = 1;
         for (size_t i = 1; i < n; ++i) {
             if (a[i] > a[i - 1]) { fully_rev = 0; break; }
         }
         if (fully_rev) { ps_reverse_i64(a, n); return 1; }
+        return 0;
     }
+    return 0;
+}
+
+static int ps_try_low_disorder(int64_t *restrict a, size_t n) {
+    if (n <= 4096) ps_insertion_i64(a, n); else ps_pdq_i64(a, n);
+    return 2;
+}
+
+static int ps_try_low_card(int64_t *restrict a, size_t n) {
+    if (ps_counting_i64(a, n) != 0) ps_pdq_i64(a, n);
+    return 2;
+}
+
+static int photonic_sort_i64_impl(int64_t *restrict a, size_t n,
+                                  int force_collapse, photonic_sort_mode_t mode) {
+    if (n <= 1) return 0;
+    if (force_collapse) {
+        if (n <= PS_INSERTION_LIMIT) { ps_insertion_i64(a, n); return 2; }
+        return ps_mergesort_i64(a, n) ? -1 : 2;
+    }
+    ps_thresh_t th = ps_thresh_for(mode);
+    photonic_probe_t probe; photonic_probe_i64_ex(a, n, &probe, mode);
+
+    /* ---- FORCE_HOLE ladder: bet on structure / low-card first ---- */
+    if (mode == PHOTONIC_MODE_FORCE_HOLE) {
+        /* 1. Structure (verified) — true hole-in-one */
+        if (ps_try_structure_verified(a, n, &probe)) return 1;
+
+        /* 2. Low-card only when probe actually classified LOW_CARD
+         *    (unique_est alone is unreliable: 128-slot set saturates ~119). */
+        if (probe.route == PHOTONIC_ROUTE_LOW_CARD) {
+            return ps_try_low_card(a, n);
+        }
+
+        /* 3. Relaxed low-disorder attempt */
+        size_t scale = probe.n > PHOTONIC_SAMPLE_LIMIT ? PHOTONIC_SAMPLE_LIMIT : probe.n;
+        if (scale < 1) scale = 1;
+        double dir_rate = (double)probe.direction_changes / (double)scale;
+        if (probe.route == PHOTONIC_ROUTE_LOW_DISORDER ||
+            (probe.inv_ratio <= 0.18 && dir_rate <= 0.28 && probe.sortedness >= 0.55)) {
+            return ps_try_low_disorder(a, n);
+        }
+        /* 4. Fall through to full residual */
+    }
+
+    /* ---- NORMAL / AGGRESSIVE (and ForceHole fallback) ---- */
+    /* Structure early-exit only after O(n) verification (pilot can false-positive). */
+    if (ps_try_structure_verified(a, n, &probe)) return 1;
+
     if (probe.route == PHOTONIC_ROUTE_LOW_DISORDER) {
-        if (n <= 4096) ps_insertion_i64(a, n); else ps_pdq_i64(a, n); return 2;
+        return ps_try_low_disorder(a, n);
     }
     if (probe.route == PHOTONIC_ROUTE_LOW_CARD) {
-        if (ps_counting_i64(a, n) != 0) ps_pdq_i64(a, n); return 2;
+        return ps_try_low_card(a, n);
     }
     if (probe.pilot_aborted || probe.route == PHOTONIC_ROUTE_RANDOM) {
         return ps_random_residual_i64(a, n, &probe) ? -1 : 2;
@@ -425,20 +568,29 @@ static int photonic_sort_i64_impl(int64_t *restrict a, size_t n, int force_colla
     if (probe.route == PHOTONIC_ROUTE_PATTERNED || ps_merge_eligible(&probe)) {
         int rm = ps_run_merge_i64(a, n);
         if (rm == 0) return 2; if (rm < 0) return -1;
-        if (probe.unique_est > 0 && probe.unique_est <= 256 && ps_counting_i64(a, n) == 0) return 2;
+        if (probe.unique_est > 0 && probe.unique_est <= th.low_card_unique
+            && ps_counting_i64(a, n) == 0) return 2;
     }
-    if (probe.sortedness >= 0.55 && probe.confidence >= 0.5 && probe.max_run > probe.n / 8) {
+    if (probe.sortedness >= th.pat_sortedness && probe.confidence >= 0.5
+        && probe.max_run > probe.n / th.pat_run_div) {
         int rm = ps_run_merge_i64(a, n);
         if (rm == 0) return 2; if (rm < 0) return -1;
     }
-    if (probe.inv_ratio <= 0.05 && probe.sortedness >= 0.80) {
-        if (n <= 4096) ps_insertion_i64(a, n); else ps_pdq_i64(a, n); return 2;
+    if (probe.inv_ratio <= th.residual_ld_inv && probe.sortedness >= th.residual_ld_sort) {
+        return ps_try_low_disorder(a, n);
     }
     return ps_random_residual_i64(a, n, &probe) ? -1 : 2;
 }
 
-int photonic_sort_i64(int64_t *restrict a, size_t n) { return photonic_sort_i64_impl(a, n, 0); }
-int photonic_sort_i64_force_collapse(int64_t *restrict a, size_t n) { return photonic_sort_i64_impl(a, n, 1); }
+int photonic_sort_i64(int64_t *restrict a, size_t n) {
+    return photonic_sort_i64_impl(a, n, 0, g_ps_mode);
+}
+int photonic_sort_i64_ex(int64_t *restrict a, size_t n, photonic_sort_mode_t mode) {
+    return photonic_sort_i64_impl(a, n, 0, mode);
+}
+int photonic_sort_i64_force_collapse(int64_t *restrict a, size_t n) {
+    return photonic_sort_i64_impl(a, n, 1, g_ps_mode);
+}
 int photonic_sort_i64_copy(const int64_t *restrict src, int64_t *restrict dst, size_t n) {
     if (n == 0) return 0;
     if (src != dst) memcpy(dst, src, n * sizeof(int64_t));
