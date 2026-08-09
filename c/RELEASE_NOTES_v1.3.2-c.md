@@ -47,6 +47,17 @@ Correctness: **24/0 every cell**.
 
 Harness: `c/tests/sensitivity_modes.c` (reproducible).
 
+## Design decision (post-measurement)
+
+The aggressive experiment is closed with these policy decisions:
+
+- **AGGRESSIVE** is a supported mode. It delivers a real residual-time win on the light almost-sorted / sparse-swap band.
+- **FORCE_HOLE** remains strictly opt-in. The ladder currently pays a measurable tax on mid-band disorder; consider tightening the ladder in a later revision.
+- **Default stays NORMAL** (safety-first).
+- The mandatory O(n) STRUCTURE verify is correct and intentional — it is why no mode increases true hole-in-one rate once any swaps exist.
+
+No further code change required for v1.3.2-c.
+
 ## Non-claims
 
 - Default is still NORMAL (safety-first).
