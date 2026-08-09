@@ -5,6 +5,25 @@
 > Classical adaptive hybrid. **Not** photonic hardware. **Not** “sort at the speed of light.”  
 > Worst case remains **O(n log n)**. No P = NP claim.
 
+## Vector-2 / Domination Suite v0.1 (hybrid residual configuration)
+
+**Status: Criteria MET** (2026-08-09)
+
+| Criterion | Threshold | Measured | Result |
+|-----------|-----------|----------|--------|
+| Geometric mean vs `std::sort` | ≥ 1.5× | **7.08×** | PASS |
+| Geometric mean vs best specialized (pdqsort / ska_sort) | ≥ 1.5× | **1.94×** | PASS |
+| Minimum speedup vs `std::sort` | ≥ 1.0× | **1.32×** | PASS |
+| Major regressions vs specialized | 0 | **0** | PASS |
+
+**What was under test:** Photonic probe + residual selection. Structured / patterned / low-card paths used the pure-C Photonic residual menu. High-entropy paths (random, adversarial) dispatched to library pdqsort / ska_sort after selection from visible probe metrics.
+
+**Scope (mandatory):** On Domination Suite v0.1 the locked Vector-2 criteria are met. Structured / patterned / low-card wins remain pure-C Photonic. High-entropy residual uses library-strength pdqsort / ska_sort after correct selection. Result is scoped to this suite; broader evaluation may differ. No asymptotic claim. Full details: [docs/vector2/VECTOR2_CLAIM_v0.1.md](./docs/vector2/VECTOR2_CLAIM_v0.1.md).
+
+The pure-C self-contained residual numbers (Plan A / v1.3.x) continue below.
+
+---
+
 **Headline wall-time vs `std::sort`:** C11 **v1.3.1-c** (Plan A residual menu).  
 **Mode panel (NORMAL / AGGRESSIVE / FORCE_HOLE):** C11 **v1.3.2-c** — see below.
 
@@ -147,5 +166,6 @@ CSV: [`benchmarks/results_python.csv`](./benchmarks/results_python.csv)
 4. On some hosts / sizes, `std::sort` can still win pure random — always re-measure.
 5. Gains come from **structure detection + residual routing**. “Photonic” is metaphor — [`RESEARCH.md`](./RESEARCH.md).
 6. AGGRESSIVE / FORCE_HOLE do **not** raise STRUCTURE hole-in-one rate on sparse-swap data.
+7. The pure-C residual menu does not claim to beat library pdqsort / ska_sort on pure high-entropy; the Vector-2 result uses library residual after selection on those patterns.
 
 *Re-run on your hardware before publishing comparative claims.*
