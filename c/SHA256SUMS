@@ -1,8 +1,7 @@
-# PhotonicSort C11 — implementation artifacts @ 841882d906dc3fbf3bbc5c8dfa97f2773c0c1818
-# These blobs are bit-identical on main after docs commits.
+# PhotonicSort C11 — v1.3.2-c (Aggressive / ForceHole)
 # From repo root: sha256sum -c c/SHA256SUMS
-e4d4446e136b8b03c95dbb5a53ea4884db0351491a235e7c4e63eb4ad68ffb54  c/photonic_sort.c
-16b795d5150d59e4d0bcf5a16182be041f351a3e8d0ecdc1fb667814b348e622  c/photonic_sort.h
+48ee85afb13638459c59321e516ea0d94e2b584f20165901ade101b3c1c1122a  c/photonic_sort.c
+7a1b051c044f7f763f331ed59032187693612389ccc477ec83d54b2738d2ba14  c/photonic_sort.h
 ff71d4adb893a87c72dc0c0fa33ef89b3fe5267bd044e930b9613db25c494715  c/Makefile
 d453c678f19b2d4f6378eed640ac328bf914a71d9d0e331e698bc64c5ca1339a  c/examples/demo.c
 1637f73a1adfb88ce638a0102e1a921cae746ca4a4aaa861721f045e7b11fd59  c/tests/test_photonic_sort.c
