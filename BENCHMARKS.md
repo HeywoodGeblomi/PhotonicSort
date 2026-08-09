@@ -5,7 +5,9 @@
 > Classical adaptive hybrid. **Not** photonic hardware. **Not** “sort at the speed of light.”  
 > Worst case remains **O(n log n)**. No P = NP claim.
 
-**Version under test:** C11 **v1.3.1-c** (Plan A residual menu + cache-local insertion).  
+**Headline wall-time vs `std::sort`:** C11 **v1.3.1-c** (Plan A residual menu).  
+**Mode panel (NORMAL / AGGRESSIVE / FORCE_HOLE):** C11 **v1.3.2-c** — see below.
+
 Structure early-exit is **verified O(n)** before returning (no silent false positives).
 
 ---
@@ -46,32 +48,38 @@ Structure early-exit is **verified O(n)** before returning (no silent false posi
 - **Organpipe:** patterned / run-merge residual.
 - **Random:** GyroRank pilot → LSD radix residual; Plan A wins on this host at n=1e6 (~1.7×).
 
-```
-Time (ms, best) — C v1.3.1-c @ n=1e6
-
-Sorted        photonic ·                                               0.37
-              std::sort ████████████████████████████                   10.62
-
-Reverse       photonic ██                                              0.78
-              std::sort ████████████████                               7.15
-
-Organpipe     photonic █                                               2.47
-              std::sort ████████████████████████████████████████████  81.3
-
-Sawtooth      photonic █                                               1.59
-              std::sort ████████████████████████                       23.2
-
-Few unique    photonic █                                               1.52
-              std::sort ████████████████████                           19.7
-
-Almost sorted photonic ███                                             2.97
-              std::sort ████████████████                               10.84
-
-Random        photonic ████████████████████████                        46.7
-              std::sort ████████████████████████████████████           77.7
-```
-
 Raw data: [`benchmarks/results_c_n1m.csv`](./benchmarks/results_c_n1m.csv) · [`benchmarks/results_c_n200k.csv`](./benchmarks/results_c_n200k.csv)
+
+---
+
+## v1.3.2-c mode panel — NORMAL vs AGGRESSIVE vs FORCE_HOLE
+
+n = 100 000 · 24 trials/cell · sorted + exact *k* pairwise swaps · correctness 24/0 every cell.  
+Harness: [`c/tests/sensitivity_modes.c`](./c/tests/sensitivity_modes.c)
+
+### STRUCTURE hole-in-one rate (path code 1)
+
+| swap frac | NORMAL | AGGRESSIVE | FORCE_HOLE |
+|-----------|-------:|-----------:|-----------:|
+| 0.0000 (pure sorted) | **100%** | **100%** | **100%** |
+| 0.0005 → 0.1200 | **0%** | **0%** | **0%** |
+| pure random | **0%** | **0%** | **0%** |
+
+Modes do **not** increase STRUCTURE hit rate. Mandatory O(n) verify rejects STRUCTURE as soon as any swaps exist.
+
+### Residual median wall time (ms)
+
+| swap frac | k | NORMAL | AGGRESSIVE | FORCE_HOLE |
+|-----------|--:|-------:|-----------:|-----------:|
+| 0.0005 | 50 | 0.276 | **0.246** | 0.766 |
+| 0.0010 | 100 | 0.742 | **0.254** | 0.773 |
+| 0.0020 | 200 | 0.775 | 0.764 | 0.784 |
+| 0.0400 | 4000 | **0.292** | 1.578 | 1.597 |
+| 0.0800 | 8000 | **0.263** | 0.282 | 2.277 |
+| 0.1200 | 12000 | 0.260 | 0.259 | 0.281 |
+| random | — | 1.82 | 1.81 | 1.79 |
+
+**Reading:** AGGRESSIVE wins the light almost-sorted band (≈0.05–0.1% swaps). FORCE_HOLE can pay a ladder tax on mid-band disorder. Modes change residual selection/timing, not STRUCTURE rate. Default remains NORMAL.
 
 ---
 
@@ -112,7 +120,8 @@ CSV: [`benchmarks/results_python.csv`](./benchmarks/results_python.csv)
 
 | Label | Implementation |
 |-------|----------------|
-| PhotonicSort C | `photonic_sort_i64` — [`c/photonic_sort.c`](./c/photonic_sort.c) **v1.3.1-c** |
+| PhotonicSort C (headline) | `photonic_sort_i64` — **v1.3.1-c** |
+| PhotonicSort C (mode panel) | `photonic_sort_i64_ex` — **v1.3.2-c** |
 | `std::sort` | libstdc++ introsort |
 | Timsort | CPython 3 `list.sort` |
 | PhotonicSort Python | [`photonic_sort.py`](./photonic_sort.py) |
@@ -125,6 +134,7 @@ CSV: [`benchmarks/results_python.csv`](./benchmarks/results_python.csv)
 | Sawtooth | `i % 64` |
 | Few unique | `i % 16` |
 | Almost sorted | sorted + ~0.1% random swaps |
+| Sparse-swap panel | sorted + exact *k* pairwise swaps |
 | Random | uniform in `[0, 4n)` |
 
 ---
@@ -136,5 +146,6 @@ CSV: [`benchmarks/results_python.csv`](./benchmarks/results_python.csv)
 3. Does not prove P = NP.
 4. On some hosts / sizes, `std::sort` can still win pure random — always re-measure.
 5. Gains come from **structure detection + residual routing**. “Photonic” is metaphor — [`RESEARCH.md`](./RESEARCH.md).
+6. AGGRESSIVE / FORCE_HOLE do **not** raise STRUCTURE hole-in-one rate on sparse-swap data.
 
 *Re-run on your hardware before publishing comparative claims.*
