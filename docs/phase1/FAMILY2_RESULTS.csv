@@ -1,0 +1,13 @@
+id,n,pure_ms,pdq_ms,pure_over_pdq,ok
+card_cliff_low_to_high,1000000,20.134,14.243,1.414,1
+card_cliff_high_to_low,1000000,20.570,24.316,0.846,1
+range_power_bits_16,1000000,3.534,22.647,0.156,1
+range_power_bits_24,1000000,35.173,31.922,1.102,1
+range_gap_sparse,1000000,16.680,31.845,0.524,1
+equal_runs_noise,1000000,2.790,14.363,0.194,1
+ascending_card,1000000,1.504,9.196,0.164,1
+range_dense_then_sparse,1000000,24.908,21.929,1.136,1
+few_unique_heavy_k4,1000000,11.446,2.010,5.694,1
+all_equal,1000000,0.374,0.784,0.477,1
+two_values_split,1000000,1.925,1.345,1.431,1
+hierarchical_pk,1000000,21.741,29.335,0.741,1
