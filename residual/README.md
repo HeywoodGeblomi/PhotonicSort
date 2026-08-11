@@ -13,7 +13,9 @@ constant probe → early FEW_WIDE → STRUCTURE → reverse-runs → FEW_WIDE �
 ## Residual limits (documented)
 
 - few_unique_k16 ≈ 1.0–1.2× (residual quality limit)
-- Gaussian HE ≈ 1.1–1.3× (deferred floor)
+- Gaussian HE ≈ 1.1–1.2× full-menu (residual quality / path limit; isolated MSD competitive)
+
+See [`docs/residual_improve/GAUSSIAN_HE_PHASE_CLOSE.md`](../docs/residual_improve/GAUSSIAN_HE_PHASE_CLOSE.md).
 
 EXTERNAL-clean. Pure residual only. Not field-level.
 
