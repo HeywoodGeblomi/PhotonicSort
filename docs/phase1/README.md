@@ -1,23 +1,19 @@
 # Phase 1 — Synthetic Attack Surface
 
-**Status:** OPEN (Family-1 complete; parameter hunt mapped)  
+**Status:** Family-1 + Family-2 + few-unique hunt complete; P1-5 status report locked  
 **Baseline:** Phase 0 / Harvest P5.1 (frozen under `docs/phase0/`)
 
-## Family-1 (continuous Gaussian / multi-modal)
+See **[PHASE1_STATUS.md](PHASE1_STATUS.md)** for the full scoreboard and root-cause statement.
 
-- 12 fixed-seed generators — **12/12 residual floors** at n=1e6
-- Worst fixed-seed: `gauss_skew_strong_pos` **1.479×** pure/pdq
-- Parameter hunt: floors are **broad** across skew, contamination, multi-modal separation, near-flat std
-- Measurement variance is high on peak magnitude; fixed-seed suite is the citable ledger
+## Headline floors (n=1e6, median-of-7)
 
-### Artifacts
+| Family | Floors | Worst |
+|--------|-------:|------:|
+| 1 Continuous Gaussian | 12/12 | **1.479×** |
+| 2 Cardinality / range | 5/12 | **5.694×** (`few_unique_heavy_k4`) |
+| Few-unique hunt peak | — | **5.463×** |
 
-| File | Role |
-|------|------|
-| `FAMILY1_RESULTS.csv` | Fixed 12-generator n=1e6 median-of-7 |
-| `FAMILY1_RED_GATE_HITS.md` | Floor ledger for the 12 |
-| `FAMILY1_PARAM_HUNT_LEDGER.md` | Parameter-surface map + honesty note |
-| `registry.yaml` | Generator registry schema + Family-1 entries |
+**Root cause:** no efficient pure residual path for low-cardinality + wide numeric range.
 
 Phase 0 lock untouched. No residual menu changes. Not field-level.
 
