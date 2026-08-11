@@ -1,15 +1,15 @@
-# Residual sources (pure path)
+# Pure residual sources (One Single Harvest)
 
-## `msd_radix_i64.hpp`
+EXTERNAL-clean pure residual menu — **no** library dispatch to pdqsort / ska_sort / std::sort.
 
-Frozen pure HE residual (2026-08-10):
+| File | Role | Gate |
+|------|------|------|
+| `pure_residual_menu.hpp` | Unified entry (STRUCTURE → Majority → Low-card → Sparse → Identity-almost → HE) | geo 0.538× pdq |
+| `residual_he_msd_i64.hpp` | Classical MSD INS=96 BLOCK=512 | HE ≤0.92× ska MET |
+| `residual_sparse_i64.hpp` | Pure MSD INS=64 BLOCK=256 (replaces std::sort sparse path) | db_pk ≤0.95× MET |
+| `residual_adversarial_i64.hpp` | Dutch-flag majority + pure sides | adversarial ≤0.95× MET |
+| `msd_radix_i64.hpp` | Prior freeze residual (historical) | — |
 
-- Classical MSD, fixed 8-bit digits, flat counts
-- Blocked scatter (BLOCK=256) + write-side prefetch
-- INS=192
-- majority_v2 + sparse-cluster entry routing
-- EXTERNAL-clean; no library pdq/ska calls on the HE path
+See [docs/harvest/](../docs/harvest/) for full suite numbers and non-claims.
 
-Namespace: `he_residual`. Entry: `he_residual::msd_radix_i64(int64_t*, size_t)`.
-
-See [`docs/phase3/`](../docs/phase3/) for measured baselines and non-claims.
+**THE BEASTIE BOYZ** · 2026-08-11
