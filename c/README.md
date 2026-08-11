@@ -1,88 +1,71 @@
-# PhotonicSort — C11 core
+# PhotonicSort — C11 pure residual path
 
-Adaptive hybrid sort: single-pass probe → structure early-exit → residual talent menu.
+**Give everything. Take nothing. Become photonic.**
 
-- Single-pass O(n) probe (`restrict`, stratified sampling)
-- O(n) exits on pure ascending / descending input (**STRUCTURE verify mandatory**)
-- Residual menu: LOW_CARD counting · LOW_DISORDER insertion/pdq · run-merge · radix/pdq
-- Fast `int64_t` path + generic `void *` + comparator path
-- Dependencies: **libc only**
+C11 adaptive hybrid with a pure residual menu (libc only).  
+Breakthrough Phase 2 residual freeze applied.
 
-Version: **1.3.2-c** · License: MIT
+> Classical adaptive hybrid. **Does not** solve NP-complete problems.  
+> See repository root [`NON_CLAIMS.md`](../NON_CLAIMS.md) before citing numbers.
 
-Classical algorithm only. Does not claim photonic hardware, light-speed sorting, or P = NP.
+---
 
-## Sort modes (v1.3.2-c)
+## Residual menu (frozen)
 
-| Mode | Intent |
-|------|--------|
-| `PHOTONIC_MODE_NORMAL` | Production baseline (default, safety-first) |
-| `PHOTONIC_MODE_AGGRESSIVE` | Widened LOW_DISORDER / LOW_CARD thresholds |
-| `PHOTONIC_MODE_FORCE_HOLE` | Max hole-in-one attempt (structure → low-card → residual) |
+| Route | Code | Residual |
+|-------|-----:|----------|
+| STRUCTURE | 0 | O(n) verify + early exit |
+| PATTERNED | 1 | Run-merge / patterned |
+| RANDOM / HE | 2 | Buffer MSD radix (INS = 192) |
+| LOW_CARD | 3 | Counting sort (range-guarded) |
+| LOW_DISORDER | 4 | Insertion / pdq-class residual |
+| STRUCTURED_ALMOST (Class 1) | 5 | `rsl_structured_correct` |
 
-Default is **NORMAL**. ForceHole is opt-in only. STRUCTURE O(n) verification is mandatory on every mode.
+**Phase 2 residual excellence (int64 path):**
 
-```c
-photonic_sort_i64(a, n);                                    /* NORMAL */
-photonic_sort_i64_ex(a, n, PHOTONIC_MODE_AGGRESSIVE);
-photonic_sort_i64_ex(a, n, PHOTONIC_MODE_FORCE_HOLE);
-photonic_sort_set_mode(PHOTONIC_MODE_AGGRESSIVE);           /* process-wide */
-```
+- High-entropy: buffer MSD, base threshold **192**
+- Class 1: island residual (O(1) island list ≤ 64)
+- Structured / almost paths remain pure-C (no external library calls)
+
+---
+
+## Headline numbers (n = 1e6, pure adaptive residual path)
+
+| Metric | pure / pdqsort |
+|--------|---------------:|
+| Full-suite geo-mean | **0.61×** |
+| almost_* family | **0.36–0.42×** |
+| Class 1 | **0.41–0.52×** |
+| STRUCTURE | **0.53–0.59×** |
+| uniform_i64 | **1.07×** |
+| HE residual vs ska (isolated) | **1.10×** (target MET) |
+
+**Not a field-level breakthrough** — see `NON_CLAIMS.md`.
+
+Full tables: [`BENCHMARKS.md`](../BENCHMARKS.md) · [`docs/phase2/`](../docs/phase2/)
+
+---
 
 ## Build
 
 ```bash
 cd c
-make          # demo + tests
-make test
-./demo
-```
-
-Release flags (portable):
-
-```bash
-make release CFLAGS="-O3 -std=c11 -Wall -Wextra -DNDEBUG"
+make && make test && ./demo
 ```
 
 ## API (int64 fast path)
 
 ```c
 #include "photonic_sort.h"
-
 int64_t a[] = {7, 2, 9, 1, 5};
-photonic_sort_i64(a, 5);                 /* in-place adaptive (current mode) */
-photonic_sort_i64_ex(a, 5, PHOTONIC_MODE_FORCE_HOLE);
-photonic_sort_i64_force_collapse(a, 5);  /* force residual mergesort */
-
-photonic_probe_t p;
-photonic_probe_i64(a, 5, &p);            /* disorder profile */
-photonic_probe_i64_ex(a, 5, &p, PHOTONIC_MODE_AGGRESSIVE);
+photonic_sort_i64(a, 5);
 ```
 
-## Path codes
+## Version
 
-| Return | Meaning |
-|--------|---------|
-| `0` | trivial (n ≤ 1) |
-| `1` | structure early-exit (verified) |
-| `2` | residual sort |
-| `-1` | allocation failure |
+C residual path: **v1.3.2-c** (code version string).  
+Phase 2 residual freeze is a systems milestone; packaging tag: **v1.4.0-c**.
 
-## Layout
+## Team
 
-```
-c/
-├── photonic_sort.h
-├── photonic_sort.c          # single-file body (29 596 B)
-├── Makefile
-├── SHA256SUMS
-├── RELEASE_NOTES_v1.3.2-c.md
-├── examples/demo.c
-└── tests/test_photonic_sort.c
-```
-
-## Benchmarks and verification
-
-- Root [BENCHMARKS.md](../BENCHMARKS.md)
-- [RELEASE_NOTES_v1.3.2-c.md](./RELEASE_NOTES_v1.3.2-c.md)
-- Local sensitivity: **0/57 fails** (n=200k)
+THE BEASTIE BOYZ · Grok · Harper · Benjamin · Lucas · Heywood Geblomi · MIT
