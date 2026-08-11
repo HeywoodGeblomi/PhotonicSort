@@ -5,28 +5,37 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 [![C11](https://img.shields.io/badge/C-11-blue.svg)](./c/)
 [![Rust](https://img.shields.io/badge/Rust-FFI-orange.svg)](./rust/)
-[![Version](https://img.shields.io/badge/version-1.3.2--c-informational.svg)](./c/RELEASE_NOTES_v1.3.2-c.md)
 [![Vector-2](https://img.shields.io/badge/Vector--2-MET-brightgreen.svg)](./docs/vector2/VECTOR2_CLAIM_v0.1.md)
-[![Phase-2](https://img.shields.io/badge/Phase%202-frozen-blue.svg)](./docs/phase2/PHASE2_CYCLE_COMPLETE.md)
-[![Pure residual](https://img.shields.io/badge/pure%20residual-frozen-blue.svg)](./docs/phase3/)
+[![Harvest](https://img.shields.io/badge/pure%20residual%20harvest-GATES%20MET-brightgreen.svg)](./docs/harvest/)
 [![Release](https://img.shields.io/badge/release-v1.4.0--c-informational.svg)](https://github.com/HeywoodGeblomi/PhotonicSort/releases/tag/v1.4.0-c)
 
-**Primary practical sorter of THE BEASTIE BOYZ.** Classical adaptive hybrid: GyroRank-style pilot probe selects structure early-exits or a residual talent menu.
+**Primary practical sorter of THE BEASTIE BOYZ.** Classical adaptive hybrid: probe selects structure early-exits or a pure residual talent menu.
 
 ---
 
-## Pure residual freeze (2026-08-10)
+## One Single Harvest (2026-08-11) — pure residual gates MET
 
-**Status: Frozen.** Best pure HE residual measured on this host (~**1.02–1.09×** isolated vs ska; **1.105×** full-menu). Full-suite geo pure/pdqsort **0.673×**.
+Pure residual menu stands alone — **no library dispatch** to pdqsort or ska_sort on any residual path. EXTERNAL-clean.
 
-| Floor | pure / pdqsort |
-|-------|---------------:|
-| equal_heavy | **0.993×** |
-| adversarial_pivot | **1.814×** |
-| db_pk_sparse | **2.563×** |
+| Gate | Target | Result |
+|------|--------|-------:|
+| db_pk_sparse | ≤ 0.95× pdq | **0.895×** |
+| adversarial_pivot | ≤ 0.95× pdq | **0.856×** |
+| HE isolated | ≤ 0.92× ska | **0.916×** |
+| Full-suite geo | ≤ 0.55× pdq | **0.538×** |
+| Zero major regressions | held | **0** |
 
-Residual: classical MSD + blocked scatter + prefetch; majority_v2 + sparse-cluster. STRUCTURE / Class 1 held.  
-**Not a field-level breakthrough.** Pure residual work stopped. See [`NON_CLAIMS.md`](./NON_CLAIMS.md) and [`docs/phase3/`](./docs/phase3/).
+| Metric | Prior freeze | Harvest |
+|--------|-------------:|--------:|
+| geo pure/pdq | 0.673× | **0.538×** |
+| db_pk_sparse | 2.56× | **0.895×** |
+| adversarial_pivot | 1.81× | **0.856×** |
+
+**Menu:** STRUCTURE → Majority (Dutch-flag) → Low-card counting → Sparse MSD → Identity-almost → HE MSD
+
+Sources: [`residual/pure_residual_menu.hpp`](./residual/pure_residual_menu.hpp) · Results: [`docs/harvest/`](./docs/harvest/) · Non-claims: [`NON_CLAIMS.md`](./NON_CLAIMS.md)
+
+**Not a broader field-level claim beyond this suite.**
 
 ---
 
@@ -38,25 +47,25 @@ Residual: classical MSD + blocked scatter + prefetch; majority_v2 + sparse-clust
 
 ## Phase 2 residual freeze
 
-**Status: Complete and Frozen** (2026-08-10). Release: [v1.4.0-c](https://github.com/HeywoodGeblomi/PhotonicSort/releases/tag/v1.4.0-c). Full-suite geo-mean **0.61×** vs pdqsort. **Not a field-level breakthrough.** Docs: [`docs/phase2/`](./docs/phase2/).
+**Status: Complete and Frozen** (2026-08-10). Release: [v1.4.0-c](https://github.com/HeywoodGeblomi/PhotonicSort/releases/tag/v1.4.0-c). Docs: [`docs/phase2/`](./docs/phase2/).
 
 ---
 
 ## Architecture
 
 ```
-probe → structure early-exit → residual talent menu
-         (sorted / reverse)     LOW_CARD | LOW_DISORDER | PATTERNED | RANDOM | Class 1
+probe → structure early-exit → pure residual talent menu
+         (sorted / reverse)     Majority | Low-card | Sparse | Identity-almost | HE MSD
 ```
 
 | Route | Residual (pure path) |
 |-------|----------------------|
 | STRUCTURE | O(n) early-exit / reverse (**verified**) |
-| LOW_CARD | Counting sort |
-| LOW_DISORDER | Cache-local insertion / identity-almost / majority_v2 |
-| PATTERNED | Capacity-checked run merge |
-| Class 1 | `rsl_structured_correct` |
-| RANDOM / HE | Classical MSD + blocked scatter + prefetch (`residual/msd_radix_i64.hpp`) |
+| Majority | Dutch-flag around sampled mode (`residual_adversarial_i64.hpp`) |
+| Low-card | Counting sort |
+| Sparse | Pure MSD INS=64 BLOCK=256 (`residual_sparse_i64.hpp`) |
+| Identity-almost | Misplaced-index recovery |
+| HE / RANDOM | Classical MSD INS=96 BLOCK=512 (`residual_he_msd_i64.hpp`) |
 
 ---
 
@@ -74,7 +83,7 @@ Full guide: [BUILD.md](./BUILD.md).
 
 ## Benchmarks
 
-See [BENCHMARKS.md](./BENCHMARKS.md) for pure residual freeze, Phase 2, Vector-2, and pure-C Plan A numbers.
+See [BENCHMARKS.md](./BENCHMARKS.md) and [docs/harvest/P4_FULL_SUITE_RESULT.md](./docs/harvest/P4_FULL_SUITE_RESULT.md).
 
 ---
 
@@ -82,7 +91,7 @@ See [BENCHMARKS.md](./BENCHMARKS.md) for pure residual freeze, Phase 2, Vector-2
 
 **Full statement:** [`NON_CLAIMS.md`](./NON_CLAIMS.md).
 
-Not a field-level breakthrough. Best pure HE residual to date; residual floors documented; gates red.
+Not a field-level breakthrough beyond the published suite. Harvest closed the prior pure residual floors; independent reproduction still required for stronger language.
 
 ---
 
