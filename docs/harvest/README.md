@@ -1,25 +1,24 @@
-# One Single Harvest
+# Harvest — Pure Residual Domination
 
-Pure Residual Domination Cycle — close adversarial, sparse, HE-vs-ska, and full-suite geo floors with EXTERNAL-clean pure residuals only.
+## Harvest P5.1 / v1.5.1-c (2026-08-11) — current
 
-## Status: ALL GATES MET (2026-08-11)
+Extended-suite pure residual freeze. Full extended geo **0.500×** vs pdqsort (38 patterns, n=1e6, median-of-7).
 
-| Gate | Result |
-|------|-------:|
-| db_pk_sparse ≤ 0.95× pdq | **0.895× MET** |
-| adversarial ≤ 0.95× pdq | **0.856× MET** |
-| HE isolated ≤ 0.92× ska | **0.916× MET** |
-| Full-suite geo ≤ 0.55× pdq | **0.538× MET** |
-| Zero major regressions | **MET** |
+| Group | geo pure/pdq |
+|-------|-------------:|
+| Full extended (38) | **0.500×** |
+| High priority (13) | **0.571×** |
+| Locked original 11 | **0.553×** |
 
-## Menu
-STRUCTURE → Majority (Dutch-flag) → Low-card counting → Sparse MSD → Identity-almost → HE MSD
+- Zipf + constant floors closed (expanded counting)
+- push_middle / push_front closed (3-run merge residual)
+- gaussian ≈1.10× documented HE residual quality floor
 
-No library dispatch. EXTERNAL-clean.
+**Sources:** [`residual/pure_residual_menu.hpp`](../../residual/pure_residual_menu.hpp)  
+**Freeze:** [HARVEST_P5.1_FREEZE.md](./HARVEST_P5.1_FREEZE.md) · [NON_CLAIMS_P5.1.md](./NON_CLAIMS_P5.1.md) · [P5_1_FINAL.csv](./P5_1_FINAL.csv)
 
-## Artifacts
-- [P4_FULL_SUITE.csv](./P4_FULL_SUITE.csv)
-- [P4_FULL_SUITE_RESULT.md](./P4_FULL_SUITE_RESULT.md)
-- Residual sources under `residual/`
+Not a field-level breakthrough. EXTERNAL-clean. Pure residual only.
 
-**THE BEASTIE BOYZ**
+## Prior: One Single Harvest P4 (2026-08-11)
+
+Locked 11-pattern suite geo **0.538×**. See [P4_FULL_SUITE_RESULT.md](./P4_FULL_SUITE_RESULT.md).
