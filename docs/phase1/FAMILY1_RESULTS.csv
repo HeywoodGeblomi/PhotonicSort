@@ -1,0 +1,13 @@
+id,n,pure_ms,pdq_ms,pure_over_pdq,ok
+gauss_nearflat_tiny_std,1000000,42.285,30.733,1.376,1
+gauss_nearflat_skew_pos,1000000,39.075,30.980,1.261,1
+gauss_nearflat_skew_neg,1000000,39.927,30.463,1.311,1
+gauss_mm2_balanced,1000000,36.844,30.447,1.210,1
+gauss_mm2_imbalanced_90_10,1000000,42.334,33.434,1.266,1
+gauss_mm2_imbalanced_70_30,1000000,41.556,31.753,1.309,1
+gauss_mm3_equal,1000000,35.726,33.389,1.070,1
+gauss_mm3_unequal,1000000,37.326,30.559,1.221,1
+gauss_skew_strong_pos,1000000,45.907,31.037,1.479,1
+gauss_skew_strong_neg,1000000,47.901,34.203,1.401,1
+gauss_leptokurtic_contam,1000000,48.624,36.804,1.321,1
+gauss_nearflat_microstructure,1000000,38.132,32.594,1.170,1
