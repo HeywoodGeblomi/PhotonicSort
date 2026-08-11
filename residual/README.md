@@ -1,9 +1,20 @@
-# Pure Residual Menu — Harvest P5.1 / v1.5.1-c
+# Pure Residual Menu
 
-EXTERNAL-clean. No library dispatch.
+**Current engineering baseline:** Residual-Improvement v2.4.1  
+See [`docs/residual_improve/BASELINE_LOCK.md`](../docs/residual_improve/BASELINE_LOCK.md)
 
-Menu: STRUCTURE → constant probe → expanded counting → majority → **3-run merge** → sparse → identity-almost → HE MSD
+**Historical freeze:** Harvest P5.1 / Phase 0 (geo 0.500× on 38-pattern)  
+See [`docs/phase0/`](../docs/phase0/) and [`docs/harvest/HARVEST_P5.1_FREEZE.md`](../docs/harvest/HARVEST_P5.1_FREEZE.md)
 
-Full extended geo **0.500×** | High **0.571×** | Locked **0.553×** (n=1e6, median-of-7)
+## Menu order (v2.4.1)
 
-See `docs/harvest/HARVEST_P5.1_FREEZE.md`. Not field-level. THE BEASTIE BOYZ
+constant probe → early FEW_WIDE → STRUCTURE → reverse-runs → FEW_WIDE → counting → majority → 3-run merge → sparse → identity-almost → HE MSD
+
+## Residual limits (documented)
+
+- few_unique_k16 ≈ 1.0–1.2× (residual quality limit)
+- Gaussian HE ≈ 1.1–1.3× (deferred floor)
+
+EXTERNAL-clean. Pure residual only. Not field-level.
+
+**THE BEASTIE BOYZ**
