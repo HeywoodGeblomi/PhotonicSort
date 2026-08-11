@@ -7,6 +7,8 @@
 [![Rust](https://img.shields.io/badge/Rust-FFI-orange.svg)](./rust/)
 [![Version](https://img.shields.io/badge/version-1.3.2--c-informational.svg)](./c/RELEASE_NOTES_v1.3.2-c.md)
 [![Vector-2](https://img.shields.io/badge/Vector--2-MET-brightgreen.svg)](./docs/vector2/VECTOR2_CLAIM_v0.1.md)
+[![Phase-2](https://img.shields.io/badge/Phase%202-frozen-blue.svg)](./docs/phase2/PHASE2_CYCLE_COMPLETE.md)
+[![Release](https://img.shields.io/badge/release-v1.4.0--c-informational.svg)](https://github.com/HeywoodGeblomi/PhotonicSort/releases/tag/v1.4.0-c)
 
 **Primary practical sorter of THE BEASTIE BOYZ.** Classical adaptive hybrid: GyroRank-style pilot probe selects structure early-exits or a residual talent menu.
 
@@ -31,20 +33,43 @@ The pure-C residual menu is the **self-contained default** shipped in the C11 li
 
 ---
 
+## Phase 2 residual freeze (pure adaptive residual excellence)
+
+**Status: Complete and Frozen** (2026-08-10). Systems milestone on the pure residual path. Release: [v1.4.0-c](https://github.com/HeywoodGeblomi/PhotonicSort/releases/tag/v1.4.0-c).
+
+| Metric (n=1e6, pure / pdqsort) | Result |
+|--------------------------------|-------:|
+| Full-suite geo-mean | **0.61×** (ahead overall) |
+| almost_* family | **0.36–0.42×** |
+| Class 1 (structured almost) | **0.41–0.52×** |
+| STRUCTURE | **0.53–0.59×** |
+| uniform_i64 | **1.07×** |
+| HE residual vs ska (isolated) | **1.10×** (≤1.15× target **MET**) |
+| equal_heavy | **1.43×** |
+| adversarial_pivot / db_pk_sparse | ~2.1× / ~1.7× residual floors |
+
+Residual menu additions: Class 1 (`rsl_structured_correct`), buffer MSD (INS=192), identity-almost, majority residual.
+
+**Not a field-level breakthrough.** See [`NON_CLAIMS.md`](./NON_CLAIMS.md).  
+Docs: [`docs/phase2/`](./docs/phase2/) · [`c/RELEASE_NOTES_v1.4.0-c.md`](./c/RELEASE_NOTES_v1.4.0-c.md)
+
+---
+
 ## Architecture
 
 ```
 probe → structure early-exit → residual talent menu
-         (sorted / reverse)     LOW_CARD | LOW_DISORDER | PATTERNED | RANDOM
+         (sorted / reverse)     LOW_CARD | LOW_DISORDER | PATTERNED | RANDOM | Class 1
 ```
 
 | Route | Residual (shipped pure-C default) |
 |-------|-----------------------------------|
 | STRUCTURE | O(n) early-exit / reverse (**verified**) |
 | LOW_CARD | Counting sort (few distinct keys) |
-| LOW_DISORDER | Cache-local insertion (n≤4k) / internal pdq-class |
+| LOW_DISORDER | Cache-local insertion / internal pdq-class / identity-almost |
 | PATTERNED | Capacity-checked run merge |
-| RANDOM | LSD radix (int64) / introsort |
+| Class 1 | `rsl_structured_correct` (backbone + islands) |
+| RANDOM | LSD / buffer MSD (int64) / introsort |
 
 ### Sort modes (v1.3.2-c)
 
@@ -133,9 +158,15 @@ Geometric mean of the 7 ratios ≈ **10×**. Structure early-exit is mandatory O
 
 Full protocol, pattern list, and non-claims: [docs/vector2/VECTOR2_CLAIM_v0.1.md](./docs/vector2/VECTOR2_CLAIM_v0.1.md).
 
+### C. Phase 2 pure residual freeze (vs pdqsort)
+
+See [BENCHMARKS.md](./BENCHMARKS.md) Phase 2 section and [`docs/phase2/`](./docs/phase2/). Full-suite geo-mean **0.61×** vs pdqsort at n=1e6. **Not a field-level breakthrough.**
+
 ---
 
 ## Non-claims
+
+**Full statement:** [`NON_CLAIMS.md`](./NON_CLAIMS.md).
 
 1. No photonic/optical processors.
 2. Does not sort “at the speed of light.”
@@ -144,13 +175,14 @@ Full protocol, pattern list, and non-claims: [docs/vector2/VECTOR2_CLAIM_v0.1.md
 5. Name is a design metaphor (arXiv:2409.03680).
 6. ForceHole does **not** claim hole-in-one on every input.
 7. The pure-C residual menu does not claim to beat library pdqsort / ska_sort on pure high-entropy data; the Vector-2 result uses library residual after selection on those patterns.
+8. Phase 2 residual freeze is **not a field-level breakthrough** (ska remains stronger on pure HE; residual floors remain on some patterns).
 
 ---
 
 ## Contributors
 
 - **Heywood Geblomi** — design, adaptive hybrid architecture, release engineering
-- Grok (xAI) + THE BEASTIE BOYZ (Harper, Lucas, Benjamin) — implementation collaboration (C11 core, residual menu, Domination Suite, Vector-2 claim)
+- Grok (xAI) + THE BEASTIE BOYZ (Harper, Lucas, Benjamin) — implementation collaboration (C11 core, residual menu, Domination Suite, Vector-2 claim, Phase 2 residual freeze)
 
 ---
 

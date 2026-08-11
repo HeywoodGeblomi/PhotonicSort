@@ -3,7 +3,34 @@
 **Hard numbers beat vibes.** Judge the algorithm on measurements — not the account name.
 
 > Classical adaptive hybrid. **Not** photonic hardware. **Not** “sort at the speed of light.”  
-> Worst case remains **O(n log n)**. No P = NP claim.
+> Worst case remains **O(n log n)**. No P = NP claim.  
+> **Non-claims:** see [`NON_CLAIMS.md`](./NON_CLAIMS.md).
+
+---
+
+## Phase 2 residual freeze (pure adaptive residual path)
+
+**n = 1 000 000 · trials = 5 · geo-mean wall time · vs pdqsort**  
+**Status: Complete and Frozen** (2026-08-10) · Release [v1.4.0-c](https://github.com/HeywoodGeblomi/PhotonicSort/releases/tag/v1.4.0-c)
+
+| Metric | pure / pdqsort | Notes |
+|--------|---------------:|-------|
+| **Full-suite geo-mean** | **0.61×** | Ahead of pdqsort overall |
+| almost_0.001 | **0.36×** | Identity-almost residual |
+| almost_0.01 | **0.42×** | |
+| Class 1 (sa_*) | **0.41–0.52×** | rsl_structured_correct |
+| STRUCTURE (sorted/reverse) | **0.53–0.59×** | |
+| uniform_i64 | **1.07×** | Near parity |
+| HE residual vs ska (isolated) | **1.10×** | ≤ 1.15× target **MET** |
+| equal_heavy | **1.43×** | Majority residual |
+| adversarial_pivot | **~2.1×** | Residual floor vs pdqsort |
+| db_pk_sparse | **~1.7×** | Residual floor |
+
+**Suite:** Breakthrough Phase 0 expanded generators.  
+**Honesty:** Not field-level. ska still wins pure HE. Residual floors acknowledged.  
+**Docs:** [`docs/phase2/`](./docs/phase2/) · [`NON_CLAIMS.md`](./NON_CLAIMS.md)
+
+---
 
 ## Vector-2 / Domination Suite v0.1 (hybrid residual configuration)
 
@@ -167,5 +194,6 @@ CSV: [`benchmarks/results_python.csv`](./benchmarks/results_python.csv)
 5. Gains come from **structure detection + residual routing**. “Photonic” is metaphor — [`RESEARCH.md`](./RESEARCH.md).
 6. AGGRESSIVE / FORCE_HOLE do **not** raise STRUCTURE hole-in-one rate on sparse-swap data.
 7. The pure-C residual menu does not claim to beat library pdqsort / ska_sort on pure high-entropy; the Vector-2 result uses library residual after selection on those patterns.
+8. Phase 2 residual freeze is **not a field-level breakthrough** — see [`NON_CLAIMS.md`](./NON_CLAIMS.md).
 
 *Re-run on your hardware before publishing comparative claims.*
