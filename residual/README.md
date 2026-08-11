@@ -1,15 +1,9 @@
-# Pure residual sources (One Single Harvest)
+# Pure Residual Menu — Harvest P5.1 / v1.5.1-c
 
-EXTERNAL-clean pure residual menu — **no** library dispatch to pdqsort / ska_sort / std::sort.
+EXTERNAL-clean. No library dispatch.
 
-| File | Role | Gate |
-|------|------|------|
-| `pure_residual_menu.hpp` | Unified entry (STRUCTURE → Majority → Low-card → Sparse → Identity-almost → HE) | geo 0.538× pdq |
-| `residual_he_msd_i64.hpp` | Classical MSD INS=96 BLOCK=512 | HE ≤0.92× ska MET |
-| `residual_sparse_i64.hpp` | Pure MSD INS=64 BLOCK=256 (replaces std::sort sparse path) | db_pk ≤0.95× MET |
-| `residual_adversarial_i64.hpp` | Dutch-flag majority + pure sides | adversarial ≤0.95× MET |
-| `msd_radix_i64.hpp` | Prior freeze residual (historical) | — |
+Menu: STRUCTURE → constant probe → expanded counting → majority → **3-run merge** → sparse → identity-almost → HE MSD
 
-See [docs/harvest/](../docs/harvest/) for full suite numbers and non-claims.
+Full extended geo **0.500×** | High **0.571×** | Locked **0.553×** (n=1e6, median-of-7)
 
-**THE BEASTIE BOYZ** · 2026-08-11
+See `docs/harvest/HARVEST_P5.1_FREEZE.md`. Not field-level. THE BEASTIE BOYZ
