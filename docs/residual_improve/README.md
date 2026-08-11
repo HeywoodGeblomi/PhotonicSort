@@ -5,7 +5,8 @@ Closes targeted residual floors on top of Phase 0 / Harvest P5.1.
 
 ## Status
 
-**Baseline locked** — see [`BASELINE_LOCK.md`](./BASELINE_LOCK.md)
+**Baseline locked** — see [`BASELINE_LOCK.md`](./BASELINE_LOCK.md)  
+**Gaussian HE phase closed** — see [`GAUSSIAN_HE_PHASE_CLOSE.md`](./GAUSSIAN_HE_PHASE_CLOSE.md)
 
 ## Menu (v2.4.1)
 
@@ -19,13 +20,14 @@ constant probe → early FEW_WIDE → STRUCTURE → reverse-runs → FEW_WIDE �
 | reverse_segments_8 | 0.85–0.93× | CLOSED |
 | few_unique_heavy_k4 | ~0.8–0.9× | held |
 | few_unique_k16 | ~1.0–1.2× | residual quality limit |
-| Gaussian HE | ~1.1–1.3× | residual floor (deferred) |
+| Gaussian HE | ~1.1–1.2× full-menu | residual quality / path limit |
 
 16-pattern post-merge geo **0.648×**. Full extended surface ~0.55–0.67× (indicative).
 
 ## Documents
 
 - [`BASELINE_LOCK.md`](./BASELINE_LOCK.md) — engineering freeze
+- [`GAUSSIAN_HE_PHASE_CLOSE.md`](./GAUSSIAN_HE_PHASE_CLOSE.md) — Gaussian HE phase close
 - [`ATTACK_3_FLOORS_RESULT.md`](./ATTACK_3_FLOORS_RESULT.md)
 - [`POST_MERGE_SUITE_RESULT.md`](./POST_MERGE_SUITE_RESULT.md)
 - [`FEW_WIDE_RESULT.md`](./FEW_WIDE_RESULT.md)
