@@ -1,11 +1,14 @@
 #pragma once
 /*
- * residual_few_wide_i64 — FEW_WIDE pure residual (v2.3)
+ * residual_few_wide_i64 — FEW_WIDE pure residual (v2.4)
  *
  * Target: k ≤ 16 over wide numeric range. Value-preserving.
  * v2: open-addressed hash collect + rank
- * v2.2: branchless block partition for k=2
- * v2.3: k=2 → dual branchless count + sequential fills (faster than partition/pdq)
+ * v2.3: k=2 → dual branchless count + sequential fills
+ * v2.4: HCAP=128 (lower collision on k=16)
+ *
+ * Residual quality limit: balanced uniform / high-skew Zipf k≈8–16
+ * remains ~1.0–1.7× vs pdq (documented; not a routing miss).
  *
  * Pure residual only. EXTERNAL-clean. Fixed-size tables.
  * THE BEASTIE BOYZ — residual-improvement 2026-08-11
@@ -19,7 +22,7 @@
 namespace residual_few_wide {
 
 static constexpr size_t KMAX = 16;
-static constexpr size_t HCAP = 64;
+static constexpr size_t HCAP = 128;
 static constexpr size_t BLOCK = 64;
 
 inline uint32_t mix64(uint64_t x) {
@@ -29,9 +32,7 @@ inline uint32_t mix64(uint64_t x) {
     return (uint32_t)x;
 }
 
-/** Fast exact-k=2 residual: dual branchless count + two sequential fills.
- *  ~0.75–0.9 ms @1e6 on balanced two-value. Beats pdq. Full count verifies no third.
- *  EXTERNAL-clean. */
+/** Fast exact-k=2 residual: dual branchless count + two sequential fills. */
 inline bool residual_two_value(int64_t *a, size_t n) {
     if (n < 2) return true;
     int64_t v0 = a[0], v1 = v0;
@@ -46,7 +47,7 @@ inline bool residual_two_value(int64_t *a, size_t n) {
         c0 += (size_t)(a[i] == v0);
         c1 += (size_t)(a[i] == v1);
     }
-    if (c0 + c1 != n) return false; // third value present
+    if (c0 + c1 != n) return false;
     for (size_t i = 0; i < c0; ++i) a[i] = v0;
     for (size_t i = c0; i < n; ++i) a[i] = v1;
     return true;
@@ -114,7 +115,7 @@ inline bool residual_few_wide_i64(int64_t *a, size_t n) {
         if (!more && two) {
             if (residual_two_value(a, n)) return true;
         }
-        if (!more && !two) return true; // all equal
+        if (!more && !two) return true;
     }
 
     int64_t uniq[KMAX];
