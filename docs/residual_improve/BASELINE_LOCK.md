@@ -10,12 +10,14 @@
 
 Freeze the pure residual menu and measured residual floors after the residual-improvement phase (Attack 3 floors + FEW_WIDE v2.3/v2.4.1 + equal_heavy correctness hotfix).
 
-This is an **engineering baseline** for subsequent residual work (e.g. Gaussian HE levers). It does **not** replace or rewrite the Phase 0 historical freeze.
+This is an **engineering baseline**. It does **not** replace or rewrite the Phase 0 historical freeze.
+
+Gaussian HE phase (2026-08-11) closed with the floor documented as a residual quality / path limit — see [`GAUSSIAN_HE_PHASE_CLOSE.md`](./GAUSSIAN_HE_PHASE_CLOSE.md).
 
 ## What is frozen
 
-| Artifact | Role | Blob SHA (main) |
-|----------|------|-----------------|
+| Artifact | Role | Blob SHA |
+|----------|------|----------|
 | `residual/pure_residual_menu.hpp` | Unified pure residual entry | `61cc5c6c1c18a219e966c388daf94d500b18c637` |
 | `residual/residual_few_wide_i64.hpp` | FEW_WIDE v2.4.1 (HCAP=128, k=2 dual-count, equal_heavy verify) | `2cca4a9881ae7eda2c10f42da2d45434838b9250` |
 | `residual/residual_he_msd_i64.hpp` | HE MSD residual | `809d8097bef3b4b1528850f6d04de536ce563f86` |
@@ -23,6 +25,7 @@ This is an **engineering baseline** for subsequent residual work (e.g. Gaussian 
 | `residual/residual_adversarial_i64.hpp` | Majority / Dutch-flag residual | `aa22c55bf5aaeb1402d34fded2aab5d339cf0405` |
 | `docs/residual_improve/ATTACK_3_FLOORS_RESULT.md` | Attack floor ledger | `61d5b3883a6dd0f9245c009e4c7fc2e917b3a588` |
 | `docs/residual_improve/POST_MERGE_SUITE_RESULT.md` | Post-merge 16-pattern scoreboard | `0bf8a79eab629e60b99876ba9a9747a6a72593ec` |
+| `docs/residual_improve/GAUSSIAN_HE_PHASE_CLOSE.md` | Gaussian HE phase close | on main |
 
 ## Residual menu order (v2.4.1)
 
@@ -38,7 +41,7 @@ This is an **engineering baseline** for subsequent residual work (e.g. Gaussian 
 10. Identity-almost  
 11. HE MSD  
 
-Key techniques landed in this phase:
+Key techniques landed in residual-improvement:
 
 - FEW_WIDE v2.3: dual branchless count + sequential fill for k=2  
 - FEW_WIDE v2.4: HCAP 64 → 128  
@@ -80,14 +83,14 @@ Key techniques landed in this phase:
 | reverse_segments_8 | 0.85–0.93× (focused); 0.772× post-merge | **CLOSED** |
 | few_unique_heavy_k4 | ~0.8–0.9× / 0.633× | held |
 | few_unique_k16 (uniform) | ~1.0–1.2× | residual quality limit |
-| Gaussian HE (gauss_nearflat) | ~1.1–1.3× / 1.195× | residual floor (deferred) |
+| Gaussian HE (gauss_nearflat) | ~1.1–1.2× full-menu (isolated MSD competitive) | **residual quality / path limit** |
 
 Indicative full-extended 38-pattern surface after residual-improvement (phase notes / project memory; no dedicated locked CSV in this freeze): **~0.55–0.67×** pure/pdq. Locked + high groups correspondingly ~0.58–0.75× range. A future full 38-pattern re-lock may be appended without invalidating this baseline.
 
 ## Explicit residual limits
 
 - **few_unique_k16** (balanced uniform / high-skew Zipf k≈8–16): residual quality of hash-rank+count vs pdq equals-friendly partition. Path fires correctly; not a routing miss. Documented limit.
-- **Gaussian HE**: continuous near-uniform data remains a residual-quality floor of the pure HE MSD path. Deferred to a future focused phase.
+- **Gaussian HE**: full-menu ratio on continuous near-uniform remains ~1.1–1.2×. Isolated classical MSD residual is competitive with pdq; the gap is probe / path overhead under the pure residual contract. Prior pure MSD micros exhausted. Documented residual quality / path limit (Gaussian HE phase closed 2026-08-11). See [`GAUSSIAN_HE_PHASE_CLOSE.md`](./GAUSSIAN_HE_PHASE_CLOSE.md).
 - equal_heavy shows variance (majority residual); sample-all-equal correctness path fixed in v2.4.1.
 
 ## Rules held
