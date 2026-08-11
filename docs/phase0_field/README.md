@@ -1,16 +1,25 @@
 # Phase 0 — Field-Level Evidence Foundation
 
-**Status:** IN PROGRESS  
+**Status:** GAP MAP LIVE  
 **Parent:** [`docs/FIELD_LEVEL_ATTACK_PLAN.md`](../FIELD_LEVEL_ATTACK_PLAN.md)
 
 ## Deliverables
 
-1. **FIELD_LEVEL_ATTACK_PLAN.md** — locked (parent).
-2. **SUITE_DESIGN.md** — expanded real-world + adversarial distribution list, *n*-range, architecture matrix.
-3. **HARNESS_SPEC.md** — multi-baseline harness interface, SOTA list, one-command / Docker contract, statistical protocol, output schema.
+| Document | Role |
+|----------|------|
+| [`../FIELD_LEVEL_ATTACK_PLAN.md`](../FIELD_LEVEL_ATTACK_PLAN.md) | Locked field-level plan |
+| [`SUITE_DESIGN.md`](./SUITE_DESIGN.md) | Expanded suite design |
+| [`HARNESS_SPEC.md`](./HARNESS_SPEC.md) | Multi-baseline harness spec |
+| [`PHASE0_GAP_MAP.md`](./PHASE0_GAP_MAP.md) | **First gap map** — pure residual v2.4.1 vs std/pdq/ska @ n=1e6 |
 
-## Non-claims
+## Headline (n=1e6, median-of-5)
 
-Phase 0 produces the measurement surface and gap map only. No displacement claim is made from Phase 0 alone.
+- Geo Photonic/pdq **0.769×**
+- Soft spots: **db_pk 2.34×**, **timestamps 1.71×** vs pdq; HE patterns ~1.04–1.08×
+- Strengths: structured + dense few-unique + zipf
+
+## Next
+
+Phase 1 residual excellence targeted at measured soft spots (db_pk / timestamps routing, HE path tax). No displacement claim.
 
 **THE BEASTIE BOYZ**
