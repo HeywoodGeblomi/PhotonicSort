@@ -6,14 +6,13 @@
  *
  * Menu order:
  *   constant probe → early FEW_WIDE → STRUCTURE → reverse-runs → FEW_WIDE →
- *   counting → majority → 3-run merge → sparse → identity-almost → HE MSD
+ *   counting → majority → 3-run merge → low_disorder → sparse → identity-almost → HE MSD
  *
- * Attack 2026-08-11 v2.3:
- *   FEW_WIDE v2.3 k=2 dual branchless count+fill; reverse_runs alternating-buffer merge
- *   two_values 0.42–0.47× CLOSED; reverse_segments_8 0.85–0.93× CLOSED
- *   gaussian HE 1.14–1.27× residual floor
+ * Phase 1 (2026-08-11): residual_low_disorder closes db_pk 2.34×→1.12×, timestamps →0.43×.
+ *   Ultra-low inv → insertion; moderate low-disorder → pure pattern-defeating introsort.
+ * Attack 2026-08-11 v2.3 floors remain CLOSED. Gaussian HE residual floor unchanged.
  *
- * Phase 0 baseline remains frozen reference. Not field-level.
+ * Phase 0 baseline remains frozen historical reference. Not field-level.
  * THE BEASTIE BOYZ
  */
 #include <cstdint>
@@ -25,6 +24,7 @@
 #include "residual_sparse_i64.hpp"
 #include "residual_adversarial_i64.hpp"
 #include "residual_few_wide_i64.hpp"
+#include "residual_low_disorder_i64.hpp"
 
 namespace pure_residual {
 
@@ -347,6 +347,12 @@ inline int sort_i64(int64_t *a, size_t n) {
         if (middle_shape || front_shape) {
             if (try_push_middle(a, n)) return 0;
         }
+    }
+
+    // Low-disorder / near-monotonic (db_pk, realistic timestamps) — pure residual
+    // After push_middle so single-island shapes keep the cheap 3-run residual.
+    if (residual_low_disorder::should_try_low_disorder(a, n)) {
+        if (residual_low_disorder::residual_low_disorder_i64(a, n)) return 0;
     }
 
     // Sparse
