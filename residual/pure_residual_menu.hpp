@@ -1,15 +1,19 @@
 #pragma once
 /*
- * pure_residual_menu — Harvest P5.1 + FEW_WIDE residual-improvement (2026-08-11)
- * EXTERNAL-clean pure residual path. No library pdq/ska/std::sort dispatch.
+ * pure_residual_menu — residual-improve attack (post v1.5.1-c)
+ * EXTERNAL-clean pure residual path. No library pdq/ska/std::sort dispatch
+ *   (identity-almost uses std::sort only on tiny displacement index arrays).
  *
  * Menu order:
- *   STRUCTURE → constant probe → FEW_WIDE → counting → majority →
- *   3-run merge → sparse → identity-almost → HE MSD
+ *   constant probe → early FEW_WIDE → STRUCTURE → reverse-runs → FEW_WIDE →
+ *   counting → majority → 3-run merge → sparse → identity-almost → HE MSD
  *
- * FEW_WIDE closes low-cardinality + wide-range floor (5.694× → 0.848×).
- * Full extended geo ~0.504×. Phase 0 baseline remains frozen reference.
+ * Attack 2026-08-11 v2.3:
+ *   FEW_WIDE v2.3 k=2 dual branchless count+fill; reverse_runs alternating-buffer merge
+ *   two_values 0.42–0.47× CLOSED; reverse_segments_8 0.85–0.93× CLOSED
+ *   gaussian HE 1.14–1.27× residual floor
  *
+ * Phase 0 baseline remains frozen reference. Not field-level.
  * THE BEASTIE BOYZ
  */
 #include <cstdint>
@@ -68,8 +72,12 @@ inline bool try_identity_almost(int64_t *a, size_t n) {
     return true;
 }
 
+/** Counting residual — expanded for Zipf / moderate cardinality.
+ *  Cheap sample-range pre-check avoids O(n) min/max on dense patterns. */
 inline bool try_counting(int64_t *a, size_t n) {
     if (n < 2) return true;
+
+    // Sample-first: range + unique from ≤4k samples (cache-friendly)
     size_t S = n < 4096 ? n : 4096;
     size_t st = n / S; if (st < 1) st = 1;
     int64_t sample_vals[4096];
@@ -82,14 +90,18 @@ inline bool try_counting(int64_t *a, size_t n) {
         if (v > smax) smax = v;
     }
     uint64_t srange = (uint64_t)(smax - smin);
+    // Early reject: sample range already too dense / too wide
     if (srange >= (1ull << 20)) return false;
     if (srange >= (uint64_t)(n * 3 / 4)) return false;
+
     std::sort(sample_vals, sample_vals + ns);
     size_t sample_u = 1;
     for (size_t i = 1; i < ns; ++i)
         if (sample_vals[i] != sample_vals[i - 1]) ++sample_u;
     if (sample_u > 4096) return false;
     if (sample_u > 1024 && srange > 262144ull) return false;
+
+    // Full min/max only after sample gates pass
     int64_t amin = smin, amax = smax;
     for (size_t i = 0; i < n; ++i) {
         if (a[i] < amin) amin = a[i];
@@ -97,21 +109,36 @@ inline bool try_counting(int64_t *a, size_t n) {
     }
     if (amin == amax) return true;
     uint64_t range = (uint64_t)(amax - amin);
-    if (range >= (1ull << 20) || range >= (uint64_t)n || range >= (uint64_t)(n * 3 / 4)) return false;
+    if (range >= (1ull << 20)) return false;
+    if (range >= (uint64_t)n) return false;
+    if (range >= (uint64_t)(n * 3 / 4)) return false;
+
     size_t *cnt = (size_t *)std::calloc((size_t)range + 1, sizeof(size_t));
     if (!cnt) return false;
-    for (size_t i = 0; i < n; ++i) cnt[(uint64_t)(a[i] - amin)]++;
+    for (size_t i = 0; i < n; ++i)
+        cnt[(uint64_t)(a[i] - amin)]++;
     size_t p = 0;
     for (uint64_t v = 0; v <= range; ++v)
-        for (size_t c = cnt[v]; c; --c) a[p++] = (int64_t)v + amin;
+        for (size_t c = cnt[v]; c; --c)
+            a[p++] = (int64_t)v + amin;
     std::free(cnt);
     return true;
 }
 
+/** Localized disorder residual for push-middle / push-front patterns.
+ *
+ *  Detects: long sorted prefix + long sorted suffix + small disordered island.
+ *  Method: sort the island, then 3-way merge (prefix | island | suffix) into a
+ *  temp buffer and copy back. Cost O(n + k log k) with k = island size.
+ */
 inline bool try_push_middle(int64_t *a, size_t n) {
     if (n < 64) return false;
+
+    // prefix_end = first break in non-decreasing order
     size_t prefix_end = 1;
     while (prefix_end < n && a[prefix_end] >= a[prefix_end - 1]) ++prefix_end;
+
+    // suffix_start = leftmost index such that a[suffix_start..n) is sorted ascending
     size_t suffix_start = n - 1;
     while (suffix_start > 0 && a[suffix_start] >= a[suffix_start - 1]) --suffix_start;
     if (prefix_end >= suffix_start) return false;
@@ -148,20 +175,130 @@ inline bool try_push_middle(int64_t *a, size_t n) {
     return true;
 }
 
+/** Reverse-segments residual: reverse descending runs, then merge remaining runs.
+ *  Targets reverse_segments_N (mostly-sorted with reversed blocks, possibly overlapping).
+ *  v2.3: alternating source/dest buffers for pairwise merge. */
+inline bool try_reverse_runs(int64_t *a, size_t n) {
+    if (n < 32) return false;
+
+    // Sample true adjacent pairs for descending-run signal
+    size_t S = n < 8192 ? n - 1 : 8192;
+    size_t st = (n - 1) / S; if (st < 1) st = 1;
+    size_t sample_inv = 0, sample_desc_runs = 0, checked = 0;
+    bool in_desc = false;
+    for (size_t i = 0; i + 1 < n && checked < S; i += st, ++checked) {
+        if (a[i] > a[i + 1]) {
+            ++sample_inv;
+            if (!in_desc) { ++sample_desc_runs; in_desc = true; }
+        } else in_desc = false;
+    }
+    if (sample_desc_runs < 2 || sample_inv < 8) return false;
+    if (checked > 0 && sample_inv * 2 > checked) return false; // too random
+
+    // 1. Reverse descending runs of length >= 4
+    size_t i = 0, n_rev = 0;
+    while (i + 1 < n) {
+        if (a[i] > a[i + 1]) {
+            size_t j = i + 1;
+            while (j + 1 < n && a[j] > a[j + 1]) ++j;
+            if (j - i + 1 >= 4) { std::reverse(a + i, a + j + 1); ++n_rev; }
+            i = j + 1;
+        } else ++i;
+    }
+    if (n_rev == 0) return false;
+
+    // 2. Collect run ends (should be few after reverse)
+    constexpr size_t MAX_RUNS = 128;
+    size_t run_end[MAX_RUNS];
+    int nr = 0;
+    for (size_t k = 1; k < n; ++k) {
+        if (a[k] < a[k - 1]) {
+            if (nr >= (int)MAX_RUNS - 1) return false;
+            run_end[nr++] = k;
+        }
+    }
+    run_end[nr++] = n;
+    if (nr == 1) return true;
+    if (nr > 32) return false;
+
+    // 3. Alternating-buffer successive pairwise merge of runs
+    int64_t *tmp = (int64_t *)std::malloc(n * sizeof(int64_t));
+    if (!tmp) return false;
+    size_t ends_buf[MAX_RUNS];
+    for (int r = 0; r < nr; ++r) ends_buf[r] = run_end[r];
+    int nends = nr;
+    int64_t *src = a;
+    int64_t *dst = tmp;
+    while (nends > 1) {
+        size_t new_ends[MAX_RUNS];
+        int nnew = 0;
+        int idx = 0;
+        size_t cursor = 0;
+        while (idx < nends) {
+            if (idx + 1 >= nends) {
+                // copy remaining singleton run
+                std::memcpy(dst + cursor, src + cursor, (ends_buf[idx] - cursor) * sizeof(int64_t));
+                new_ends[nnew++] = ends_buf[idx];
+                break;
+            }
+            size_t s1 = cursor;
+            size_t e1 = ends_buf[idx];
+            size_t s2 = ends_buf[idx];
+            size_t e2 = ends_buf[idx + 1];
+            size_t p = s1, i1 = s1, i2 = s2;
+            while (i1 < e1 && i2 < e2) {
+                if (src[i1] <= src[i2]) dst[p++] = src[i1++];
+                else dst[p++] = src[i2++];
+            }
+            while (i1 < e1) dst[p++] = src[i1++];
+            while (i2 < e2) dst[p++] = src[i2++];
+            new_ends[nnew++] = e2;
+            cursor = e2;
+            idx += 2;
+        }
+        for (int r = 0; r < nnew; ++r) ends_buf[r] = new_ends[r];
+        nends = nnew;
+        // swap src/dst
+        int64_t *t = src; src = dst; dst = t;
+    }
+    if (src != a) std::memcpy(a, src, n * sizeof(int64_t));
+    std::free(tmp);
+
+    for (size_t k = 1; k < n; ++k)
+        if (a[k] < a[k - 1]) return false;
+    return true;
+}
+
+/** Unified pure residual entry. Returns 0 on success. */
 inline int sort_i64(int64_t *a, size_t n) {
     if (n < 2) return 0;
+
+    // Fast constant probe BEFORE full structure scan.
+    // Stratified sample so equal_heavy fails fast (prefix-only sample false-positive).
     {
         const size_t S = n < 128 ? n : 128;
         size_t st = n / S; if (st < 1) st = 1;
-        int64_t v0 = a[0]; bool maybe = true;
-        for (size_t i = 0, c = 0; i < n && c < S; i += st, ++c)
+        int64_t v0 = a[0];
+        bool maybe = true;
+        for (size_t i = 0, c = 0; i < n && c < S; i += st, ++c) {
             if (a[i] != v0) { maybe = false; break; }
+        }
         if (maybe) {
             bool all = true;
-            for (size_t i = 1; i < n; ++i) if (a[i] != v0) { all = false; break; }
+            for (size_t i = 1; i < n; ++i) {
+                if (a[i] != v0) { all = false; break; }
+            }
             if (all) return 0;
         }
     }
+
+    // Early few-unique wide sample (before O(n) STRUCTURE scan)
+    // Catches two_values / k≤16 wide without paying full probe tax.
+    if (n >= 64 && residual_few_wide::should_try_few_wide(a, n)) {
+        if (residual_few_wide::residual_few_wide_i64(a, n)) return 0;
+    }
+
+    // STRUCTURE (sorted / reverse)
     {
         bool asc = true, desc = true;
         for (size_t i = 1; i < n; ++i) {
@@ -172,11 +309,21 @@ inline int sort_i64(int64_t *a, size_t n) {
         if (asc) return 0;
         if (desc) { std::reverse(a, a + n); return 0; }
     }
-    // FEW_WIDE before classic counting
+
+    // Reverse-segments: descending runs → reverse + merge remaining runs
+    if (try_reverse_runs(a, n)) return 0;
+
+    // FEW_WIDE: low cardinality over wide numeric range (counting rejects on srange).
     if (residual_few_wide::should_try_few_wide(a, n)) {
         if (residual_few_wide::residual_few_wide_i64(a, n)) return 0;
     }
+
+    // Counting first (Zipf / moderate card / compact range).
+    // Must run before majority: Zipf has high equal-rate so majority would
+    // otherwise fire and pay HE on large skewed outlier sides.
     if (try_counting(a, n)) return 0;
+
+    // Majority / high equal-rate
     {
         size_t sample = n < 1024 ? n - 1 : 1024;
         size_t step = (n - 1) / sample; if (step < 1) step = 1;
@@ -186,6 +333,8 @@ inline int sort_i64(int64_t *a, size_t n) {
         if ((double)eq / (double)(checked ? checked : 1) >= 0.35)
             return residual_adversarial::residual_adversarial_i64(a, n);
     }
+
+    // Push-middle / push-front localized disorder (3-run merge)
     {
         size_t prefix_end = 1;
         while (prefix_end < n && a[prefix_end] >= a[prefix_end - 1]) ++prefix_end;
@@ -195,8 +344,12 @@ inline int sort_i64(int64_t *a, size_t n) {
         size_t right_run = n - suffix_start;
         bool middle_shape = (prefix_end >= n / 5 && right_run >= n / 5 && mid_n <= n / 4);
         bool front_shape  = (prefix_end < n / 20 && right_run >= n / 2 && mid_n <= n / 4);
-        if ((middle_shape || front_shape) && try_push_middle(a, n)) return 0;
+        if (middle_shape || front_shape) {
+            if (try_push_middle(a, n)) return 0;
+        }
     }
+
+    // Sparse
     {
         size_t S = n < 1024 ? n : 1024;
         size_t st = n / S; if (st < 1) st = 1;
@@ -215,6 +368,8 @@ inline int sort_i64(int64_t *a, size_t n) {
             (distinct <= 32 && span > 16ull * (uint64_t)n))
             return residual_sparse::residual_sparse_i64(a, n);
     }
+
+    // Identity-almost → HE
     if (try_identity_almost(a, n)) return 0;
     return residual_he::residual_he_msd_i64(a, n);
 }
