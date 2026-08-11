@@ -1,11 +1,12 @@
 #pragma once
 /*
- * residual_few_wide_i64 — FEW_WIDE pure residual (v2.4)
+ * residual_few_wide_i64 — FEW_WIDE pure residual (v2.4.1)
  *
  * Target: k ≤ 16 over wide numeric range. Value-preserving.
  * v2: open-addressed hash collect + rank
- * v2.3: k=2 → dual branchless count + sequential fills
+ * v2.3: k=2 dual branchless count + sequential fills
  * v2.4: HCAP=128 (lower collision on k=16)
+ * v2.4.1: full verify on sample-all-equal path (equal_heavy correctness)
  *
  * Residual quality limit: balanced uniform / high-skew Zipf k≈8–16
  * remains ~1.0–1.7× vs pdq (documented; not a routing miss).
@@ -23,7 +24,6 @@ namespace residual_few_wide {
 
 static constexpr size_t KMAX = 16;
 static constexpr size_t HCAP = 128;
-static constexpr size_t BLOCK = 64;
 
 inline uint32_t mix64(uint64_t x) {
     x ^= x >> 30; x *= 0xbf58476d1ce4e5b9ULL;
@@ -32,7 +32,6 @@ inline uint32_t mix64(uint64_t x) {
     return (uint32_t)x;
 }
 
-/** Fast exact-k=2 residual: dual branchless count + two sequential fills. */
 inline bool residual_two_value(int64_t *a, size_t n) {
     if (n < 2) return true;
     int64_t v0 = a[0], v1 = v0;
@@ -41,7 +40,6 @@ inline bool residual_two_value(int64_t *a, size_t n) {
     }
     if (v0 == v1) return true;
     if (v0 > v1) std::swap(v0, v1);
-
     size_t c0 = 0, c1 = 0;
     for (size_t i = 0; i < n; ++i) {
         c0 += (size_t)(a[i] == v0);
@@ -115,7 +113,15 @@ inline bool residual_few_wide_i64(int64_t *a, size_t n) {
         if (!more && two) {
             if (residual_two_value(a, n)) return true;
         }
-        if (!more && !two) return true;
+        // Sample says all equal — full verify before claiming success
+        if (!more && !two) {
+            bool all = true;
+            for (size_t i = 1; i < n; ++i) {
+                if (a[i] != s0) { all = false; break; }
+            }
+            if (all) return true;
+            // sample missed rare outliers → fall through to collect
+        }
     }
 
     int64_t uniq[KMAX];
