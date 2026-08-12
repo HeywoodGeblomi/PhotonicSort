@@ -1,25 +1,58 @@
 #pragma once
 /*
- * pure_residual_menu_i32 — minimal Wave 2 int32 pure residual entry
+ * pure_residual_menu_i32 — Wave 2 Phase A pure residual entry for int32
  *
- * Protects i64 path completely. This is a parallel specialization.
- * Phase A: FEW_WIDE residual + STRUCTURE + temporary std::sort fallback.
- * Expand residual coverage (low_disorder, counting, HE) in follow-ups.
+ * Protects i64 excellence: parallel specialization only.
+ * Menu: constant → FEW_WIDE → STRUCTURE → counting → low_disorder → HE MSD
  *
- * EXTERNAL-clean. Not field-level.
- * THE BEASTIE BOYZ — Wave 2 multi-type 2026-08-12
+ * EXTERNAL-clean. Not field-level. Sequential POD int32 only.
+ * THE BEASTIE BOYZ — Wave 2 multi-type Phase A 2026-08-12
  */
 #include <cstdint>
+#include <cstring>
+#include <cstdlib>
 #include <algorithm>
 #include "residual_few_wide_i32.hpp"
+#include "residual_low_disorder_i32.hpp"
+#include "residual_he_msd_i32.hpp"
 
 namespace pure_residual {
 
-/** Minimal int32 pure residual entry. Returns 0 on success. */
+inline bool try_counting_i32(int32_t *a, size_t n) {
+    if (n < 2) return true;
+    size_t S = n < 4096 ? n : 4096;
+    size_t st = n / S; if (st < 1) st = 1;
+    int32_t smin = a[0], smax = a[0];
+    size_t left = S;
+    for (size_t i = 0; i < n && left; i += st, --left) {
+        if (a[i] < smin) smin = a[i];
+        if (a[i] > smax) smax = a[i];
+    }
+    int32_t amin = smin, amax = smax;
+    for (size_t i = 0; i < n; ++i) {
+        if (a[i] < amin) amin = a[i];
+        if (a[i] > amax) amax = a[i];
+    }
+    if (amin == amax) return true;
+    uint64_t range = (uint64_t)((int64_t)amax - (int64_t)amin);
+    if (range >= (1ull << 20) || range >= (uint64_t)n) return false;
+    if (range >= (uint64_t)(n * 3 / 4)) return false;
+    size_t *cnt = (size_t *)std::calloc((size_t)range + 1, sizeof(size_t));
+    if (!cnt) return false;
+    for (size_t i = 0; i < n; ++i)
+        cnt[(size_t)((int64_t)a[i] - (int64_t)amin)]++;
+    size_t p = 0;
+    for (uint64_t v = 0; v <= range; ++v)
+        for (size_t c = cnt[v]; c; --c)
+            a[p++] = (int32_t)((int64_t)v + (int64_t)amin);
+    std::free(cnt);
+    return true;
+}
+
 inline int sort_i32(int32_t *a, size_t n) {
     if (n < 2) return 0;
 
-    // Constant probe
+    // Constant / all-equal probe
     {
         const size_t S = n < 128 ? n : 128;
         size_t st = n / S; if (st < 1) st = 1;
@@ -30,14 +63,12 @@ inline int sort_i32(int32_t *a, size_t n) {
         }
         if (maybe) {
             bool all = true;
-            for (size_t i = 1; i < n; ++i) {
-                if (a[i] != v0) { all = false; break; }
-            }
+            for (size_t i = 1; i < n; ++i) if (a[i] != v0) { all = false; break; }
             if (all) return 0;
         }
     }
 
-    // Early FEW_WIDE (including non-wide k≤4)
+    // FEW_WIDE (includes non-wide low-card via sample_u ≤ 4)
     if (n >= 64 && residual_few_wide_i32::should_try_few_wide(a, n)) {
         if (residual_few_wide_i32::residual_few_wide_i32(a, n)) return 0;
     }
@@ -54,15 +85,16 @@ inline int sort_i32(int32_t *a, size_t n) {
         if (desc) { std::reverse(a, a + n); return 0; }
     }
 
-    // Second FEW_WIDE attempt
-    if (residual_few_wide_i32::should_try_few_wide(a, n)) {
-        if (residual_few_wide_i32::residual_few_wide_i32(a, n)) return 0;
+    // Counting
+    if (try_counting_i32(a, n)) return 0;
+
+    // Low-disorder
+    if (residual_low_disorder_i32::should_try_low_disorder(a, n)) {
+        if (residual_low_disorder_i32::residual_low_disorder_i32(a, n)) return 0;
     }
 
-    // Temporary fallback: std::sort.
-    // Full pure residual menu (counting / low_disorder / HE) follows in later Wave 2 PRs.
-    std::sort(a, a + n);
-    return 0;
+    // HE MSD
+    return residual_he_i32::residual_he_msd_i32(a, n);
 }
 
 } // namespace pure_residual
