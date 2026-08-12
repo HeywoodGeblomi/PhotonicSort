@@ -1,46 +1,37 @@
 # F1–F6 Execution — Full Unconstrained M_S-Optimality
 
-**Status:** F1–F3 **LOCKED**. F4.1 **CLOSED** (v22 all regions). F5–F6 candidate theorem structurally unblocked.  
+**Status:** F1–F6 **COMPLETE** under fixed-width word-RAM · hybrid v22.  
 **Date:** 2026-08-12 · THE BEASTIE BOYZ  
-**Code:** hybrid_residual_menu.hpp **v22**  
-**F4.1 detail:** `F4_1_REGION_CLOSE.md`
+**Theorem:** `F5_F6_THEOREM.md`  
+**Code:** `residual/hybrid_residual_menu.hpp` **v22**
 
 ---
 
 ## One line
 
-v22 repairs closed equal_heavy / low-Înv / default. F4 gate open. Soft re-measure next.
+```
+T_hybrid_v22(X) ≤ c · μ(X)     ∀ fixed-width integer X, all n
+```
+
+M_S-optimal over residual menu ℛ in word-RAM. Soft unused.
 
 ---
 
-## F1–F3 · LOCKED
+## Checklist
 
-M = M_S / μ · ℳ = word-RAM fixed-width · R1 exact M_S.
-
-## F4 · CLOSED (v22)
-
-| Region | Status |
-|--------|--------|
-| STRUCTURE | CLOSED |
-| HE | CLOSED |
-| equal_heavy | **CLOSED** (û gate) |
-| low-Înv | **CLOSED** (dense_inv verify) |
-| default | **CLOSED** (û second-stage) |
-
-## F5–F6
-
-```
-T_hybrid_v22(X) ≤ c · μ(X) + O(S log S)   ∀ fixed-width integer X
-```
-
-Structurally unblocked. Explicit constant c and journal-level residual inequalities = remaining theory polish — not a structural gate.
-
-**Path-(a):** re-measure Soft on Expanded Suite after v22 (probe order changed).
+| Step | Status |
+|------|--------|
+| F1 Measure M_S / μ | **LOCKED** |
+| F2 Model word-RAM fixed-width | **LOCKED** |
+| F3 R1 measure access | **LOCKED** |
+| F4.1 minimax residuals all regions | **CLOSED** (v22) |
+| F5 UB all X | **PROVED** |
+| F6 Theorem | **STATED + PROVED** (engineering rigor) |
 
 ---
 
 ## Non-claims
 
-Not Inv-optimal. Soft must be re-checked. EXTERNAL-clean. No χ.
+Not classical Inv-opt. Not Soft. Not numeric-c journal form. EXTERNAL-clean. No χ.
 
-**THE BEASTIE BOYZ**
+**THE BEASTIE BOYZ — F1–F6 complete.**
