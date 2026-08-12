@@ -3,7 +3,7 @@
 **Date:** 2026-08-12  
 **Prerequisite:** Path-(a) hybrid residual evidence package (FIELD_LEVEL_CLAIM_v0.2).  
 **Squad:** THE BEASTIE BOYZ  
-**Status:** TABLE SET + lateral map started. No theorem claims.
+**Status:** TABLE SET + T1 candidate written. No theorem claims.
 
 ---
 
@@ -23,25 +23,24 @@ Path (b) is **not** a residual micro-attack. Theory track only. EXTERNAL-clean d
 
 | Plate | Content | Status |
 |-------|---------|--------|
-| Path-(a) empirical surface | Hybrid residual claim v0.2 | Landed / multi-arch follow-through |
+| Path-(a) empirical surface | Hybrid residual claim v0.2 | Landed / multi-arch CI wired |
 | Pure residual alternate | `pure_residual_menu*.hpp` | Retained |
 | EXTERNAL-clean constraint | Visible metrics only | Held |
 | Probe metrics inventory | inv, eq, unique, runs, desc_runs, domain, dense_inv | hybrid_residual_menu |
 | Classical → probe map | Inv/Runs/α/LRM → probes | **PATH_B_LATERAL.md** |
+| **T1 decision procedure** | `residual = f(Înv, Runŝ, û, …)` | **T1_DECISION_PROCEDURE.md** |
 | Non-claims discipline | No theorem claims until stated | Active |
 | Kill criteria | Park theory if no concrete measure/bound in fixed window | Active |
 
 ---
 
-## Candidate targets (not claimed)
+## Candidate targets
 
-| ID | Target | Lateral seed |
-|----|--------|--------------|
-| T1 | Visible-metric residual selection as adaptive decision procedure + cost model | `residual = f(Înv, Runŝ, û, …)` |
-| T2 | Sample inv/runs/unique ↔ classical presortedness | Mannila / α / LRM |
-| T3 | Misrouting bounds under sampling vs full metrics | S=256/512 |
-
-See `PATH_B_LATERAL.md` for the probe map.
+| ID | Target | Status |
+|----|--------|--------|
+| T1 | Visible-metric residual selection as adaptive decision procedure + cost model | **WRITTEN** (candidate) |
+| T2 | Sample inv/runs/unique ↔ classical presortedness (Mannila / α / LRM) | Open |
+| T3 | Misrouting bounds under sampling vs full metrics | Open |
 
 ---
 
