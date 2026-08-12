@@ -1,13 +1,13 @@
 #pragma once
 /*
- * hybrid_residual_menu v21 — path-(a) hybrid residual
+ * hybrid_residual_menu v22 — path-(a) hybrid residual + F4.1 repairs
  * STRUCTURE → O(n)
- * equal_heavy → library pdq (minimal probe)
- * few-unique / sawtooth / reverse-seg / ultra-low-inv consecutive → pure residual
+ * equal_heavy: êq high ∧ û≤32 → PURE counting; else PDQ   (F4 repair)
+ * few-unique / sawtooth / reverse-seg → pure residual
+ * low-Înv consecutive: dense_inv verify before PURE; fail → PDQ  (F4 repair)
  * HE / gaussianish → ska
  * mixed_blocks consecutive+dense-inv → ska (≤4B) / pdq (8B)
- * sparse near-sorted → pdq
- * else → library pdq
+ * default: second-stage û≤32 → PURE; else PDQ  (F4 repair)
  * EXTERNAL-clean visible metrics only. THE BEASTIE BOYZ 2026-08-12
  */
 #include <cstdint>
@@ -31,19 +31,6 @@ template<typename T>
 inline bool is_sorted_desc(const T *a, size_t n) {
     for (size_t i = 1; i < n; ++i) if (a[i] > a[i - 1]) return false;
     return true;
-}
-
-template<typename T>
-inline bool quick_equal_heavy(const T *a, size_t n) {
-    if (n < 256) return false;
-    const size_t S = 256;
-    size_t eq = 0;
-    for (size_t c = 0; c < S; ++c) {
-        size_t i = (c * (n - 1)) / S;
-        size_t j = (i + 1 < n) ? i + 1 : i;
-        if (a[i] == a[j]) ++eq;
-    }
-    return eq * 3 >= S;
 }
 
 template<typename T>
@@ -78,33 +65,49 @@ inline size_t dense_inv(const T *a, size_t n) {
     return inv;
 }
 
+/* Max number of dense-inv samples (~8192 when n large). */
+inline size_t dense_inv_samples(size_t n) {
+    size_t step = n > 8192 ? n / 8192 : 1;
+    return n > 0 ? (n - 1) / step : 0;
+}
+
 template<typename T, typename PureFn>
 inline int dispatch(T *a, size_t n, PureFn pure_fn) {
     if (n < 2) return 0;
     if (is_sorted_asc(a, n)) return 0;
     if (is_sorted_desc(a, n)) { std::reverse(a, a + n); return 0; }
 
-    if (quick_equal_heavy(a, n)) {
-        residual_pdqsort(a, a + n);
-        return 0;
-    }
-
     size_t inv, eq, u, desc_runs;
     T mn, mx;
     sample_full(a, n, inv, eq, u, desc_runs, mn, mx);
     const size_t S = 512;
 
+    /* F4.1 repair equal_heavy: êq high ∧ û≤32 → PURE; else PDQ */
+    if (eq * 4 >= S * 3) {
+        if (u <= 32) return pure_fn(a, n);
+        residual_pdqsort(a, a + n);
+        return 0;
+    }
+
     if (u <= 32) return pure_fn(a, n);
     if (u <= 128 && inv * 2 >= S && inv * 2 <= S) return pure_fn(a, n);
     if (desc_runs >= 3 && inv * 5 >= S * 3) return pure_fn(a, n);
 
+    /* F4.1 repair low-Înv: dense_inv verify before PURE consecutive */
     if (inv * 20 <= S) {
         uint64_t dom;
         if constexpr (std::is_unsigned<T>::value)
             dom = (uint64_t)mx - (uint64_t)mn;
         else
             dom = (uint64_t)((int64_t)mx - (int64_t)mn);
-        if (dom <= (uint64_t)n * 2ull) return pure_fn(a, n);
+        if (dom <= (uint64_t)n * 2ull) {
+            size_t dinv = dense_inv(a, n);
+            size_t ds = dense_inv_samples(n);
+            /* same ≤1/20 adjacent-inv rate on dense grid; else off-grid attack → PDQ */
+            if (ds == 0 || dinv * 20 <= ds) return pure_fn(a, n);
+            residual_pdqsort(a, a + n);
+            return 0;
+        }
         residual_pdqsort(a, a + n);
         return 0;
     }
@@ -131,6 +134,8 @@ inline int dispatch(T *a, size_t n, PureFn pure_fn) {
         }
     }
 
+    /* F4.1 repair default: second-stage û ≤ 32 → PURE; else PDQ */
+    if (u <= 32) return pure_fn(a, n);
     residual_pdqsort(a, a + n);
     return 0;
 }
