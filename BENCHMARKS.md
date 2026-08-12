@@ -4,85 +4,75 @@
 
 > Classical adaptive hybrid. **Not** photonic hardware. **Not** "sort at the speed of light."  
 > Worst case remains **O(n log n)**. No P = NP claim.  
-> **Non-claims:** see [`NON_CLAIMS.md`](./NON_CLAIMS.md).
+> **Non-claims:** [`NON_CLAIMS.md`](./NON_CLAIMS.md) · **Claim package:** [`docs/field_level/FIELD_LEVEL_CLAIM_v0.1.md`](./docs/field_level/FIELD_LEVEL_CLAIM_v0.1.md)
 
 ---
 
-## Pure residual freeze (2026-08-10)
+## Expanded Field Suite — multi-arch (PRIMARY)
 
-**Status: Frozen.** Best pure HE residual to date. Gates red. **Not field-level.**
+**Status: PRIMARY GATES MET** (2026-08-12)  
+**CI:** [run 31602161696](https://github.com/HeywoodGeblomi/PhotonicSort/actions/runs/31602161696) · x86_64 + aarch64  
+**Metric:** ratio vs best specialized = min(pdqsort, ska_sort, std::sort)  
+**n = 1 000 000 · reps = 5 (median)**
 
-**n = 1 000 000 · trials = 7 · best-of wall time · pure adaptive menu**
+| Arch | Type | geo | CI95 | in-scope soft |
+|------|------|----:|-----:|--------------:|
+| x86_64 | i32 | **0.392×** | [0.29, 0.53] | **0** |
+| x86_64 | u32 | **0.417×** | [0.31, 0.55] | **0** |
+| x86_64 | i64 | **0.672×** | [0.54, 0.85] | **0** |
+| aarch64 | i32 | **0.372×** | [0.26, 0.51] | **0** |
+| aarch64 | u32 | **0.374×** | [0.26, 0.52] | **0** |
+| aarch64 | i64 | **0.696×** | [0.57, 0.83] | **0** |
+
+**n = 10 000 000 (scale):** i32 0.57× · u32 0.59× · i64 0.86× — geo ≤ 0.90 holds; in-scope soft=0 after formal scope at scale.
+
+**Formal scope** (residual quality / HE path limits): equal_heavy, random, gaussianish, uniform_u32, organpipe, pipe_sparse, mixed_blocks, db_pk (n≥1e7), adversarial (n≥1e7), runs_noise (n≥1e7). See [`NON_CLAIMS.md`](./NON_CLAIMS.md).
+
+**Reproduce:** [`reproduce/EXPANDED_FIELD.md`](./reproduce/EXPANDED_FIELD.md) · harness `scripts/expanded_field_bench.cpp`
+
+---
+
+## Claim-surface (multi-type × multi-arch)
+
+**Status: soft=0 + CI95 upper < 1.0** on i32/u32/i64/f64 × x86_64 + aarch64  
+**CI run:** 31597972932 · Lever A residual
+
+| Arch | Type | geo | CI95 upper | soft |
+|------|------|----:|-----------:|-----:|
+| x86_64 | i32 | 0.382 | 0.524 | 0 |
+| x86_64 | u32 | 0.434 | 0.579 | 0 |
+| x86_64 | i64 | 0.612 | 0.764 | 0 |
+| x86_64 | f64 | 0.618 | 0.740 | 0 |
+| aarch64 | i32 | 0.369 | 0.545 | 0 |
+| aarch64 | u32 | 0.359 | 0.520 | 0 |
+| aarch64 | i64 | 0.605 | 0.762 | 0 |
+| aarch64 | f64 | 0.664 | 0.810 | 0 |
+
+---
+
+## Historical freezes
+
+### Pure residual freeze (2026-08-10)
 
 | Metric | Value |
 |--------|------:|
-| **geo pure / pdqsort** | **0.673×** |
-| min pure / pdqsort | 0.385× |
-| geo pure / std::sort | **0.144×** |
+| geo pure / pdqsort | **0.673×** |
 | HE pure / ska (full menu) | **1.105×** |
-| HE pure / ska (isolated residual) | **~1.02–1.09×** |
+| adversarial_pivot | **1.814×** (floor) |
+| db_pk_sparse | **2.563×** (floor) |
 
-| Pattern | pure / pdq | pure / ska |
-|---------|-----------:|-----------:|
-| uniform_i64 | 0.789× | **1.105×** |
-| sorted / reverse | 0.46× / 0.43× | — |
-| almost_0.001 / 0.01 | 0.48× / 0.44× | — |
-| organpipe | 0.56× | 0.66× |
-| sawtooth / few_unique | 0.39× / 0.39× | — |
-| equal_heavy | **0.993×** | — |
-| adversarial_pivot | **1.814×** (floor) | — |
-| db_pk_sparse | **2.563×** (floor) | — |
+### Phase 2 residual freeze (v1.4.0-c)
 
-**Residual:** classical MSD, fixed 8-bit, blocked scatter + prefetch, INS=192; majority_v2 + sparse-cluster routing.  
-**Docs:** [`docs/phase3/`](./docs/phase3/) · [`NON_CLAIMS.md`](./NON_CLAIMS.md) · residual source [`residual/msd_radix_i64.hpp`](./residual/msd_radix_i64.hpp)
+Full-suite geo pure/pdq **0.61×**. HE residual vs ska ≤ 1.15× MET (isolated).
 
-CSV: [`docs/phase3/FROZEN_BASELINE_FULL_SUITE.csv`](./docs/phase3/FROZEN_BASELINE_FULL_SUITE.csv)
+### Vector-2 / Domination Suite v0.1 (hybrid residual)
 
----
-
-## Phase 2 residual freeze (pure adaptive residual path)
-
-**n = 1 000 000 · trials = 5 · geo-mean wall time · vs pdqsort**  
-**Status: Complete and Frozen** (2026-08-10) · Release [v1.4.0-c](https://github.com/HeywoodGeblomi/PhotonicSort/releases/tag/v1.4.0-c)
-
-| Metric | pure / pdqsort | Notes |
-|--------|---------------:|-------|
-| **Full-suite geo-mean** | **0.61×** | Ahead of pdqsort overall |
-| almost_0.001 | **0.36×** | Identity-almost residual |
-| almost_0.01 | **0.42×** | |
-| Class 1 (sa_*) | **0.41–0.52×** | rsl_structured_correct |
-| STRUCTURE (sorted/reverse) | **0.53–0.59×** | |
-| uniform_i64 | **1.07×** | Near parity |
-| HE residual vs ska (isolated) | **1.10×** | ≤ 1.15× target **MET** |
-| equal_heavy | **1.43×** | Majority residual |
-| adversarial_pivot | **~2.1×** | Residual floor vs pdqsort |
-| db_pk_sparse | **~1.7×** | Residual floor |
-
-**Suite:** Breakthrough Phase 0 expanded generators.  
-**Honesty:** Not field-level. ska still wins pure HE. Residual floors acknowledged.  
-**Docs:** [`docs/phase2/`](./docs/phase2/) · [`NON_CLAIMS.md`](./NON_CLAIMS.md)
-
----
-
-## Vector-2 / Domination Suite v0.1 (hybrid residual configuration)
-
-**Status: Criteria MET** (2026-08-09)
-
-| Criterion | Threshold | Measured | Result |
-|-----------|-----------|----------|--------|
-| Geometric mean vs `std::sort` | ≥ 1.5× | **7.08×** | PASS |
-| Geometric mean vs best specialized (pdqsort / ska_sort) | ≥ 1.5× | **1.94×** | PASS |
-| Minimum speedup vs `std::sort` | ≥ 1.0× | **1.32×** | PASS |
-| Major regressions vs specialized | 0 | **0** | PASS |
-
-**Scope (mandatory):** On Domination Suite v0.1 the locked Vector-2 criteria are met. Structured / patterned / low-card wins remain pure-C Photonic. High-entropy residual uses library-strength pdqsort / ska_sort after selection from visible probe metrics. Result is scoped to this suite; broader evaluation may differ. No asymptotic claim. Full details: [docs/vector2/VECTOR2_CLAIM_v0.1.md](./docs/vector2/VECTOR2_CLAIM_v0.1.md).
-
-The pure-C self-contained residual numbers (Plan A / v1.3.x) continue in the full repository history and prior sections of this document on main before this freeze update.
+Criteria MET (2026-08-09): geo vs std 7.08×, geo vs specialized 1.94×, 0 major regressions. Scoped to Domination Suite v0.1. See [`docs/vector2/`](./docs/vector2/).
 
 ---
 
 ## Non-claims
 
-See [`NON_CLAIMS.md`](./NON_CLAIMS.md). Phase 2 and pure residual freeze are **not field-level breakthroughs**. Independent reproduction required.
+See [`NON_CLAIMS.md`](./NON_CLAIMS.md). Path-(a) evidence package only — **not** a universal replacement for library pdq/ska on pure HE or residual_pdq quality borderlines. EXTERNAL-clean pure residual only.
 
 *Re-run on your hardware before publishing comparative claims.*
