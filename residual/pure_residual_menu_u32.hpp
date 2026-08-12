@@ -5,6 +5,7 @@
  * Menu: constant → FEW_WIDE → STRUCTURE → counting → consecutive_perm →
  *       push_middle → low_disorder → MSD HE
  *
+ * STRUCTURE v2: asc-first tight scan (closes timestamps u32 verify tax).
  * EXTERNAL-clean. Not field-level. i64 path protected.
  * THE BEASTIE BOYZ — soft-spot kill 2026-08-12
  */
@@ -102,14 +103,19 @@ inline int sort_u32(uint32_t *a, size_t n) {
     if (n >= 64 && residual_few_wide_u32::should_try_few_wide(a, n))
         if (residual_few_wide_u32::residual_few_wide_u32(a, n)) return 0;
 
+    // STRUCTURE v2: asc-first tight scan (closes timestamps u32 verify tax)
     {
-        bool asc = true, desc = true;
+        bool asc = true;
         for (size_t i = 1; i < n; ++i) {
-            if (a[i] < a[i - 1]) asc = false;
-            if (a[i] > a[i - 1]) desc = false;
-            if (!asc && !desc) break;
+            if (a[i] < a[i - 1]) { asc = false; break; }
         }
         if (asc) return 0;
+    }
+    {
+        bool desc = true;
+        for (size_t i = 1; i < n; ++i) {
+            if (a[i] > a[i - 1]) { desc = false; break; }
+        }
         if (desc) { std::reverse(a, a + n); return 0; }
     }
 
