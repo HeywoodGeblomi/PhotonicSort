@@ -3,7 +3,7 @@
 **Date:** 2026-08-12  
 **Prerequisite:** Path-(a) hybrid residual evidence package (FIELD_LEVEL_CLAIM_v0.2).  
 **Squad:** THE BEASTIE BOYZ  
-**Status:** TABLE SET + T1 written + **OPTIMALITY_ATTACK** surface locked. No theorem claims. No optimality claimed.
+**Status:** TABLE SET + T1 + OPTIMALITY_ATTACK + **NEW_ASYMPTOTICS_ATTACK_LIST**. No theorem claims. No optimality claimed.
 
 ---
 
@@ -29,7 +29,8 @@ Path (b) is **not** a residual micro-attack. Theory track only. EXTERNAL-clean d
 | Probe metrics inventory | inv, eq, unique, runs, desc_runs, domain, dense_inv | hybrid_residual_menu |
 | Classical → probe map | Inv/Runs/α/LRM → probes | **PATH_B_LATERAL.md** |
 | T1 decision procedure | `residual = f(Înv, Runŝ, û, …)` | **T1_DECISION_PROCEDURE.md** |
-| **Optimality attack** | Known / hidden / new asymptotics | **OPTIMALITY_ATTACK.md** |
+| Optimality attack | Known / hidden / classical blockers | **OPTIMALITY_ATTACK.md** |
+| **New asymptotics list** | Unexplored P1–P12 attack surface | **NEW_ASYMPTOTICS_ATTACK_LIST.md** |
 | Non-claims discipline | No theorem / no optimality until written+checked | Active |
 | Kill criteria | Park theory if no concrete measure/bound in fixed window | Active |
 
@@ -41,10 +42,9 @@ Path (b) is **not** a residual micro-attack. Theory track only. EXTERNAL-clean d
 |----|--------|--------|
 | T1 | Visible-metric residual selection as adaptive decision procedure + cost model | **WRITTEN** (candidate) |
 | T2 | Sample inv/runs/unique ↔ classical presortedness (Mannila / α / LRM) | Open |
-| T3 | Misrouting bounds under sampling vs full metrics | Open |
-| **Opt** | Claimable optimality (sample-measure / α-LRM residual / synergistic) | **ATTACK SURFACE** — classical claim **BLOCKED** |
-
-See `OPTIMALITY_ATTACK.md` for known blockers + Candidate A/B/C.
+| T3 | Misrouting bounds under sampling vs full metrics | Open → **P2** |
+| Opt | Classical measure-optimality | **BLOCKED** |
+| **New** | P1–P12 unexplored asymptotics | **LIST LOCKED** — first strike P1+P2 |
 
 ---
 
