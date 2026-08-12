@@ -2,10 +2,10 @@
 /*
  * pure_residual_menu_i32 — Wave 2 int32 pure residual entry
  *
- * Menu: constant → FEW_WIDE → STRUCTURE → late high-disorder short-circuit →
- *       counting → consecutive_perm → push_middle → low_disorder → residual_pdqsort HE
+ * Menu: constant → FEW_WIDE → STRUCTURE → late (high-inv + compact + not-full-unique) →
+ *       counting → consecutive_perm → push_middle → low_disorder → MSD HE
  *
- * pipe_sparse kill: late inv≥0.5 → residual_pdqsort; HE fallback residual_pdqsort (full orlp).
+ * pipe_sparse kill: late residual_pdqsort on compact mid-unique high-inv.
  * EXTERNAL-clean. Not field-level. i64 path protected.
  * THE BEASTIE BOYZ — pipe_sparse kill 2026-08-12
  */
@@ -106,7 +106,6 @@ inline int sort_i32(int32_t *a, size_t n) {
     if (n >= 64 && residual_few_wide_i32::should_try_few_wide(a, n))
         if (residual_few_wide_i32::residual_few_wide_i32(a, n)) return 0;
 
-    // STRUCTURE v2: asc-first tight scan
     {
         bool asc = true;
         for (size_t i = 1; i < n; ++i) {
@@ -122,16 +121,27 @@ inline int sort_i32(int32_t *a, size_t n) {
         if (desc) { std::reverse(a, a + n); return 0; }
     }
 
-    // Late high-disorder short-circuit (after STRUCTURE): skip specialized probes
-    // Closes pipe_sparse without stealing organpipe structured paths.
+    // Late: high-disorder + compact domain + not near-full-unique → residual_pdqsort
+    // Kills pipe_sparse; spares full-range random and near-full-unique gaussianish (MSD).
     if (n >= 256) {
         const size_t S = 512;
         size_t inv = 0;
+        int32_t mn = a[0], mx = a[0];
+        int32_t samp[512];
         for (size_t c = 0; c < S; ++c) {
             size_t i = 1 + (c * (n - 1)) / S;
             if (a[i] < a[i - 1]) ++inv;
+            if (a[i] < mn) mn = a[i];
+            if (a[i] > mx) mx = a[i];
+            samp[c] = a[i];
         }
-        if (inv * 2 >= S) {
+        uint64_t dom = (uint64_t)((int64_t)mx - (int64_t)mn);
+        bool compact = dom <= (uint64_t)n * 4ull;
+        std::sort(samp, samp + S);
+        size_t u = 1;
+        for (size_t c = 1; c < S; ++c) if (samp[c] != samp[c-1]) ++u;
+        bool not_full_unique = u < (S * 9) / 10;
+        if (inv * 2 >= S && compact && not_full_unique) {
             residual_pdqsort(a, a + n);
             return 0;
         }
@@ -149,9 +159,8 @@ inline int sort_i32(int32_t *a, size_t n) {
     if (residual_low_disorder_i32::should_try_low_disorder(a, n))
         if (residual_low_disorder_i32::residual_low_disorder_i32(a, n)) return 0;
 
-    // HE fallback: residual_pdqsort (closes pipe_sparse; full orlp quality)
-    residual_pdqsort(a, a + n);
-    return 0;
+    // HE fallback: MSD
+    return residual_msd_i32::residual_msd_i32(a, n);
 }
 
 } // namespace pure_residual
