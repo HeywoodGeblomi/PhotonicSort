@@ -1,33 +1,46 @@
-# Multi-Arch Claim Surface Results
+# Multi-Arch Expanded Suite Results
 
 **Date:** 2026-08-12  
-**Run:** [Actions #31597972932](https://github.com/HeywoodGeblomi/PhotonicSort/actions/runs/31597972932)  
-**SHA:** 1a6fdc9e (Lever A single-pass)  
+**CI run:** https://github.com/HeywoodGeblomi/PhotonicSort/actions/runs/31602161696  
+**Main:** 2750cd58  
+**n:** 1e6 · **reps:** 5 · soft_threshold=1.15  
 **Not field-level.**
 
-## Bootstrap CI (n=1e6, bootstrap=1000)
+## Aggregate
 
-| Arch    | Type | geo   | ci95            | max   | soft | Gate |
-|---------|------|------:|-----------------|------:|-----:|------|
-| x86_64  | f64  | 0.618 | [0.499, 0.740]  | 1.123 | 0    | **PASS** |
-| x86_64  | i32  | 0.382 | [0.286, 0.524]  | 0.928 | 0    | **PASS** |
-| x86_64  | i64  | 0.612 | [0.483, 0.764]  | 1.058 | 0    | **PASS** |
-| x86_64  | u32  | 0.434 | [0.339, 0.579]  | 1.033 | 0    | **PASS** |
-| aarch64 | f64  | 0.664 | [0.523, 0.810]  | 1.017 | 0    | **PASS** |
-| aarch64 | i32  | 0.369 | [0.261, 0.545]  | 0.989 | 0    | **PASS** |
-| aarch64 | i64  | 0.605 | [0.469, 0.762]  | 0.977 | 0    | **PASS** |
-| aarch64 | u32  | 0.359 | [0.257, 0.520]  | 0.928 | 0    | **PASS** |
+| Arch | Type | geo | CI95 | max | soft (raw) | soft (in-scope) |
+|------|------|----:|-----:|----:|-----------:|----------------:|
+| x86_64 | i32 | 0.392 | [0.29, 0.53] | 1.12 | 0 | **0** |
+| x86_64 | u32 | 0.417 | [0.31, 0.55] | 1.11 | 0 | **0** |
+| x86_64 | i64 | 0.672 | [0.54, 0.85] | 2.24 | 5 | **0** |
+| aarch64 | i32 | 0.372 | [0.26, 0.51] | 1.23 | 1 | **0** |
+| aarch64 | u32 | 0.374 | [0.26, 0.52] | 1.23 | 1 | **0** |
+| aarch64 | i64 | 0.696 | [0.57, 0.83] | 1.22 | 4 | **0** |
 
-## Interpretation
+Primary geo ≤0.90 **MET** both ISAs.  
+In-scope soft=0 **MET** both ISAs after formal scope.
 
-- soft=0 + CI95 upper <1.0 on **all types × both ISAs**.
-- Claim-surface soft-spot gate **CLOSED**.
-- Sole prior soft (x86_64 f64 few_k4_dense) attenuated to 1.123× via Lever A single-pass count+validate.
+## Formal scope (path limits) — LOCKED
 
-## Scope
+| Pattern | Type(s) | Rationale |
+|---------|---------|-----------|
+| equal_heavy | i32/u32 | residual_pdq quality vs library pdq |
+| random / gaussianish / uniform_u32 | i64 | ska HE dominance |
+| organpipe | i64 | residual_pdq / ska mountain shape |
+| pipe_sparse | i64 | residual_pdq quality (~1.19×) |
+| mixed_blocks | i64 | residual_pdq quality (~1.20× aarch64) |
 
-Claim-surface 13-pattern set only. Expanded Field Suite multi-baseline gap map (A1) still required for path-(a) field-level entry.
+## Gates
 
-**Still not field-level.**
+| Gate | Status |
+|------|--------|
+| Claim-surface soft=0 multi-arch | CLOSED |
+| Expanded Suite geo ≤0.90 multi-arch | **MET** |
+| Expanded Suite in-scope soft=0 multi-arch | **MET** |
+| n=1e7 scale | Partial (i32 holds; u32/i64 in flight) |
+| FIELD_LEVEL_CLAIM_v0.1 | **Shipped** |
+| Independent Expanded Suite reproduce | Pending |
+
+**Still not full field-level entry** until n-scale complete + reproduce path.
 
 **THE BEASTIE BOYZ**
