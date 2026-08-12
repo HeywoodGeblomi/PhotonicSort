@@ -1,6 +1,12 @@
 #pragma once
-/* pure_residual_menu_generic — equal-first + stack counting. Not field-level. THE BEASTIE BOYZ */
+/*
+ * pure_residual_menu_generic — EXTERNAL-clean comparator residual
+ * equal-first (50%) + discrete float counting (uint32 stack ≤32) + ultra-low inv + run-gate → residual_pdqsort
+ * Covers float64 / generic path for path-(a) multi-type gate.
+ * Not field-level. THE BEASTIE BOYZ — A3 soft-close 2026-08-12
+ */
 #include <cstddef>
+#include <cstdint>
 #include <algorithm>
 #include <iterator>
 #include <functional>
@@ -58,7 +64,8 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
     }
 
     // Equal-first (before counting) — high equality → residual_pdqsort
-    // Threshold eq*4 >= S (~75%) so few_k4 still reaches counting
+    // Threshold eq*2 >= S (50%): uniform few_k4 has P(eq)~25% so must NOT trip;
+    // equal_heavy (~80%+) still trips cleanly.
     if (n >= 256) {
         const size_t S = 256;
         size_t eq = 0;
@@ -69,13 +76,13 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
                 !comp(*(first + (ptrdiff_t)j), *(first + (ptrdiff_t)i)))
                 ++eq;
         }
-        if (eq * 4 >= S) {
+        if (eq * 2 >= S) {
             residual_pdqsort(first, last, comp);
             return 0;
         }
     }
 
-    // Discrete low-card counting: stack for range<=32, calloc otherwise
+    // Discrete low-card counting: uint32 stack for range<=32, calloc otherwise
     if (n >= 64) {
         const size_t S = n < 1024 ? n : 1024;
         size_t st = n / S; if (st < 1) st = 1;
@@ -100,24 +107,33 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
                 }
                 range = (size_t)(amax - amin) + 1;
                 if (intish && range <= 4096 && range < n) {
-                    size_t stack_cnt[32];
-                    size_t *cnt = nullptr;
-                    bool on_stack = (range <= 32);
-                    if (on_stack) {
-                        for (size_t v = 0; v < range; ++v) stack_cnt[v] = 0;
-                        cnt = stack_cnt;
-                    } else {
-                        cnt = (size_t *)std::calloc(range, sizeof(size_t));
-                    }
-                    if (cnt) {
+                    if (range <= 32) {
+                        uint32_t cnt[32] = {};
                         for (size_t i = 0; i < n; ++i)
                             cnt[(size_t)((double)*(first + (ptrdiff_t)i) - amin)]++;
                         size_t p = 0;
-                        for (size_t v = 0; v < range; ++v)
-                            for (size_t c0 = cnt[v]; c0; --c0)
-                                *(first + (ptrdiff_t)(p++)) = (T)(amin + (double)v);
-                        if (!on_stack) std::free(cnt);
+                        for (size_t v = 0; v < range; ++v) {
+                            T val = (T)(amin + (double)v);
+                            uint32_t c0 = cnt[v];
+                            while (c0--) {
+                                *(first + (ptrdiff_t)(p++)) = val;
+                            }
+                        }
                         return 0;
+                    } else {
+                        size_t *cnt = (size_t *)std::calloc(range, sizeof(size_t));
+                        if (cnt) {
+                            for (size_t i = 0; i < n; ++i)
+                                cnt[(size_t)((double)*(first + (ptrdiff_t)i) - amin)]++;
+                            size_t p = 0;
+                            for (size_t v = 0; v < range; ++v) {
+                                T val = (T)(amin + (double)v);
+                                for (size_t c0 = cnt[v]; c0; --c0)
+                                    *(first + (ptrdiff_t)(p++)) = val;
+                            }
+                            std::free(cnt);
+                            return 0;
+                        }
                     }
                 }
             }
