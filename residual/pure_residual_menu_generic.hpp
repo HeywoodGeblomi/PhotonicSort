@@ -1,6 +1,7 @@
 #pragma once
-/* pure_residual_menu_generic — equal-first + stack counting. Not field-level. THE BEASTIE BOYZ */
+/* pure_residual_menu_generic — full-attack: eq*2 + range≤4 unroll. Not field-level. THE BEASTIE BOYZ */
 #include <cstddef>
+#include <cstdint>
 #include <algorithm>
 #include <iterator>
 #include <functional>
@@ -57,8 +58,7 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
         if (desc) { std::reverse(first, last); return 0; }
     }
 
-    // Equal-first (before counting) — high equality → residual_pdqsort
-    // Threshold eq*4 >= S (~75%) so few_k4 still reaches counting
+    // Equal-first at 50% (eq*2 >= S) — avoids false-trigger on uniform k=4
     if (n >= 256) {
         const size_t S = 256;
         size_t eq = 0;
@@ -69,13 +69,15 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
                 !comp(*(first + (ptrdiff_t)j), *(first + (ptrdiff_t)i)))
                 ++eq;
         }
-        if (eq * 4 >= S) {
+        if (eq * 2 >= S) {
             residual_pdqsort(first, last, comp);
             return 0;
         }
     }
 
-    // Discrete low-card counting: stack for range<=32, calloc otherwise
+    // Discrete low-card counting
+    // range≤4: specialized uint32 + 8-wide writes (x86 few_k4 attack)
+    // 5–32: stack size_t; larger: calloc
     if (n >= 64) {
         const size_t S = n < 1024 ? n : 1024;
         size_t st = n / S; if (st < 1) st = 1;
@@ -100,6 +102,34 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
                 }
                 range = (size_t)(amax - amin) + 1;
                 if (intish && range <= 4096 && range < n) {
+                    if (range <= 4) {
+                        uint32_t cnt4[4] = {};
+                        for (size_t i = 0; i < n; ++i)
+                            cnt4[(size_t)((double)*(first + (ptrdiff_t)i) - amin)]++;
+                        T keys[4];
+                        for (size_t v = 0; v < range; ++v)
+                            keys[v] = (T)(amin + (double)v);
+                        size_t p = 0;
+                        for (size_t v = 0; v < range; ++v) {
+                            T key = keys[v];
+                            uint32_t c = cnt4[v];
+                            while (c >= 8) {
+                                *(first + (ptrdiff_t)(p)) = key;
+                                *(first + (ptrdiff_t)(p + 1)) = key;
+                                *(first + (ptrdiff_t)(p + 2)) = key;
+                                *(first + (ptrdiff_t)(p + 3)) = key;
+                                *(first + (ptrdiff_t)(p + 4)) = key;
+                                *(first + (ptrdiff_t)(p + 5)) = key;
+                                *(first + (ptrdiff_t)(p + 6)) = key;
+                                *(first + (ptrdiff_t)(p + 7)) = key;
+                                p += 8; c -= 8;
+                            }
+                            while (c--) {
+                                *(first + (ptrdiff_t)(p++)) = key;
+                            }
+                        }
+                        return 0;
+                    }
                     size_t stack_cnt[32];
                     size_t *cnt = nullptr;
                     bool on_stack = (range <= 32);
@@ -113,9 +143,24 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
                         for (size_t i = 0; i < n; ++i)
                             cnt[(size_t)((double)*(first + (ptrdiff_t)i) - amin)]++;
                         size_t p = 0;
-                        for (size_t v = 0; v < range; ++v)
-                            for (size_t c0 = cnt[v]; c0; --c0)
-                                *(first + (ptrdiff_t)(p++)) = (T)(amin + (double)v);
+                        for (size_t v = 0; v < range; ++v) {
+                            T key = (T)(amin + (double)v);
+                            size_t c0 = cnt[v];
+                            while (c0 >= 8) {
+                                *(first + (ptrdiff_t)(p)) = key;
+                                *(first + (ptrdiff_t)(p + 1)) = key;
+                                *(first + (ptrdiff_t)(p + 2)) = key;
+                                *(first + (ptrdiff_t)(p + 3)) = key;
+                                *(first + (ptrdiff_t)(p + 4)) = key;
+                                *(first + (ptrdiff_t)(p + 5)) = key;
+                                *(first + (ptrdiff_t)(p + 6)) = key;
+                                *(first + (ptrdiff_t)(p + 7)) = key;
+                                p += 8; c0 -= 8;
+                            }
+                            while (c0--) {
+                                *(first + (ptrdiff_t)(p++)) = key;
+                            }
+                        }
                         if (!on_stack) std::free(cnt);
                         return 0;
                     }
