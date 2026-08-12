@@ -3,7 +3,7 @@
 **Date:** 2026-08-12  
 **Prerequisite:** Path-(a) hybrid residual evidence package (FIELD_LEVEL_CLAIM_v0.2).  
 **Squad:** THE BEASTIE BOYZ  
-**Status:** TABLE SET + T1 + OPTIMALITY_ATTACK + **NEW_ASYMPTOTICS_ATTACK_LIST**. No theorem claims. No optimality claimed.
+**Status:** TABLE SET + T1 + OPTIMALITY_ATTACK + NEW_ASYMPTOTICS list + **P1+P2 formal unit**. No proven theorems. No optimality claimed.
 
 ---
 
@@ -30,8 +30,9 @@ Path (b) is **not** a residual micro-attack. Theory track only. EXTERNAL-clean d
 | Classical → probe map | Inv/Runs/α/LRM → probes | **PATH_B_LATERAL.md** |
 | T1 decision procedure | `residual = f(Înv, Runŝ, û, …)` | **T1_DECISION_PROCEDURE.md** |
 | Optimality attack | Known / hidden / classical blockers | **OPTIMALITY_ATTACK.md** |
-| **New asymptotics list** | Unexplored P1–P12 attack surface | **NEW_ASYMPTOTICS_ATTACK_LIST.md** |
-| Non-claims discipline | No theorem / no optimality until written+checked | Active |
+| New asymptotics list | Unexplored P1–P12 | **NEW_ASYMPTOTICS_ATTACK_LIST.md** |
+| **P1+P2 unit** | Sample-measure + misrouting regret | **P1_P2_SAMPLE_OPTIMALITY.md** |
+| Non-claims discipline | No theorem / no optimality until gaps closed | Active |
 | Kill criteria | Park theory if no concrete measure/bound in fixed window | Active |
 
 ---
@@ -40,21 +41,24 @@ Path (b) is **not** a residual micro-attack. Theory track only. EXTERNAL-clean d
 
 | ID | Target | Status |
 |----|--------|--------|
-| T1 | Visible-metric residual selection as adaptive decision procedure + cost model | **WRITTEN** (candidate) |
-| T2 | Sample inv/runs/unique ↔ classical presortedness (Mannila / α / LRM) | Open |
-| T3 | Misrouting bounds under sampling vs full metrics | Open → **P2** |
-| Opt | Classical measure-optimality | **BLOCKED** |
-| **New** | P1–P12 unexplored asymptotics | **LIST LOCKED** — first strike P1+P2 |
+| T1 | Decision procedure f(M_S) | **WRITTEN** |
+| T2 | Classical measure map | Open |
+| T3 | Misrouting | **→ P2 formalized** |
+| Opt classical | Inv/Runs/LRM/α optimality | **BLOCKED** |
+| **P1** | Sample-measure minimax LB + stability UB | **CANDIDATE** (gaps A1, B1) |
+| **P2** | Regret vanishing under concentration | **CANDIDATE** (gaps C1, C2, L1–L2) |
+
+Next theory labor: close A1 (residual cost on 𝒞(m)) and C1 (Lipschitz residual costs).
 
 ---
 
 ## Rules
 
-1. No theorem language in public claims until a concrete statement is written and checked.
-2. **No optimality claim** until a lower bound + matching upper bound is written for a stated model and measure.
+1. No theorem language in public claims until gaps labeled in P1_P2 are closed and checked.
+2. **No optimality claim** until lower + upper bounds match for a stated model.
 3. Theory must not regress path-(a) hybrid residual measurements.
 4. EXTERNAL-clean remains default.
-5. If no concrete measure/bound emerges in fixed window → park theory.
-6. Professional brevity: smallest character count that carries the concept.
+5. If no concrete bound emerges in fixed window → park theory.
+6. Professional brevity.
 
 **THE BEASTIE BOYZ**
