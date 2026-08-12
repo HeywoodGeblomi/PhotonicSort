@@ -1,14 +1,5 @@
 #pragma once
-/*
- * pure_residual_menu_i32 — Wave 2 int32 pure residual entry
- *
- * Menu: constant → FEW_WIDE → STRUCTURE → late (high-inv + compact + not-full-unique) →
- *       counting → consecutive_perm → push_middle → low_disorder → MSD HE
- *
- * pipe_sparse kill: late residual_pdqsort on compact mid-unique high-inv.
- * EXTERNAL-clean. Not field-level. i64 path protected.
- * THE BEASTIE BOYZ — pipe_sparse kill 2026-08-12
- */
+/* pure_residual_menu_i32 — A2 soft-close 2026-08-12. Not field-level. THE BEASTIE BOYZ */
 #include <cstdint>
 #include <cstring>
 #include <cstdlib>
@@ -22,7 +13,6 @@
 namespace pure_residual {
 
 namespace residual_msd_i32 {
-
 inline void msd_pass(int32_t *a, size_t n, int shift, int32_t *tmp) {
     if (n < 64 || shift < 0) {
         for (size_t i = 1; i < n; ++i) {
@@ -37,8 +27,7 @@ inline void msd_pass(int32_t *a, size_t n, int shift, int32_t *tmp) {
         uint32_t key = (uint32_t)a[i] ^ 0x80000000u;
         cnt[(key >> shift) & 0xff]++;
     }
-    size_t sum = 0;
-    size_t offsets[256];
+    size_t sum = 0; size_t offsets[256];
     for (int i = 0; i < 256; ++i) { offsets[i] = sum; sum += cnt[i]; }
     for (size_t i = 0; i < n; ++i) {
         uint32_t key = (uint32_t)a[i] ^ 0x80000000u;
@@ -46,120 +35,67 @@ inline void msd_pass(int32_t *a, size_t n, int shift, int32_t *tmp) {
     }
     std::memcpy(a, tmp, n * sizeof(int32_t));
     size_t pos = 0;
-    for (int i = 0; i < 256; ++i) {
-        if (cnt[i] > 1) msd_pass(a + pos, cnt[i], shift - 8, tmp);
-        pos += cnt[i];
-    }
+    for (int i = 0; i < 256; ++i) { if (cnt[i] > 1) msd_pass(a + pos, cnt[i], shift - 8, tmp); pos += cnt[i]; }
 }
-
 inline int residual_msd_i32(int32_t *a, size_t n) {
     if (n < 2) return 0;
     int32_t *tmp = (int32_t *)std::malloc(n * sizeof(int32_t));
     if (!tmp) { std::sort(a, a + n); return 0; }
-    msd_pass(a, n, 24, tmp);
-    std::free(tmp);
-    return 0;
+    msd_pass(a, n, 24, tmp); std::free(tmp); return 0;
 }
-
 } // namespace residual_msd_i32
 
 inline bool try_counting_i32(int32_t *a, size_t n) {
     if (n < 2) return true;
     int32_t amin = a[0], amax = a[0];
-    for (size_t i = 1; i < n; ++i) {
-        if (a[i] < amin) amin = a[i];
-        if (a[i] > amax) amax = a[i];
-    }
+    for (size_t i = 1; i < n; ++i) { if (a[i] < amin) amin = a[i]; if (a[i] > amax) amax = a[i]; }
     if (amin == amax) return true;
     uint64_t range = (uint64_t)((int64_t)amax - (int64_t)amin);
-    if (range >= (1ull << 20) || range >= (uint64_t)n) return false;
+    if (range >= (1ull << 20) || range + 1 >= (uint64_t)n) return false;
     if (range >= (uint64_t)(n * 3 / 4)) return false;
     size_t *cnt = (size_t *)std::calloc((size_t)range + 1, sizeof(size_t));
     if (!cnt) return false;
-    for (size_t i = 0; i < n; ++i)
-        cnt[(size_t)((int64_t)a[i] - (int64_t)amin)]++;
+    for (size_t i = 0; i < n; ++i) cnt[(size_t)((int64_t)a[i] - (int64_t)amin)]++;
     size_t p = 0;
-    for (uint64_t v = 0; v <= range; ++v)
-        for (size_t c = cnt[v]; c; --c)
-            a[p++] = (int32_t)((int64_t)v + (int64_t)amin);
-    std::free(cnt);
-    return true;
+    for (uint64_t v = 0; v <= range; ++v) for (size_t c = cnt[v]; c; --c) a[p++] = (int32_t)((int64_t)v + (int64_t)amin);
+    std::free(cnt); return true;
 }
 
 inline int sort_i32(int32_t *a, size_t n) {
     if (n < 2) return 0;
-
-    {
-        const size_t S = n < 128 ? n : 128;
-        size_t st = n / S; if (st < 1) st = 1;
-        int32_t v0 = a[0];
-        bool maybe = true;
-        for (size_t i = 0, c = 0; i < n && c < S; i += st, ++c)
-            if (a[i] != v0) { maybe = false; break; }
-        if (maybe) {
-            bool all = true;
-            for (size_t i = 1; i < n; ++i) if (a[i] != v0) { all = false; break; }
-            if (all) return 0;
-        }
-    }
-
+    { const size_t S = n < 128 ? n : 128; size_t st = n / S; if (st < 1) st = 1;
+      int32_t v0 = a[0]; bool maybe = true;
+      for (size_t i = 0, c = 0; i < n && c < S; i += st, ++c) if (a[i] != v0) { maybe = false; break; }
+      if (maybe) { bool all = true; for (size_t i = 1; i < n; ++i) if (a[i] != v0) { all = false; break; } if (all) return 0; } }
     if (n >= 64 && residual_few_wide_i32::should_try_few_wide(a, n))
         if (residual_few_wide_i32::residual_few_wide_i32(a, n)) return 0;
-
-    {
-        bool asc = true;
-        for (size_t i = 1; i < n; ++i) {
-            if (a[i] < a[i - 1]) { asc = false; break; }
-        }
-        if (asc) return 0;
-    }
-    {
-        bool desc = true;
-        for (size_t i = 1; i < n; ++i) {
-            if (a[i] > a[i - 1]) { desc = false; break; }
-        }
-        if (desc) { std::reverse(a, a + n); return 0; }
-    }
-
-    // Late: high-disorder + compact domain + not near-full-unique → residual_pdqsort
-    // Kills pipe_sparse; spares full-range random and near-full-unique gaussianish (MSD).
+    { bool asc = true; for (size_t i = 1; i < n; ++i) if (a[i] < a[i - 1]) { asc = false; break; } if (asc) return 0; }
+    { bool desc = true; for (size_t i = 1; i < n; ++i) if (a[i] > a[i - 1]) { desc = false; break; } if (desc) { std::reverse(a, a + n); return 0; } }
     if (n >= 256) {
-        const size_t S = 512;
-        size_t inv = 0;
-        int32_t mn = a[0], mx = a[0];
-        int32_t samp[512];
+        const size_t S = 256; size_t eq = 0;
+        for (size_t c0 = 0; c0 < S; ++c0) {
+            size_t i = (c0 * (n - 1)) / S; size_t j = i + 1 < n ? i + 1 : i;
+            if (a[i] == a[j]) ++eq;
+        }
+        if (eq * 4 >= S) { residual_pdqsort(a, a + n); return 0; }
+    }
+    if (n >= 256) {
+        const size_t S = 512; size_t inv = 0; int32_t mn = a[0], mx = a[0]; int32_t samp[512];
         for (size_t c = 0; c < S; ++c) {
             size_t i = 1 + (c * (n - 1)) / S;
-            if (a[i] < a[i - 1]) ++inv;
-            if (a[i] < mn) mn = a[i];
-            if (a[i] > mx) mx = a[i];
-            samp[c] = a[i];
+            if (a[i] < a[i - 1]) ++inv; if (a[i] < mn) mn = a[i]; if (a[i] > mx) mx = a[i]; samp[c] = a[i];
         }
-        uint64_t dom = (uint64_t)((int64_t)mx - (int64_t)mn);
-        bool compact = dom <= (uint64_t)n * 4ull;
-        std::sort(samp, samp + S);
-        size_t u = 1;
-        for (size_t c = 1; c < S; ++c) if (samp[c] != samp[c-1]) ++u;
-        bool not_full_unique = u < (S * 9) / 10;
-        if (inv * 2 >= S && compact && not_full_unique) {
-            residual_pdqsort(a, a + n);
-            return 0;
-        }
+        uint64_t dom = (uint64_t)((int64_t)mx - (int64_t)mn); bool compact = dom <= (uint64_t)n * 4ull;
+        std::sort(samp, samp + S); size_t u = 1; for (size_t c = 1; c < S; ++c) if (samp[c] != samp[c-1]) ++u;
+        if (inv * 2 >= S && compact && u < (S * 9) / 10) { residual_pdqsort(a, a + n); return 0; }
     }
-
     if (residual_few_wide_i32::should_try_few_wide(a, n))
         if (residual_few_wide_i32::residual_few_wide_i32(a, n)) return 0;
-
     if (try_counting_i32(a, n)) return 0;
-
     if (residual_consecutive_perm_i32::try_consecutive_perm(a, n)) return 0;
-
     if (residual_push_middle_i32::try_push_middle(a, n)) return 0;
-
     if (residual_low_disorder_i32::should_try_low_disorder(a, n))
         if (residual_low_disorder_i32::residual_low_disorder_i32(a, n)) return 0;
-
-    // HE fallback: MSD
     return residual_msd_i32::residual_msd_i32(a, n);
 }
 

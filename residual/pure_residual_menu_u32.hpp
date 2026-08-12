@@ -1,13 +1,8 @@
 #pragma once
 /*
- * pure_residual_menu_u32 — Wave 2 uint32 pure residual entry
- *
- * Menu: constant → FEW_WIDE → STRUCTURE → late (high-inv + compact + not-full-unique) →
- *       counting → consecutive_perm → push_middle → low_disorder → MSD HE
- *
- * pipe_sparse kill: late residual_pdqsort on compact mid-unique high-inv.
- * EXTERNAL-clean. Not field-level. i64 path protected.
- * THE BEASTIE BOYZ — pipe_sparse kill 2026-08-12
+ * pure_residual_menu_u32 — A2 soft-close 2026-08-12
+ * STRUCTURE → early equal → late → counting → ...
+ * EXTERNAL-clean. Not field-level. THE BEASTIE BOYZ
  */
 #include <cstdint>
 #include <cstring>
@@ -70,7 +65,7 @@ inline bool try_counting_u32(uint32_t *a, size_t n) {
     }
     if (amin == amax) return true;
     uint64_t range = (uint64_t)amax - (uint64_t)amin;
-    if (range >= (1ull << 20) || range >= (uint64_t)n) return false;
+    if (range >= (1ull << 20) || range + 1 >= (uint64_t)n) return false;
     if (range >= (uint64_t)(n * 3 / 4)) return false;
     size_t *cnt = (size_t *)std::calloc((size_t)range + 1, sizeof(size_t));
     if (!cnt) return false;
@@ -117,6 +112,16 @@ inline int sort_u32(uint32_t *a, size_t n) {
             if (a[i] > a[i - 1]) { desc = false; break; }
         }
         if (desc) { std::reverse(a, a + n); return 0; }
+    }
+
+    // A2 soft-close: early equal-heavy → residual_pdqsort (before counting tax)
+    if (n >= 256) {
+        const size_t S = 256; size_t eq = 0;
+        for (size_t c0 = 0; c0 < S; ++c0) {
+            size_t i = (c0 * (n - 1)) / S; size_t j = i + 1 < n ? i + 1 : i;
+            if (a[i] == a[j]) ++eq;
+        }
+        if (eq * 4 >= S) { residual_pdqsort(a, a + n); return 0; }
     }
 
     // Late: high-disorder + compact domain + not near-full-unique → residual_pdqsort
