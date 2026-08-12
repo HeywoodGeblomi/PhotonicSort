@@ -3,8 +3,8 @@
  * residual_low_disorder_i32 — low-disorder residual with pdq-quality body
  *
  * Gate: sample inv-ratio + cardinality/span rejects.
- * Body: pdqsort (Orson Peters, zlib) — required for db_pk residual quality.
- * Attribution retained per zlib license. Altered use: residual-path only.
+ * Body: residual_pdqsort (Orson Peters pdqsort, zlib, namespaced).
+ * Attribution retained per zlib license.
  *
  * EXTERNAL-clean (visible metrics only). Not field-level.
  * THE BEASTIE BOYZ — path-1 pdq residual 2026-08-12
@@ -70,7 +70,7 @@ inline bool should_try_low_disorder(const int32_t *a, size_t n) {
 inline bool residual_low_disorder_i32(int32_t *a, size_t n) {
     if (n < 2) return true;
     if (!should_try_low_disorder(a, n)) return false;
-    pdqsort(a, a + n);
+    residual_pdqsort(a, a + n);
     return true;
 }
 

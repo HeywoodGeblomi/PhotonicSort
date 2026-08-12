@@ -1,7 +1,7 @@
 #pragma once
 /*
  * residual_low_disorder_u32 — low-disorder residual with pdq-quality body
- * Gate + pdqsort (Orson Peters, zlib). Attribution retained.
+ * Gate + residual_pdqsort (Orson Peters pdqsort, zlib, namespaced).
  * EXTERNAL-clean. Not field-level.
  * THE BEASTIE BOYZ — path-1 pdq residual 2026-08-12
  */
@@ -66,7 +66,7 @@ inline bool should_try_low_disorder(const uint32_t *a, size_t n) {
 inline bool residual_low_disorder_u32(uint32_t *a, size_t n) {
     if (n < 2) return true;
     if (!should_try_low_disorder(a, n)) return false;
-    pdqsort(a, a + n);
+    residual_pdqsort(a, a + n);
     return true;
 }
 
