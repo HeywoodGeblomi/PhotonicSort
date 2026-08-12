@@ -1,18 +1,20 @@
 #pragma once
 /*
- * residual_few_wide_i64 — FEW_WIDE pure residual (v2.4.1)
+ * residual_few_wide_i64 — FEW_WIDE pure residual (v2.5)
  *
- * Target: k ≤ 16 over wide numeric range. Value-preserving.
+ * Target: k ≤ 16 over wide numeric range + non-wide low-card (k≤4).
  * v2: open-addressed hash collect + rank
  * v2.3: k=2 dual branchless count + sequential fills
  * v2.4: HCAP=128 (lower collision on k=16)
  * v2.4.1: full verify on sample-all-equal path (equal_heavy correctness)
+ * v2.5: Wave 1 routing fix — should_try accepts sample_u ≤ 4 regardless of range
+ *       (closes two_values / non-wide low-card menu miss; residual quality already competitive)
  *
  * Residual quality limit: balanced uniform / high-skew Zipf k≈8–16
  * remains ~1.0–1.7× vs pdq (documented; not a routing miss).
  *
  * Pure residual only. EXTERNAL-clean. Fixed-size tables.
- * THE BEASTIE BOYZ — residual-improvement 2026-08-11
+ * THE BEASTIE BOYZ — Wave 1 residual floors 2026-08-12
  */
 #include <cstdint>
 #include <cstring>
@@ -170,13 +172,16 @@ inline bool should_try_few_wide(const int64_t *a, size_t n) {
         if (v < smin) smin = v;
         if (v > smax) smax = v;
     }
-    uint64_t srange = (uint64_t)(smax - smin);
-    bool wide = (srange >= (1ull << 20)) || (srange >= (uint64_t)(n * 3 / 4));
-    if (!wide) return false;
     std::sort(sample_vals, sample_vals + ns);
     size_t sample_u = 1;
     for (size_t i = 1; i < ns; ++i)
         if (sample_vals[i] != sample_vals[i - 1]) ++sample_u;
+    // Wave 1 routing fix: allow non-wide low-card (two_values / dense k≤4)
+    // so residual_few_wide two-value / linear path fires. Wide mid-card unchanged.
+    if (sample_u <= 4) return true;
+    uint64_t srange = (uint64_t)(smax - smin);
+    bool wide = (srange >= (1ull << 20)) || (srange >= (uint64_t)(n * 3 / 4));
+    if (!wide) return false;
     return sample_u <= KMAX + 2;
 }
 
