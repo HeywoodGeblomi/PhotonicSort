@@ -1,0 +1,17 @@
+# PhotonicSort PO2 reference ratios  n=1000000 reps=7
+# type pattern          menu/pdq  menu_ms   pdq_ms ok
+# --- soft-spot / structured ---
+i32  pipe_sparse        0.809    1.998    2.471 1
+u32  pipe_sparse        0.830    1.780    2.144 1
+i32  almost_sorted      0.239    1.437    6.020 1
+i32  timestamps         0.509    0.680    1.336 1
+i32  few_k16_wide       0.878    5.524    6.290 1
+i32  db_pk              0.824    7.896    9.579 1
+# --- HE / residual quality ---
+i32  random             0.630   18.807   29.831 1
+i32  gaussianish        0.487   14.854   30.487 1
+i32  organpipe          0.075    2.564   34.051 1
+i32  sawtooth           0.159    1.730   10.903 1
+# END ok=1 expected for all rows. Compare ratios not absolute ms.
+# Reference: docs/phase0_field/REFERENCE_RATIOS_PO2.md
+# Arch-1: Intel Xeon Platinum 8481C @ 2.70GHz, g++ 13.3.0
