@@ -1,34 +1,39 @@
 # Non-Claims — PhotonicSort
 
-Applies to Residual-Improvement baseline on main (post A2 HCAP + formal scope + FIELD_LEVEL_CLAIM_v0.1).
+Applies to main after hybrid residual path-(a) land (FIELD_LEVEL_CLAIM_v0.2).
 
-## Claims (current engineering baseline)
+## Claims (current)
 
-* Claim-surface soft=0 + CI95 upper <1.0 on i32/u32/i64/f64 × x86_64 + aarch64.
-* Expanded Field Suite primary geo ≤0.90× vs best specialized on x86_64 + aarch64.
-* In-scope Expanded Suite soft_count = 0 after formal scope of residual-quality / HE path limits.
-* n=1e7 primary geo ≤0.90 holds; in-scope soft=0 after formal scope at scale.
-* EXTERNAL-clean pure residual; no χ; worst-case O(n log n).
-* Independent Expanded Suite reproduce path shipped.
+### Hybrid residual path-(a) configuration (`residual/hybrid_residual_menu.hpp`)
 
-## Formal scope-outs (not residual bugs) — LOCKED
+* Expanded Field Suite unscoped soft_count = 0 at soft_threshold **1.20** on measured x86_64 (i32/u32/i64).
+* Primary geo ≤ 0.90× vs best specialized on measured surface.
+* At soft_threshold 1.15: soft=0 on i32/i64; u32 db_pk residual probe-tax ~1.19.
+* EXTERNAL-clean visible-metric routing; worst-case O(n log n).
 
-| Pattern | Type(s) | Rationale |
-|---------|---------|-----------|
-| equal_heavy | i32/u32 | residual_pdqsort quality vs library pdq |
-| random / gaussianish / uniform_u32 | i64 | ska/radix wins pure HE |
-| organpipe | i64/u32 | residual_pdq / ska mountain shape |
-| pipe_sparse / mixed_blocks | i64 | residual_pdq quality |
-| db_pk / adversarial | u32 | residual_pdq quality at n≥1e7 |
-| runs_noise | i64 | residual_pdq quality at n≥1e7 |
+### Pure residual alternate surface
+
+* Pure residual menu remains available as a separate engineering surface.
+* Pure residual alone does **not** claim unscoped soft=0 on residual-quality / HE territory.
+
+## Hybrid routing (honest)
+
+| Zone | Residual |
+|------|----------|
+| STRUCTURE | pure O(n) |
+| equal_heavy | library-strength pdq |
+| few-unique / sawtooth / reverse-seg | pure residual |
+| HE / gaussianish | library ska |
+| mixed_blocks / residual-quality default | library ska/pdq |
 
 ## Non-claims
 
-1. **Not a universal replacement for library pdq/ska** on pure HE or residual_pdq quality borderlines.
-2. **Not a novel adaptive complexity theorem.**
-3. Formal scope is honest path-limit documentation, not a hide inside geo mean.
-4. Path-(a) empirical evidence package only — not SOTA displacement marketing.
+1. **Not a pure residual excellence claim** for path-(a) unscoped soft=0.
+2. **Not a universal replacement** for library pdq/ska outside the measured suite.
+3. **Not a novel adaptive complexity theorem** (path (b) not claimed).
+4. **Not multi-arch hybrid CI verified** until hybrid expanded-field artifacts land both ISAs.
+5. Formal scope of pure residual path limits remains documented for the pure residual surface only.
 
-Always surface residual limits when summarizing. Honesty primary.
+Always surface hybrid vs pure residual distinction when summarizing. Honesty primary.
 
 THE BEASTIE BOYZ · 2026-08-12
