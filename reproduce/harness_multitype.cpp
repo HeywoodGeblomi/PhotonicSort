@@ -5,8 +5,9 @@
  * Wave 0 reproduce/harness.cpp remains the int64 independent-reproduction path.
  * This harness is additive for Barrier 4 (multi-type).
  *
- * Build:  g++ -O3 -std=c++17 -I../residual -Ibaselines -o harness_multitype harness_multitype.cpp
+ * Build:  make harness_multitype
  * Run:    ./harness_multitype --type i32 --n 1000000 --reps 5 --out results_i32
+ *         ./harness_multitype --type u32 ...
  *
  * EXTERNAL-clean preference. Not field-level.
  * THE BEASTIE BOYZ — Wave 2 multi-type
@@ -30,7 +31,7 @@
 #include "baselines/pdqsort.h"
 #include "baselines/ska_sort.hpp"
 #include "pure_residual_menu_i32.hpp"
-// sort_u32 follows in a later PR; for now only i32 is live.
+#include "pure_residual_menu_u32.hpp"
 
 using Clock = std::chrono::steady_clock;
 
@@ -95,8 +96,7 @@ static std::vector<T> gen_few_k16_wide(size_t n) {
     std::vector<T> v(n);
     std::mt19937 rng(42);
     std::uniform_int_distribution<int> pick(0, 15);
-    // scale wide keys for 32-bit
-    const T scale = (T)100000000; // 1e8
+    const T scale = (T)100000000;
     for (size_t i = 0; i < n; ++i) v[i] = (T)(pick(rng) * scale);
     return v;
 }
@@ -159,10 +159,8 @@ static double median_ns(std::vector<double> &xs) {
 template<typename T>
 static void run_photonic(T *a, size_t n) {
     if constexpr (std::is_same_v<T, int32_t>) pure_residual::sort_i32(a, n);
-    else if constexpr (std::is_same_v<T, uint32_t>) {
-        // sort_u32 not yet landed — temporary std::sort so harness compiles
-        std::sort(a, a + n);
-    } else static_assert(sizeof(T) == 0, "unsupported type");
+    else if constexpr (std::is_same_v<T, uint32_t>) pure_residual::sort_u32(a, n);
+    else static_assert(sizeof(T) == 0, "unsupported type");
 }
 
 template<typename T>
