@@ -1,0 +1,20 @@
+arch=x86_64
+runner=ubuntu-24.04
+date=2026-08-12T03:52:39Z
+uname=Linux x86_64
+machine=x86_64
+compiler=g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+cpu: AMD EPYC 9V74 80-Core Processor
+CI run: 31561435057
+
+# PhotonicSort PO2 reference ratios  n=1000000 reps=7
+i32  pipe_sparse        0.685    1.696    2.474 1
+u32  pipe_sparse        0.761    1.592    2.091 1
+i32  almost_sorted      0.160    1.099    6.854 1
+i32  timestamps         0.432    0.508    1.176 1
+i32  few_k16_wide       0.904    5.533    6.117 1
+i32  db_pk              0.821    7.500    9.139 1
+i32  random             0.550   16.343   29.714 1
+i32  gaussianish        0.462   13.565   29.364 1
+i32  organpipe          0.074    2.379   32.338 1
+i32  sawtooth           0.130    1.426   10.950 1

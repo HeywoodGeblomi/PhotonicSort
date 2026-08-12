@@ -1,0 +1,20 @@
+arch=arm64
+runner=ubuntu-24.04-arm
+date=2026-08-12T03:52:44Z
+uname=Linux aarch64
+machine=aarch64
+compiler=g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+CPU part: 0xd49
+CI run: 31561435057
+
+# PhotonicSort PO2 reference ratios  n=1000000 reps=7
+i32  pipe_sparse        0.756    1.280    1.694 1
+u32  pipe_sparse        0.741    1.256    1.696 1
+i32  almost_sorted      0.195    0.950    4.869 1
+i32  timestamps         0.624    0.468    0.749 1
+i32  few_k16_wide       0.802    3.382    4.218 1
+i32  db_pk              0.884    5.679    6.421 1
+i32  random             0.556   11.376   20.476 1
+i32  gaussianish        0.490    9.973   20.346 1
+i32  organpipe          0.085    1.891   22.271 1
+i32  sawtooth           0.123    1.007    8.193 1
