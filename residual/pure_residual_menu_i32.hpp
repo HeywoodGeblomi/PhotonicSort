@@ -1,5 +1,5 @@
 #pragma once
-/* pure_residual_menu_i32 — A2 soft-close 2026-08-12. Not field-level. THE BEASTIE BOYZ */
+/* pure_residual_menu_i32 — A2-EH equal→counting 2026-08-12. Not field-level. THE BEASTIE BOYZ */
 #include <cstdint>
 #include <cstring>
 #include <cstdlib>
@@ -71,13 +71,17 @@ inline int sort_i32(int32_t *a, size_t n) {
         if (residual_few_wide_i32::residual_few_wide_i32(a, n)) return 0;
     { bool asc = true; for (size_t i = 1; i < n; ++i) if (a[i] < a[i - 1]) { asc = false; break; } if (asc) return 0; }
     { bool desc = true; for (size_t i = 1; i < n; ++i) if (a[i] > a[i - 1]) { desc = false; break; } if (desc) { std::reverse(a, a + n); return 0; } }
+    // A2-EH: equal-heavy → counting first when domain compact; else residual_pdqsort
     if (n >= 256) {
         const size_t S = 256; size_t eq = 0;
         for (size_t c0 = 0; c0 < S; ++c0) {
             size_t i = (c0 * (n - 1)) / S; size_t j = i + 1 < n ? i + 1 : i;
             if (a[i] == a[j]) ++eq;
         }
-        if (eq * 4 >= S) { residual_pdqsort(a, a + n); return 0; }
+        if (eq * 4 >= S) {
+            if (try_counting_i32(a, n)) return 0;
+            residual_pdqsort(a, a + n); return 0;
+        }
     }
     if (n >= 256) {
         const size_t S = 512; size_t inv = 0; int32_t mn = a[0], mx = a[0]; int32_t samp[512];
