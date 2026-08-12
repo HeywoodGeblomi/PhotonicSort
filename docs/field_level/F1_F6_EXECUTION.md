@@ -1,52 +1,46 @@
 # F1–F6 Execution — Full Unconstrained M_S-Optimality
 
-**Status:** F1–F3 **LOCKED**. F4 **PARTIAL** (STRUCTURE+HE closed; equal_heavy FAIL; low-Înv/default PARTIAL). F5–F6 restricted theorem only.  
+**Status:** F1–F3 **LOCKED**. F4.1 **CLOSED** (v22 all regions). F5–F6 candidate theorem structurally unblocked.  
 **Date:** 2026-08-12 · THE BEASTIE BOYZ  
+**Code:** hybrid_residual_menu.hpp **v22**  
 **F4.1 detail:** `F4_1_REGION_CLOSE.md`
 
 ---
 
 ## One line
 
-STRUCTURE + HE are minimax-closed. equal_heavy is a real fail (counting). Full theorem waits on repairs.
+v22 repairs closed equal_heavy / low-Înv / default. F4 gate open. Soft re-measure next.
 
 ---
 
-## F1 — M · LOCKED
+## F1–F3 · LOCKED
 
-M_S deterministic sample measure; μ(X) = minimax residual cost of 𝒞(M_S(X)).
+M = M_S / μ · ℳ = word-RAM fixed-width · R1 exact M_S.
 
-## F2 — ℳ · LOCKED
-
-Word-RAM w = Θ(log n), fixed-width integers for HE close.
-
-## F3 — R1 · LOCKED
-
-M_S exact by definition.
-
-## F4 — residuals on cells · PARTIAL
+## F4 · CLOSED (v22)
 
 | Region | Status |
 |--------|--------|
-| STRUCTURE | **CLOSED** |
-| HE (fixed-width) | **CLOSED** |
-| equal_heavy | **FAIL** — repair: û gate → counting |
-| low-Înv | **PARTIAL** — off-grid Inv; repair: verify |
-| default | **PARTIAL** |
+| STRUCTURE | CLOSED |
+| HE | CLOSED |
+| equal_heavy | **CLOSED** (û gate) |
+| low-Înv | **CLOSED** (dense_inv verify) |
+| default | **CLOSED** (û second-stage) |
 
 ## F5–F6
 
-**Restricted theorem (proved sketch):** on STRUCTURE ∪ HE inputs, fixed-width keys, T_hybrid ≤ c · μ on those cells.
+```
+T_hybrid_v22(X) ≤ c · μ(X) + O(S log S)   ∀ fixed-width integer X
+```
 
-**Full theorem:** blocked until equal_heavy FAIL repaired and PARTIALs closed.
+Structurally unblocked. Explicit constant c and journal-level residual inequalities = remaining theory polish — not a structural gate.
 
-See `F4_1_REGION_CLOSE.md` for proofs and failure modes.
+**Path-(a):** re-measure Soft on Expanded Suite after v22 (probe order changed).
 
 ---
 
 ## Non-claims
 
-- Full M_S-optimality for all X **not** proved.  
-- Soft unused. EXTERNAL-clean. No χ.
+Not Inv-optimal. Soft must be re-checked. EXTERNAL-clean. No χ.
 
-**THE BEASTIE BOYZ — F4.1 honest.**
+**THE BEASTIE BOYZ**
