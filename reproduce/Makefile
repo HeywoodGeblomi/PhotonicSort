@@ -2,7 +2,7 @@ CXX ?= g++
 CXXFLAGS ?= -O3 -std=c++17 -DNDEBUG
 INCLUDES = -I. -I../residual -Ibaselines
 
-.PHONY: all clean run run-i32 harness harness_multitype
+.PHONY: all clean run run-i32 harness harness_multitype expanded run-expanded run-expanded-i32 run-expanded-u32 run-expanded-i64
 
 all: harness
 
@@ -23,6 +23,24 @@ run-i32: harness_multitype
 run-u32: harness_multitype
 	./harness_multitype --type u32 --n 1000000 --reps 5 --out results_u32 --arch-tag local
 
+# Expanded Field Suite (P01–P23) — path-(a) field-level evidence
+expanded:
+	$(CXX) $(CXXFLAGS) -I.. -I../residual -Ibaselines \
+	  -o expanded_field_bench ../scripts/expanded_field_bench.cpp
+
+run-expanded: expanded
+	./expanded_field_bench --n 1000000 --reps 5 --out expanded.csv
+	python3 ../scripts/field_metrics.py expanded.csv
+
+run-expanded-i32: expanded
+	./expanded_field_bench --n 1000000 --reps 5 --only i32 --out expanded_i32.csv
+
+run-expanded-u32: expanded
+	./expanded_field_bench --n 1000000 --reps 5 --only u32 --out expanded_u32.csv
+
+run-expanded-i64: expanded
+	./expanded_field_bench --n 1000000 --reps 5 --only i64 --out expanded_i64.csv
+
 clean:
-	rm -f harness harness_multitype
-	rm -rf results results_i32 results_u32 results_multitype
+	rm -f harness harness_multitype expanded_field_bench
+	rm -rf results results_i32 results_u32 results_multitype expanded.csv expanded_*.csv
