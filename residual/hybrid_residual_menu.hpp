@@ -1,14 +1,13 @@
 #pragma once
 /*
- * hybrid_residual_menu v23 — path-(a) Soft attack: domain-aware PURE
- * v22 F4.1 repairs held.
- * Soft fix: small domain (dôm ≤ 65536) → PURE counting/few-unique
- *   kills db_fk_zipf ~√n uniques on tiny domain (was PDQ/SKA, ~4× soft).
+ * hybrid_residual_menu v24 — full Soft attack
+ * v23 domain PURE held (db_fk_zipf dead).
+ * Soft kills:
+ *   equal_heavy → always PDQ first (before domain) — pure was 1.35–1.48× on eq-heavy
+ *   mixed_blocks i64 → SKA (was PDQ-only for 8B; 1.73× soft)
  * STRUCTURE → O(n)
- * equal_heavy: êq high ∧ û≤32 → PURE; else PDQ
- * low-Înv consecutive: dense_inv verify before PURE
- * HE → ska
- * default: û≤32 → PURE; else PDQ
+ * domain ≤65536 → PURE (db_fk_zipf, enums)
+ * low-Înv dense_inv verify; HE → ska
  * EXTERNAL-clean. THE BEASTIE BOYZ 2026-08-12
  */
 #include <cstdint>
@@ -91,22 +90,20 @@ inline int dispatch(T *a, size_t n, PureFn pure_fn) {
     const size_t S = 512;
     uint64_t dom = domain_of(mn, mx);
 
-    /* Soft attack: counting-friendly domain (db_fk_zipf, mid-card Zipf, small enum).
-     * pure try_counting accepts range < 2^20; 65536 is conservative + fast. */
-    if (dom <= 65536ull) return pure_fn(a, n);
-
-    /* equal_heavy: êq high ∧ û≤32 → PURE; else PDQ */
+    /* Soft kill equal_heavy: PDQ first (before domain→PURE). */
     if (eq * 4 >= S * 3) {
-        if (u <= 32) return pure_fn(a, n);
         residual_pdqsort(a, a + n);
         return 0;
     }
+
+    /* domain-aware PURE: db_fk_zipf, small enums, mid-card Zipf */
+    if (dom <= 65536ull) return pure_fn(a, n);
 
     if (u <= 32) return pure_fn(a, n);
     if (u <= 128 && inv * 2 >= S && inv * 2 <= S) return pure_fn(a, n);
     if (desc_runs >= 3 && inv * 5 >= S * 3) return pure_fn(a, n);
 
-    /* low-Înv: dense_inv verify before PURE consecutive */
+    /* low-Înv: dense_inv verify */
     if (inv * 20 <= S) {
         if (dom <= (uint64_t)n * 2ull) {
             size_t dinv = dense_inv(a, n);
@@ -119,15 +116,17 @@ inline int dispatch(T *a, size_t n, PureFn pure_fn) {
         return 0;
     }
 
+    /* HE */
     if (u >= (S * 75) / 100 && inv * 5 >= S * 2) {
         ska_sort(a, a + n);
         return 0;
     }
 
+    /* mixed_blocks / consecutive dense-inv: SKA for all key widths when û high */
     {
         size_t dinv = dense_inv(a, n);
         if (dom <= (uint64_t)n * 2ull && dinv >= 100) {
-            if (sizeof(T) <= 4 && u >= (S * 85) / 100) {
+            if (u >= (S * 70) / 100) {
                 ska_sort(a, a + n);
             } else {
                 residual_pdqsort(a, a + n);
