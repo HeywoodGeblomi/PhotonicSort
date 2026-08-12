@@ -1,0 +1,104 @@
+# PO3 Multi-arch gate — native x86_64 + native ARM64 ratios
+# Public repo: ubuntu-24.04-arm is free (GitHub Changelog 2025-01-16).
+# EXTERNAL-clean pure residual. Not field-level until both GREEN.
+# THE BEASTIE BOYZ — PO3 work-around 2026-08-12
+
+name: multi-arch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'residual/**'
+      - 'reproduce/**'
+      - '.github/workflows/multi-arch.yml'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'residual/**'
+      - 'reproduce/**'
+      - '.github/workflows/multi-arch.yml'
+
+jobs:
+  ratios:
+    name: ratios-${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++ make curl ca-certificates
+
+      - name: Fingerprint
+        run: |
+          {
+            echo "arch=${{ matrix.arch }}"
+            echo "runner=${{ matrix.runner }}"
+            echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "uname=$(uname -a)"
+            echo "machine=$(uname -m)"
+            g++ --version | head -1
+            grep -m1 'model name\|CPU part\|Hardware' /proc/cpuinfo || true
+            nproc
+          } | tee fingerprint.txt
+
+      - name: Fetch baseline
+        run: |
+          mkdir -p baselines
+          curl -fsSL -o baselines/pdqsort.h \
+            https://raw.githubusercontent.com/orlp/pdqsort/master/pdqsort.h
+
+      - name: Build harness
+        run: |
+          g++ -O3 -std=c++17 -DNDEBUG \
+            -I. -Iresidual -Ibaselines \
+            -o harness_po2 reproduce/harness_po2.cpp
+
+      - name: Run ratios (n=1e6, reps=7)
+        run: |
+          ./harness_po2 --n 1000000 --reps 7 | tee ratios.txt
+
+      - name: Soft-spot check
+        run: |
+          python3 - <<'PY'
+          import re, sys
+          soft = []
+          bad_ok = []
+          for line in open("ratios.txt"):
+              line = line.strip()
+              if not line or line.startswith("#"):
+                  continue
+              parts = line.split()
+              if len(parts) < 5:
+                  continue
+              typ, pat, ratio, ms_m, ms_p, ok = parts[0], parts[1], float(parts[2]), float(parts[3]), float(parts[4]), parts[5]
+              if ok != "1":
+                  bad_ok.append(line)
+              if ratio > 1.15:
+                  soft.append((pat, ratio))
+          if bad_ok:
+              print("CORRECTNESS FAIL:", bad_ok)
+              sys.exit(1)
+          if soft:
+              print("SOFT SPOTS:", soft)
+              sys.exit(1)
+          print("All ratios ≤1.15 and ok=1 — GREEN")
+          PY
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: arch-${{ matrix.arch }}
+          path: |
+            fingerprint.txt
+            ratios.txt

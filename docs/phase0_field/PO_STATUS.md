@@ -1,18 +1,17 @@
-# PO1–PO6 Status (updated)
+# PO1–PO6 Status
 
 **Date:** 2026-08-12  
 **Not field-level.**
 
 | ID | Ticket | Status |
 |----|--------|--------|
-| PO1 | Phase 0 gap maps re-measure | partial (soft-spot isolation GREEN) |
-| PO2 | Docker one-command + reference ratios | **DONE** (PR #77) |
-| **PO3** | Multi-arch plan + second-arch numbers | **PLAN + Arch-1 DONE**; Arch-2 **HARDWARE-GATED** |
-| PO4 | Soft-spot methodology note | DONE |
+| PO1 | Phase 0 gap maps | partial |
+| PO2 | Docker + reference ratios | **DONE** |
+| **PO3** | Multi-arch | Plan + **CI work-around LANDED**; gate closes on first GREEN `ubuntu-24.04-arm` artifact |
+| PO4 | Soft-spot methodology | DONE |
 | PO5 | i64 Phase 0 gap map | PENDING |
-| PO6 | Independent reproduction Docker GREEN | READY (image builds; external verify open) |
+| PO6 | Docker GREEN | READY |
 
-All residual soft spots CLOSED under cold isolation (Arch-1).
-Multi-arch gate **NOT MET** until Arch-2 numbers land.
+Work-around motif (APS 10.1103/4k13-sdjh): native second-ISA via public CI structure, not local ARM hardware.
 
 **THE BEASTIE BOYZ**
