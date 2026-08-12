@@ -1,6 +1,6 @@
 # Barrier Break Plan — PhotonicSort
 
-**Status:** Wave 0 COMPLETE 2026-08-11 · Wave 1 active (barriers 1+2 green-lit)  
+**Status:** Wave 0 COMPLETE · Wave 1 residual floors LOCKED 2026-08-12 (barriers 1+2)  
 **Parent:** [`FIELD_LEVEL_ATTACK_PLAN.md`](./FIELD_LEVEL_ATTACK_PLAN.md)  
 **Squad:** THE BEASTIE BOYZ
 
@@ -27,8 +27,8 @@ Break the remaining barriers between the current pure residual menu and **field-
 **Wave 0 — Independent reproduction (barrier 5)** ✅ COMPLETE (PR #49)  
 Docker + one-command harness under `reproduce/`. Third-party runnable. Harness + curl-baselines Dockerfile on main.
 
-**Wave 1 — Residual floors (barriers 2, 1, 3)** ← current  
-few_unique_k16 first; Gaussian HE only if residual-quality limited; re-measure geo. User green light on 1+2.
+**Wave 1 — Residual floors (barriers 2, 1, 3)** ✅ residual floors LOCKED (see WAVE1_RESIDUAL_FLOORS.md)  
+Barrier 2 CLOSED (quality + routing). Barrier 1 residual-quality OK / path-tax. Geo moved to ~0.88–0.90×. zipf residual limit documented.
 
 **Wave 2 — Multi-type surface (barrier 4)**  
 Mandatory for path-(a) claims vs pdq/Timsort/std.
