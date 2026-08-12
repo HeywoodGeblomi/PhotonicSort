@@ -1,25 +1,20 @@
 #pragma once
 /*
- * residual_few_wide_u32 — FEW_WIDE pure residual for uint32_t (Wave 2)
- *
- * Parallel specialization of residual_few_wide_i64 v2.5.
- * Target: k ≤ 16 (wide or dense) for uint32_t. Value-preserving.
- * v2.5 gate: should_try accepts sample_u ≤ 4 independent of range.
- *
- * Protects i64 path: this is a separate specialization. Zero change to i64.
- * Pure residual only. EXTERNAL-clean. Fixed-size tables.
- * THE BEASTIE BOYZ — Wave 2 multi-type 2026-08-12 (uint32)
+ * residual_few_wide_u32 — FEW_WIDE pure residual for uint32_t
+ * v2.6.1: single-pass open-address hash (key+count), then sort-by-key writeback.
+ * Target: k ≤ 16 wide or dense. Value-preserving.
+ * EXTERNAL-clean. Not field-level.
+ * THE BEASTIE BOYZ — soft-spot kill few_k16_wide 2026-08-12
  */
 #include <cstdint>
 #include <cstring>
-#include <cstdlib>
 #include <algorithm>
 #include <cstddef>
 
 namespace residual_few_wide_u32 {
 
 static constexpr size_t KMAX = 16;
-static constexpr size_t HCAP = 128;
+static constexpr size_t HCAP = 64;
 
 inline uint32_t mix32(uint32_t x) {
     x ^= x >> 16; x *= 0x7feb352dU;
@@ -36,58 +31,14 @@ inline bool residual_two_value(uint32_t *a, size_t n) {
     }
     if (v0 == v1) return true;
     if (v0 > v1) std::swap(v0, v1);
-    size_t c0 = 0, c1 = 0;
+    size_t c0 = 0;
     for (size_t i = 0; i < n; ++i) {
-        c0 += (size_t)(a[i] == v0);
-        c1 += (size_t)(a[i] == v1);
+        if (a[i] == v0) ++c0;
+        else if (a[i] != v1) return false;
     }
-    if (c0 + c1 != n) return false;
     for (size_t i = 0; i < c0; ++i) a[i] = v0;
     for (size_t i = c0; i < n; ++i) a[i] = v1;
     return true;
-}
-
-inline size_t collect_uniques(const uint32_t *a, size_t n, uint32_t *uniq_out) {
-    uint32_t slot[HCAP];
-    uint8_t used[HCAP] = {};
-    size_t k = 0;
-    for (size_t i = 0; i < n; ++i) {
-        uint32_t v = a[i];
-        uint32_t h = mix32(v) & (HCAP - 1);
-        for (;;) {
-            if (!used[h]) {
-                if (k >= KMAX) return 0;
-                used[h] = 1;
-                slot[h] = v;
-                uniq_out[k++] = v;
-                break;
-            }
-            if (slot[h] == v) break;
-            h = (h + 1) & (HCAP - 1);
-        }
-    }
-    return k;
-}
-
-inline void build_rank_map(const uint32_t *uniq, size_t k,
-                           uint32_t *slot, uint8_t *used, uint8_t *rank_out) {
-    std::memset(used, 0, HCAP);
-    for (size_t r = 0; r < k; ++r) {
-        uint32_t h = mix32(uniq[r]) & (HCAP - 1);
-        while (used[h]) h = (h + 1) & (HCAP - 1);
-        used[h] = 1;
-        slot[h] = uniq[r];
-        rank_out[h] = (uint8_t)r;
-    }
-}
-
-inline uint8_t lookup_rank(uint32_t v, const uint32_t *slot, const uint8_t *used, const uint8_t *rank) {
-    uint32_t h = mix32(v) & (HCAP - 1);
-    while (used[h]) {
-        if (slot[h] == v) return rank[h];
-        h = (h + 1) & (HCAP - 1);
-    }
-    return 0;
 }
 
 inline bool residual_few_wide_u32(uint32_t *a, size_t n) {
@@ -105,47 +56,69 @@ inline bool residual_few_wide_u32(uint32_t *a, size_t n) {
                 else if (v != s1) more = true;
             }
         }
-        if (!more && two) {
-            if (residual_two_value(a, n)) return true;
-        }
-        if (!more && !two) {
-            bool all = true;
-            for (size_t i = 1; i < n; ++i) {
-                if (a[i] != s0) { all = false; break; }
+        if (!more) {
+            if (!two) {
+                for (size_t i = 1; i < n; ++i)
+                    if (a[i] != s0) return residual_two_value(a, n);
+                return true;
             }
-            if (all) return true;
+            return residual_two_value(a, n);
+        }
+    }
+
+    uint32_t keys[HCAP];
+    size_t counts[HCAP];
+    uint8_t used[HCAP] = {};
+    size_t k = 0;
+
+    for (size_t i = 0; i < n; ++i) {
+        uint32_t v = a[i];
+        uint32_t h = mix32(v) & (HCAP - 1);
+        for (;;) {
+            if (!used[h]) {
+                if (k >= KMAX) return false;
+                used[h] = 1;
+                keys[h] = v;
+                counts[h] = 1;
+                ++k;
+                break;
+            }
+            if (keys[h] == v) {
+                ++counts[h];
+                break;
+            }
+            h = (h + 1) & (HCAP - 1);
         }
     }
 
     uint32_t uniq[KMAX];
-    size_t k = collect_uniques(a, n, uniq);
-    if (k == 0) return false;
-    if (k == 1) return true;
-    if (k == 2) {
-        if (residual_two_value(a, n)) return true;
-        return false;
-    }
-
-    for (size_t i = 1; i < k; ++i) {
-        uint32_t key = uniq[i];
-        size_t j = i;
-        while (j > 0 && uniq[j - 1] > key) { uniq[j] = uniq[j - 1]; --j; }
+    size_t cnt[KMAX];
+    size_t u = 0;
+    for (size_t h = 0; h < HCAP; ++h) {
+        if (!used[h]) continue;
+        uint32_t key = keys[h];
+        size_t c = counts[h];
+        size_t j = u;
+        while (j > 0 && uniq[j - 1] > key) {
+            uniq[j] = uniq[j - 1];
+            cnt[j] = cnt[j - 1];
+            --j;
+        }
         uniq[j] = key;
+        cnt[j] = c;
+        ++u;
     }
-
-    uint32_t slot[HCAP];
-    uint8_t used[HCAP], rank[HCAP];
-    build_rank_map(uniq, k, slot, used, rank);
-
-    size_t cnt[KMAX] = {};
-    for (size_t i = 0; i < n; ++i)
-        ++cnt[lookup_rank(a[i], slot, used, rank)];
 
     size_t p = 0;
-    for (size_t r = 0; r < k; ++r) {
+    for (size_t r = 0; r < u; ++r) {
         uint32_t v = uniq[r];
-        for (size_t c = cnt[r]; c; --c)
-            a[p++] = v;
+        size_t c = cnt[r];
+        while (c >= 8) {
+            a[p]=v;a[p+1]=v;a[p+2]=v;a[p+3]=v;
+            a[p+4]=v;a[p+5]=v;a[p+6]=v;a[p+7]=v;
+            p += 8; c -= 8;
+        }
+        while (c--) a[p++] = v;
     }
     return true;
 }
