@@ -1,0 +1,52 @@
+# Expanded Field Suite multi-arch CI — path-(a) gate
+# x86_64 + aarch64. In-scope soft=0 after formal scope. Not field-level until both PASS.
+name: expanded-field
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'residual/**'
+      - 'scripts/expanded_field_bench.cpp'
+      - 'scripts/field_metrics.py'
+      - '.github/workflows/expanded-field.yml'
+
+jobs:
+  expanded-field:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            arch: x86_64
+          - os: ubuntu-24.04-arm
+            arch: aarch64
+    runs-on: ${{ matrix.os }}
+    name: expanded-field-${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++ make
+          mkdir -p baselines
+          curl -fsSL -o baselines/pdqsort.h https://raw.githubusercontent.com/orlp/pdqsort/master/pdqsort.h
+          curl -fsSL -o baselines/ska_sort.hpp https://raw.githubusercontent.com/skarupke/ska_sort/master/ska_sort.hpp
+      - name: build
+        run: |
+          g++ -O3 -std=c++17 -DNDEBUG -I. -Iresidual -Ibaselines \
+            -o expanded_field_bench scripts/expanded_field_bench.cpp
+      - name: run Expanded Suite n=1e6
+        run: |
+          ./expanded_field_bench --n 1000000 --reps 5 --out expanded_${{ matrix.arch }}.csv
+      - name: metrics
+        run: |
+          python3 scripts/field_metrics.py expanded_${{ matrix.arch }}.csv | tee metrics_expanded_${{ matrix.arch }}.txt
+      - name: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: expanded-field-${{ matrix.arch }}
+          path: |
+            expanded_${{ matrix.arch }}.csv
+            metrics_expanded_${{ matrix.arch }}.txt

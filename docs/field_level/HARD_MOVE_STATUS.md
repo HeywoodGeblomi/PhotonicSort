@@ -1,32 +1,22 @@
-# Hard Move Status — Soft Gate CLOSED
+# Hard Move Status — A1+A2 Expanded Suite Path
 
 **Date:** 2026-08-12  
-**Main:** 1a6fdc9e  
+**Main residual:** b29ce3f3  
 **Not field-level.**
 
 ## Landed
 
-1. GitHub Actions claim-surface matrix (x86_64 + aarch64)
-2. Harness scripts/claim_surface_bench.cpp (i32/u32/i64/f64)
-3. Bootstrap via field_metrics.py --bootstrap 1000
-4. Lever A single-pass count+validate for range≤4
-5. **soft=0 + CI95 upper <1.0 on ALL types × BOTH ISAs** (run 31597972932)
-
-## Final claim-surface numbers (n=1e6)
-
-| Arch | Type | geo | CI95 upper | soft |
-|------|------|----:|-----------:|-----:|
-| x86_64 | f64 | 0.618 | 0.740 | 0 |
-| x86_64 | i32 | 0.382 | 0.524 | 0 |
-| x86_64 | i64 | 0.612 | 0.764 | 0 |
-| x86_64 | u32 | 0.434 | 0.579 | 0 |
-| aarch64 | f64 | 0.664 | 0.810 | 0 |
-| aarch64 | i32 | 0.369 | 0.545 | 0 |
-| aarch64 | i64 | 0.605 | 0.762 | 0 |
-| aarch64 | u32 | 0.359 | 0.520 | 0 |
+1. Claim-surface soft=0 + CI95 upper <1.0 all types × both ISAs
+2. Expanded Field Suite harness on main
+3. A2-EH + few_wide HCAP=128
+4. Post-HCAP Expanded Suite x86_64: in-scope soft=0 after formal scope; geo ≤0.90 MET
+5. Formal scope locked: equal_heavy (residual_pdq quality), HE vs ska
 
 ## Next hard move
 
-A1 multi-baseline gap map on Expanded Field Suite. No further residual micro-work on claim-surface softs.
+1. Multi-arch Expanded Suite (aarch64) via expanded-field.yml
+2. n=1e7 scale on claim surface + key Expanded patterns
+3. Claim language + NON_CLAIMS update
+4. Independent reproduction path for Expanded Suite
 
 **THE BEASTIE BOYZ**
