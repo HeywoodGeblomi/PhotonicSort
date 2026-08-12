@@ -1,0 +1,21 @@
+# i64 soft spots CLOSED  n=1000000 reps=7
+i64  sorted                 0.860     1.377     1.602 1
+i64  reverse                0.727     1.742     2.397 1
+i64  random                 0.723    22.612    31.288 1
+i64  almost_sorted          0.485     2.910     5.995 1
+i64  db_pk                  1.085     9.383     8.650 1
+i64  timestamps             0.729     1.029     1.411 1
+i64  few_k4_dense           0.996     2.466     2.476 1
+i64  few_k16_dense          0.537     2.356     4.386 1
+i64  few_k16_wide           0.664     4.457     6.708 1
+i64  equal_heavy            0.715     1.024     1.431 1
+i64  zipf_k16               0.820     4.140     5.050 1
+i64  organpipe              0.917    29.700    32.389 1
+i64  sawtooth               0.223     2.682    12.046 1
+i64  pipe_sparse            0.832     2.028     2.436 1
+i64  push_middle            1.026     6.184     6.026 1
+i64  reverse_segments       0.834    11.142    13.357 1
+i64  gaussianish            1.095    33.928    30.992 1
+i64  adversarial            1.000    14.396    14.399 1
+i64  runs_noise             0.852    18.356    21.536 1
+# geo 0.76×  max 1.10×  soft=0
