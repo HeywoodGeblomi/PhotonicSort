@@ -1,18 +1,19 @@
 #pragma once
 /*
- * pure_residual_menu_i32 — Wave 2 int32 pure residual entry (expanded)
+ * pure_residual_menu_i32 — Wave 2 int32 pure residual entry (expanded + low_disorder)
  *
  * Protects i64 path completely. Parallel specialization.
- * Menu: constant → FEW_WIDE → STRUCTURE → FEW_WIDE → counting → MSD HE
+ * Menu: constant → FEW_WIDE → STRUCTURE → counting → low_disorder → MSD HE
  *
  * EXTERNAL-clean. Not field-level.
- * THE BEASTIE BOYZ — Wave 2 multi-type 2026-08-12
+ * THE BEASTIE BOYZ — Wave 2 multi-type residual polish 2026-08-12
  */
 #include <cstdint>
 #include <cstring>
 #include <cstdlib>
 #include <algorithm>
 #include "residual_few_wide_i32.hpp"
+#include "residual_low_disorder_i32.hpp"
 
 namespace pure_residual {
 
@@ -229,6 +230,11 @@ inline int sort_i32(int32_t *a, size_t n) {
 
     // Counting (compact range)
     if (try_counting_i32(a, n)) return 0;
+
+    // Low-disorder (almost_sorted / near-monotonic / light db_pk)
+    if (residual_low_disorder_i32::should_try_low_disorder(a, n)) {
+        if (residual_low_disorder_i32::residual_low_disorder_i32(a, n)) return 0;
+    }
 
     // HE residual (32-bit MSD radix) — no std::sort fallback
     return residual_msd_i32::residual_msd_i32(a, n);
