@@ -1,15 +1,15 @@
 #pragma once
 /*
- * hybrid_residual_menu v25 — Soft survivors
- * v24: mixed_blocks DEAD. equal_heavy still soft on residual_pdq (library/pure wins).
- * v25:
- *   equal_heavy → PURE (counting) not PDQ — pure menu ≈0.94; residual_pdq was 1.44
- *   HE gate relaxed: û≥50% ∧ inv high → SKA (kill random 1.175)
- *   domain≤65536 → PURE held (db_fk_zipf)
+ * hybrid_residual_menu v26 — Soft grind: inline counting for small domain
+ * Root cause: pure residual equal-detect routes residual_pdq BEFORE try_counting.
+ * equal_heavy / zipf_k16 / db_fk_zipf all small-domain → hybrid counts itself.
+ * push_middle: residual_pdq early (no pure intercept tax).
  * EXTERNAL-clean. THE BEASTIE BOYZ 2026-08-12
  */
 #include <cstdint>
 #include <cstddef>
+#include <cstdlib>
+#include <cstring>
 #include <algorithm>
 #include <type_traits>
 #include "pure_residual_menu.hpp"
@@ -76,6 +76,36 @@ inline uint64_t domain_of(T mn, T mx) {
         return (uint64_t)((int64_t)mx - (int64_t)mn);
 }
 
+/* Inline counting: scan full min/max then count. Beats residual_pdq on equal_heavy/zipf. */
+template<typename T>
+inline bool try_count_sort(T *a, size_t n, T smn, T smx) {
+    if (n < 2) return true;
+    T amin = smn, amax = smx;
+    for (size_t i = 0; i < n; ++i) {
+        if (a[i] < amin) amin = a[i];
+        if (a[i] > amax) amax = a[i];
+    }
+    if (amin == amax) return true;
+    uint64_t range = domain_of(amin, amax);
+    if (range >= (1ull << 20) || range + 1 >= (uint64_t)n) return false;
+    size_t *cnt = (size_t *)std::calloc((size_t)range + 1, sizeof(size_t));
+    if (!cnt) return false;
+    for (size_t i = 0; i < n; ++i) {
+        uint64_t idx;
+        if constexpr (std::is_unsigned<T>::value)
+            idx = (uint64_t)a[i] - (uint64_t)amin;
+        else
+            idx = (uint64_t)((int64_t)a[i] - (int64_t)amin);
+        cnt[idx]++;
+    }
+    size_t p = 0;
+    for (uint64_t v = 0; v <= range; ++v)
+        for (size_t c = cnt[v]; c; --c)
+            a[p++] = (T)((int64_t)v + (int64_t)amin);
+    std::free(cnt);
+    return true;
+}
+
 template<typename T, typename PureFn>
 inline int dispatch(T *a, size_t n, PureFn pure_fn) {
     if (n < 2) return 0;
@@ -88,13 +118,23 @@ inline int dispatch(T *a, size_t n, PureFn pure_fn) {
     const size_t S = 512;
     uint64_t dom = domain_of(mn, mx);
 
-    /* equal_heavy → PURE counting (not residual_pdq). Pure menu ≈0.94. */
-    if (eq * 4 >= S * 3) return pure_fn(a, n);
+    /* Small domain → inline counting (kills equal_heavy / zipf_k16 / db_fk_zipf Soft).
+       Bypass pure residual which residual_pdqs equal-detect before counting. */
+    if (dom <= 65536ull) {
+        if (try_count_sort(a, n, mn, mx)) return 0;
+        /* fall through if calloc/range fails */
+    }
 
-    /* domain-aware PURE */
-    if (dom <= 65536ull) return pure_fn(a, n);
+    /* equal_heavy fallback */
+    if (eq * 4 >= S * 3) {
+        residual_pdqsort(a, a + n);
+        return 0;
+    }
 
-    if (u <= 32) return pure_fn(a, n);
+    if (u <= 32) {
+        if (dom <= 65536ull && try_count_sort(a, n, mn, mx)) return 0;
+        return pure_fn(a, n);
+    }
     if (u <= 128 && inv * 2 >= S && inv * 2 <= S) return pure_fn(a, n);
     if (desc_runs >= 3 && inv * 5 >= S * 3) return pure_fn(a, n);
 
@@ -110,7 +150,7 @@ inline int dispatch(T *a, size_t n, PureFn pure_fn) {
         return 0;
     }
 
-    /* HE relaxed: û ≥ 50% ∧ inv high → SKA (catch random soft) */
+    /* HE → SKA */
     if (u >= (S * 50) / 100 && inv * 5 >= S * 2) {
         ska_sort(a, a + n);
         return 0;
@@ -128,7 +168,7 @@ inline int dispatch(T *a, size_t n, PureFn pure_fn) {
         }
     }
 
-    if (u <= 32) return pure_fn(a, n);
+    /* push_middle-ish / default: residual_pdq */
     residual_pdqsort(a, a + n);
     return 0;
 }
