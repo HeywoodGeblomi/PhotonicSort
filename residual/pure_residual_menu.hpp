@@ -1,5 +1,5 @@
 #pragma once
-/* pure_residual_menu — EXTERNAL-clean. Soft-spot close 2026-08-12: direction-change run gate + few_wide dense. All i64 soft spots CLOSED. Not field-level. THE BEASTIE BOYZ */
+/* pure_residual_menu — EXTERNAL-clean. A2 gates 2026-08-12. Not field-level. THE BEASTIE BOYZ */
 #include <cstdint>
 #include <cstring>
 #include <cstdlib>
@@ -58,7 +58,7 @@ inline bool try_counting(int64_t *a, size_t n) {
     for (size_t i = 0; i < n; ++i) { if (a[i] < amin) amin = a[i]; if (a[i] > amax) amax = a[i]; }
     if (amin == amax) return true;
     uint64_t range = (uint64_t)(amax - amin);
-    if (range >= (1ull << 20) || range >= (uint64_t)n || range >= (uint64_t)(n * 3 / 4)) return false;
+    if (range >= (1ull << 20) || range + 1 >= (uint64_t)n || range >= (uint64_t)(n * 3 / 4)) return false;
     size_t *cnt = (size_t *)std::calloc((size_t)range + 1, sizeof(size_t));
     if (!cnt) return false;
     for (size_t i = 0; i < n; ++i) cnt[(uint64_t)(a[i] - amin)]++;
@@ -136,13 +136,30 @@ inline int sort_i64(int64_t *a, size_t n) {
     { bool asc = true; for (size_t i = 1; i < n; ++i) if (a[i] < a[i - 1]) { asc = false; break; } if (asc) return 0; }
     { bool desc = true; for (size_t i = 1; i < n; ++i) if (a[i] > a[i - 1]) { desc = false; break; } if (desc) { std::reverse(a, a + n); return 0; } }
     if (n >= 256) {
+        const size_t S = 256; size_t eq = 0;
+        for (size_t c0 = 0; c0 < S; ++c0) {
+            size_t i = (c0 * (n - 1)) / S; size_t j = i + 1 < n ? i + 1 : i;
+            if (a[i] == a[j]) ++eq;
+        }
+        if (eq * 4 >= S) { residual_pdqsort(a, a + n); return 0; }
+    }
+    if (try_counting(a, n)) return 0;
+    if (n >= 256) {
+        const size_t S = 512; size_t inv = 0; int64_t mn = a[0], mx = a[0];
+        for (size_t c0 = 0; c0 < S; ++c0) {
+            size_t i = 1 + (c0 * (n - 1)) / S;
+            if (a[i] < a[i - 1]) ++inv; if (a[i] < mn) mn = a[i]; if (a[i] > mx) mx = a[i];
+        }
+        uint64_t dom = (uint64_t)(mx - mn);
+        if (inv * 100 <= S && dom > (uint64_t)n + (uint64_t)n / 10) { residual_pdqsort(a, a + n); return 0; }
+    }
+    if (n >= 256) {
         const size_t S = 512; size_t inv = 0; int64_t mn = a[0], mx = a[0]; int64_t samp[512];
         for (size_t c = 0; c < S; ++c) { size_t i = 1 + (c * (n - 1)) / S; if (a[i] < a[i - 1]) ++inv; if (a[i] < mn) mn = a[i]; if (a[i] > mx) mx = a[i]; samp[c] = a[i]; }
         uint64_t dom = (uint64_t)(mx - mn); bool compact = dom <= (uint64_t)n * 4ull;
         std::sort(samp, samp + S); size_t u = 1; for (size_t c = 1; c < S; ++c) if (samp[c] != samp[c-1]) ++u;
         if (inv * 2 >= S && compact && u < (S * 9) / 10) { residual_pdqsort(a, a + n); return 0; }
     }
-    // Direction-change run gate: push_middle / reverse_segments. Cap 64 skips HE random.
     { size_t runs = 1; int dir = 0;
       for (size_t i = 1; i < n; ++i) {
         int d = (a[i] > a[i - 1]) ? 1 : (a[i] < a[i - 1]) ? -1 : 0;
@@ -152,10 +169,9 @@ inline int sort_i64(int64_t *a, size_t n) {
       if (runs >= 2 && runs <= 64) { residual_pdqsort(a, a + n); return 0; } }
     if (try_reverse_runs(a, n)) return 0;
     if (residual_few_wide::should_try_few_wide(a, n)) if (residual_few_wide::residual_few_wide_i64(a, n)) return 0;
-    if (try_counting(a, n)) return 0;
     { size_t sample = n < 1024 ? n - 1 : 1024; size_t step = (n - 1) / sample; if (step < 1) step = 1;
       size_t eq = 0, checked = 0; for (size_t i = 0; i + step < n && checked < sample; i += step, ++checked) if (a[i] == a[i + step]) ++eq;
-      if ((double)eq / (double)(checked ? checked : 1) >= 0.35) return residual_adversarial::residual_adversarial_i64(a, n); }
+      if ((double)eq / (double)(checked ? checked : 1) >= 0.35) { residual_pdqsort(a, a + n); return 0; } }
     { size_t prefix_end = 1; while (prefix_end < n && a[prefix_end] >= a[prefix_end - 1]) ++prefix_end;
       size_t suffix_start = n - 1; while (suffix_start > 0 && a[suffix_start] >= a[suffix_start - 1]) --suffix_start;
       size_t mid_n = (prefix_end < suffix_start) ? (suffix_start - prefix_end) : n; size_t right_run = n - suffix_start;
