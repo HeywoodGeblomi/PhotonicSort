@@ -1,5 +1,5 @@
 #pragma once
-/* pure_residual_menu_generic — counting FIRST for few_k4. Not field-level. THE BEASTIE BOYZ */
+/* pure_residual_menu_generic — equal-first + stack counting. Not field-level. THE BEASTIE BOYZ */
 #include <cstddef>
 #include <algorithm>
 #include <iterator>
@@ -16,6 +16,7 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
     size_t n = (size_t)(last - first);
     if (n < 2) return 0;
 
+    // STRUCTURE: all-equal sample + verify
     {
         const size_t S = n < 128 ? n : 128;
         size_t st = n / S; if (st < 1) st = 1;
@@ -35,6 +36,7 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
         }
     }
 
+    // STRUCTURE: already sorted ascending
     {
         bool asc = true;
         for (size_t i = 1; i < n; ++i) {
@@ -44,6 +46,7 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
         }
         if (asc) return 0;
     }
+    // STRUCTURE: reverse sorted
     {
         bool desc = true;
         for (size_t i = 1; i < n; ++i) {
@@ -54,7 +57,25 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
         if (desc) { std::reverse(first, last); return 0; }
     }
 
-    // Discrete low-card counting FIRST (few_k4 integer-valued floats)
+    // Equal-first (before counting) — high equality → residual_pdqsort
+    // Threshold eq*4 >= S (~75%) so few_k4 still reaches counting
+    if (n >= 256) {
+        const size_t S = 256;
+        size_t eq = 0;
+        for (size_t c = 0; c < S; ++c) {
+            size_t i = (c * (n - 1)) / S;
+            size_t j = i + 1 < n ? i + 1 : i;
+            if (!comp(*(first + (ptrdiff_t)i), *(first + (ptrdiff_t)j)) &&
+                !comp(*(first + (ptrdiff_t)j), *(first + (ptrdiff_t)i)))
+                ++eq;
+        }
+        if (eq * 4 >= S) {
+            residual_pdqsort(first, last, comp);
+            return 0;
+        }
+    }
+
+    // Discrete low-card counting: stack for range<=32, calloc otherwise
     if (n >= 64) {
         const size_t S = n < 1024 ? n : 1024;
         size_t st = n / S; if (st < 1) st = 1;
@@ -79,7 +100,15 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
                 }
                 range = (size_t)(amax - amin) + 1;
                 if (intish && range <= 4096 && range < n) {
-                    size_t *cnt = (size_t *)std::calloc(range, sizeof(size_t));
+                    size_t stack_cnt[32];
+                    size_t *cnt = nullptr;
+                    bool on_stack = (range <= 32);
+                    if (on_stack) {
+                        for (size_t v = 0; v < range; ++v) stack_cnt[v] = 0;
+                        cnt = stack_cnt;
+                    } else {
+                        cnt = (size_t *)std::calloc(range, sizeof(size_t));
+                    }
                     if (cnt) {
                         for (size_t i = 0; i < n; ++i)
                             cnt[(size_t)((double)*(first + (ptrdiff_t)i) - amin)]++;
@@ -87,7 +116,7 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
                         for (size_t v = 0; v < range; ++v)
                             for (size_t c0 = cnt[v]; c0; --c0)
                                 *(first + (ptrdiff_t)(p++)) = (T)(amin + (double)v);
-                        std::free(cnt);
+                        if (!on_stack) std::free(cnt);
                         return 0;
                     }
                 }
@@ -95,23 +124,7 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
         }
     }
 
-    // Early equal-heavy (50%)
-    if (n >= 256) {
-        const size_t S = 256;
-        size_t eq = 0;
-        for (size_t c = 0; c < S; ++c) {
-            size_t i = (c * (n - 1)) / S;
-            size_t j = i + 1 < n ? i + 1 : i;
-            if (!comp(*(first + (ptrdiff_t)i), *(first + (ptrdiff_t)j)) &&
-                !comp(*(first + (ptrdiff_t)j), *(first + (ptrdiff_t)i)))
-                ++eq;
-        }
-        if (eq * 2 >= S) {
-            residual_pdqsort(first, last, comp);
-            return 0;
-        }
-    }
-
+    // Low inversion → residual_pdqsort
     if (n >= 256) {
         const size_t S = 512;
         size_t inv = 0;
@@ -126,6 +139,7 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
         }
     }
 
+    // Run structure → residual_pdqsort
     {
         size_t runs = 1; int dir = 0;
         for (size_t i = 1; i < n; ++i) {
