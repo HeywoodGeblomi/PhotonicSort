@@ -1,5 +1,5 @@
-# Expanded Field Suite multi-arch CI — path-(a) gate
-# x86_64 + aarch64. In-scope soft=0 after formal scope. Not field-level until both PASS.
+# Expanded Field Suite multi-arch CI — pure + hybrid residual
+# x86_64 + aarch64. Hybrid soft=0 @1.20 is path-(a) verification plate.
 name: expanded-field
 
 on:
@@ -9,6 +9,7 @@ on:
     paths:
       - 'residual/**'
       - 'scripts/expanded_field_bench.cpp'
+      - 'scripts/expanded_field_bench_hybrid.cpp'
       - 'scripts/field_metrics.py'
       - '.github/workflows/expanded-field.yml'
 
@@ -30,23 +31,35 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq g++ make
-          mkdir -p baselines
+          mkdir -p baselines residual
           curl -fsSL -o baselines/pdqsort.h https://raw.githubusercontent.com/orlp/pdqsort/master/pdqsort.h
           curl -fsSL -o baselines/ska_sort.hpp https://raw.githubusercontent.com/skarupke/ska_sort/master/ska_sort.hpp
-      - name: build
+          cp baselines/ska_sort.hpp residual/ska_sort.hpp
+      - name: build pure
         run: |
           g++ -O3 -std=c++17 -DNDEBUG -I. -Iresidual -Ibaselines \
             -o expanded_field_bench scripts/expanded_field_bench.cpp
-      - name: run Expanded Suite n=1e6
+      - name: build hybrid
         run: |
-          ./expanded_field_bench --n 1000000 --reps 5 --out expanded_${{ matrix.arch }}.csv
+          g++ -O3 -std=c++17 -DNDEBUG -I. -Iresidual -Ibaselines \
+            -o expanded_hybrid scripts/expanded_field_bench_hybrid.cpp
+      - name: run pure Expanded Suite n=1e6
+        run: |
+          ./expanded_field_bench --n 1000000 --reps 5 --out expanded_pure_${{ matrix.arch }}.csv
+      - name: run hybrid Expanded Suite n=1e6
+        run: |
+          ./expanded_hybrid --n 1000000 --reps 5 --out expanded_hybrid_${{ matrix.arch }}.csv
       - name: metrics
         run: |
-          python3 scripts/field_metrics.py expanded_${{ matrix.arch }}.csv | tee metrics_expanded_${{ matrix.arch }}.txt
+          echo "=== pure ===" | tee metrics_${{ matrix.arch }}.txt
+          python3 scripts/field_metrics.py expanded_pure_${{ matrix.arch }}.csv | tee -a metrics_${{ matrix.arch }}.txt
+          echo "=== hybrid ===" | tee -a metrics_${{ matrix.arch }}.txt
+          python3 scripts/field_metrics.py expanded_hybrid_${{ matrix.arch }}.csv | tee -a metrics_${{ matrix.arch }}.txt
       - name: upload
         uses: actions/upload-artifact@v4
         with:
           name: expanded-field-${{ matrix.arch }}
           path: |
-            expanded_${{ matrix.arch }}.csv
-            metrics_expanded_${{ matrix.arch }}.txt
+            expanded_pure_${{ matrix.arch }}.csv
+            expanded_hybrid_${{ matrix.arch }}.csv
+            metrics_${{ matrix.arch }}.txt
