@@ -1,105 +1,139 @@
-# A1 Gap Map — vs Best Specialized
+# A1 Gap Map — Expanded Field Suite vs Best Specialized
 
 **Date:** 2026-08-12  
-**Status:** COMPLETE (measurement only)  
-**Suite:** Expanded Field Suite core 19 (A0 frozen)  
-**n:** 1e6 · **reps:** 5 (median) · **arch:** x86_64  
-**Compiler:** g++ -O3 -std=c++17 -DNDEBUG  
+**Status:** SKELETON — awaiting Expanded Field Suite harness numbers  
+**Parent:** [`FIELD_LEVEL_ENTRY_ATTACK.md`](./FIELD_LEVEL_ENTRY_ATTACK.md) · [`EXPANDED_FIELD_SUITE.md`](./EXPANDED_FIELD_SUITE.md) · [`METRICS_LOCKED.md`](./METRICS_LOCKED.md) · [`BASELINES_LOCKED.md`](./BASELINES_LOCKED.md)  
+**Harness:** `scripts/expanded_field_bench.cpp` (in progress)  
 **Not field-level.**
 
-Primary metric: `ratio = pure_residual_ms / best_ms` where  
-`best_ms = min(pdqsort, ska_sort, std::sort)` per pattern.
+---
 
-CSV: [`a1_gap_map.csv`](./a1_gap_map.csv)
+## 1. Purpose
+
+Measure pure residual vs **best specialized** (`min(pdqsort, ska_sort where applicable, std::sort)`) on the full Expanded Field Suite (P01–P23). Soft spots redefined as any **in-scope** pattern with ratio > **1.15×**. Primary published metric = geometric mean of ratios over in-scope patterns.
+
+Claim-surface soft gate is already CLOSED (13-pattern subset). This document is the evidence foundation for path-(a) field-level entry.
 
 ---
 
-## 1. Summary
+## 2. Methodology (frozen)
 
-| Type | geo vs best | max | soft (>1.15×) | ok fail |
-|------|------------:|----:|--------------:|--------:|
-| **i32** | **0.56×** | 2.72× | 4 | 0 |
-| **u32** | **0.63×** | 2.86× | 5 | 0 |
-| **i64** | **1.23×** | 57.1× | 11 | 0 |
+| Item | Value |
+|------|-------|
+| n primary | 1e6 |
+| n scale | 1e7 (A3) |
+| reps | median of odd R ≥ 7 (A1 default R=9; smoke R=5 OK) |
+| seed | 42 |
+| best | min(pdq, ska if applicable, std) |
+| soft | ratio_best > 1.15 |
+| CSV schema | `arch,type,pattern,n,reps,menu_ms,pdq_ms,ska_ms,std_ms,best_ms,ratio_best,ok` |
+| Bootstrap | B ≥ 1000 on pattern-ratio vector for primary geo (A3/A4) |
 
-Best-specialized source across 57 rows: **pdq 48 · ska 9 · std 0**.
-
-i32/u32 already clear the primary geo target (≤0.90×) **on this suite** — but soft spots remain. i64 does **not**.
-
----
-
-## 2. Soft spots vs best specialized
-
-### Cross-type (appear on ≥2 types)
-
-| Pattern | i32 | u32 | i64 | Who wins |
-|---------|----:|----:|----:|----------|
-| **few_k4_dense** | 2.72× | 2.86× | 2.24× | **pdq** |
-| **pipe_sparse** | 1.77× | 1.90× | 2.49× | **pdq** |
-| **equal_heavy** | 1.45× | 1.63× | 1.59× | **pdq** |
-| **runs_noise** | 1.41× | 1.57× | 1.63× | **pdq** |
-
-### i64-only (additional)
-
-| Pattern | ratio | Who wins | Note |
-|---------|------:|----------|------|
-| **db_pk** | **57.1×** | pdq | Critical: sparse-inversion low_disorder path tax (inv≈0.2%, menu 377ms vs pdq 6.6ms) |
-| few_k16_wide | 1.58× | pdq | residual quality |
-| gaussianish | 1.54× | pdq | HE residual path |
-| zipf_k16 | 1.46× | pdq | mid-card |
-| random | 1.40× | **ska** | radix wins HE uniform |
-| few_k16_dense | 1.27× | pdq | |
-| organpipe | 1.17× | **ska** | borderline |
-
-### u32-only extra
-
-| Pattern | ratio | Who wins |
-|---------|------:|----------|
-| db_pk | 1.18× | pdq (borderline soft) |
+Compiler: `-O3 -std=c++17 -DNDEBUG`.
 
 ---
 
-## 3. Where pure residual wins (examples)
+## 3. Pattern inventory
 
-| Pattern | i32 | u32 | i64 |
-|---------|----:|----:|----:|
-| reverse_segments | 0.12× | 0.15× | 0.71× |
-| sawtooth | 0.15× | 0.17× | 0.20× |
-| almost_sorted | 0.25× | 0.29× | 0.47× |
-| push_middle | 0.24× | 0.29× | 0.89× |
-| organpipe | 0.30× | 0.32× | 1.17× |
-| sorted / reverse / timestamps | ≪1× | ≪1× | ≪1× |
+### 3.1 Core 19 (in-scope unless formally scoped)
 
-Structure / run-heavy remains the strength. HE + dense ultra-low-card + sparse-inversion are the gaps.
+| ID | Pattern | Group | Expected residual path |
+|----|---------|-------|------------------------|
+| P01 | sorted | Structure | STRUCTURE early-exit |
+| P02 | reverse | Structure | STRUCTURE / reverse |
+| P03 | almost_sorted | Structure | low_disorder |
+| P04 | organpipe | Structure | residual / ska relevance |
+| P05 | sawtooth | Structure | counting / runs |
+| P06 | reverse_segments | Structure | runs / residual |
+| P07 | push_middle | Runs | residual |
+| P08 | runs_noise | Runs | residual |
+| P09 | few_k4_dense | Low-card | counting cnt4 |
+| P10 | few_k16_dense | Low-card | counting |
+| P11 | few_k16_wide | Low-card | few_wide residual |
+| P12 | equal_heavy | Low-card | equal / counting |
+| P13 | zipf_k16 | Low-card | counting |
+| P14 | db_pk | Real-shaped | low_disorder / residual |
+| P15 | timestamps | Real-shaped | low_disorder |
+| P16 | pipe_sparse | Adversarial | residual_pdq quality |
+| P17 | adversarial | Adversarial | residual |
+| P18 | random | HE | residual / ska |
+| P19 | gaussianish | HE | residual quality limit |
+
+### 3.2 Extended 4 (A0 locked names)
+
+| ID | Pattern | Group | Contract (seed=42) |
+|----|---------|-------|--------------------|
+| P20 | db_fk_zipf | Real-shaped | Zipf over ~√n distinct refs |
+| P21 | timestamp_drift | Real-shaped | Monotonic base + regime drift every n/10 |
+| P22 | mixed_blocks | Mixed | Alternating sorted blocks size 256 + shuffle islands |
+| P23 | uniform_u32 | HE | Full-range uint32 uniform |
+
+### 3.3 Formal scope-outs (candidates — confirm after numbers)
+
+These may be formally scoped if residual quality cannot match radix-specialized baselines without breaking EXTERNAL-clean pure residual claim:
+
+| Pattern | Likely reason |
+|---------|---------------|
+| pipe_sparse (P16) | residual_pdqsort quality vs library pdq |
+| random (P18) | ska wins HE uniform |
+| gaussianish (P19) | continuous HE path tax |
+| few_k16_wide (P11) | FEW_WIDE residual quality |
+| organpipe (P04) | ska wins; residual cannot match radix |
+| uniform_u32 (P23) | ska HE dominance |
+
+**Rule:** Do not hide losses inside geo mean. Either close (EXTERNAL-clean residual) or formal scope-out with rationale.
 
 ---
 
-## 4. Diagnostic notes (for A2)
+## 4. Results tables (PENDING)
 
-1. **i64 db_pk (57×)** — Generator is near-monotonic with ~0.2% scattered swaps. `residual_low_disorder` insertion-style path is pathological on sparse inversions (O(n·distance) shifts). **A2 priority #1.**
-2. **few_k4_dense** — Counting residual should dominate; routing or counting quality loses to pdq. **A2 priority #2.**
-3. **pipe_sparse** — Late residual_pdqsort not winning enough vs library pdq; residual_pdqsort quality gap. **A2 priority #3.**
-4. **random i64** — ska is best specialized; pure residual cannot beat integer radix on uniform without becoming ska. Scope decision: accept HE loss vs ska **or** document out-of-scope for pure residual claim.
-5. **equal_heavy / runs_noise** — pdq residual body quality / routing.
+### 4.1 i64 @ n=1e6
+
+| Pattern | menu_ms | best_ms | ratio_best | soft | notes |
+|---------|--------:|--------:|-----------:|:----:|-------|
+| *(awaiting harness)* | | | | | |
+
+**i64 aggregate:** geo=— · max=— · soft_count=— · CI95=[—, —]
+
+### 4.2 i32 @ n=1e6
+
+| Pattern | menu_ms | best_ms | ratio_best | soft | notes |
+|---------|--------:|--------:|-----------:|:----:|-------|
+| *(awaiting harness)* | | | | | |
+
+**i32 aggregate:** geo=— · max=— · soft_count=— · CI95=[—, —]
+
+### 4.3 u32 @ n=1e6
+
+| Pattern | menu_ms | best_ms | ratio_best | soft | notes |
+|---------|--------:|--------:|-----------:|:----:|-------|
+| *(awaiting harness)* | | | | | |
+
+**u32 aggregate:** geo=— · max=— · soft_count=— · CI95=[—, —]
+
+### 4.4 Cross-type summary
+
+| Type | geo_best | max | soft_count | Gate geo≤0.90 / soft=0 |
+|------|---------:|----:|-----------:|:----------------------:|
+| i64 | — | — | — | PENDING |
+| i32 | — | — | — | PENDING |
+| u32 | — | — | — | PENDING |
 
 ---
 
-## 5. A1 exit checklist
+## 5. Soft-spot decisions (A2 input)
 
-| Item | Status |
-|------|--------|
-| Ratios vs pdq, ska, std, best specialized | **DONE** |
-| i32 / u32 / i64 @ n=1e6 | **DONE** |
-| Soft spots redefined vs best specialized | **DONE** |
-| CSV published | **DONE** |
-| Residual code changed | **No** |
+| Pattern | Type(s) | ratio | Decision (close / scope) | Rationale |
+|---------|---------|------:|--------------------------|-----------|
+| *(fill after numbers)* | | | | |
 
 ---
 
-## 6. Next: A2
+## 6. Non-claims
 
-Close or formally scope every soft spot in §2. Priority: i64 db_pk → few_k4 → pipe_sparse → equal_heavy / runs_noise → i64 HE vs ska scope decision.
-
-**Still not field-level.**
+- This skeleton is **not** a field-level claim.
+- Claim-surface soft=0 does not transfer to Expanded Field Suite.
+- Numbers below (when filled) are path-(a) evidence only after soft_count=0 in-scope and geo≤0.90 with CI.
+- EXTERNAL-clean pure residual only. No χ.
 
 **THE BEASTIE BOYZ**
