@@ -1,27 +1,23 @@
-# Hard Move Status — Field-Level Entry Primary Gates MET
+# Hard Move Status — Path-(a) Hybrid Residual
 
 **Date:** 2026-08-12  
-**Main:** b627501c+  
-**Claim:** `docs/field_level/FIELD_LEVEL_CLAIM_v0.1.md`
+**Claim:** `docs/field_level/FIELD_LEVEL_CLAIM_v0.2.md`  
+**Config:** hybrid residual v21
 
-## Primary gates — MET
+## Path-(a) gates
 
-1. Claim-surface soft=0 + CI95 upper <1.0 all types × both ISAs
-2. Expanded Field Suite harness + multi-arch CI (x86_64 + aarch64)
-3. Expanded Suite geo ≤0.90 multi-arch
-4. Expanded Suite in-scope soft=0 multi-arch (after formal scope)
-5. n=1e7 geo ≤0.90 all types; in-scope soft=0 after formal scope at scale
-6. FIELD_LEVEL_CLAIM_v0.1 shipped
-7. Independent Expanded Suite reproduce path shipped (`reproduce/EXPANDED_FIELD.md`)
+| Gate | Status |
+|------|--------|
+| Hybrid residual source | **SHIPPED** |
+| Unscoped soft=0 @1.20 (x86_64 measured) | **MET** |
+| Primary geo ≤0.90 | **MET** |
+| Pure residual alternate retained | **YES** |
+| Hybrid reproduce path | **SHIPPED** |
+| Multi-arch hybrid CI | **OPEN** |
+| Path-(b) table-set | **SET** (`PATH_B_TABLE_SET.md`) |
 
-## Formal scope (locked)
+## Honesty
 
-equal_heavy, random, gaussianish, uniform_u32, organpipe, pipe_sparse, mixed_blocks, db_pk (at scale), adversarial (at scale), runs_noise (at scale).
-
-All are residual quality / HE path limits — EXTERNAL-clean honesty.
-
-## Non-claims held
-
-Not a SOTA displacement claim. Not a complexity theorem. EXTERNAL-clean pure residual only.
+Hybrid residual ≠ pure residual. Library ska/pdq used on HE and residual-quality zones. Not SOTA displacement marketing.
 
 **THE BEASTIE BOYZ**
