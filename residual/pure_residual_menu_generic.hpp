@@ -1,9 +1,8 @@
 #pragma once
 /*
- * pure_residual_menu_generic — EXTERNAL-clean comparator residual
- * equal-first (50%) + discrete float counting (uint32 stack ≤32) + ultra-low inv + run-gate → residual_pdqsort
- * Covers float64 / generic path for path-(a) multi-type gate.
- * Not field-level. THE BEASTIE BOYZ — A3 soft-close 2026-08-12
+ * pure_residual_menu_generic — FULL ATTACK
+ * equal-first 50% + sample-first STRUCTURE + range≤4 specialized + uint32 stack
+ * Close x86 f64 few_k4_dense soft. Not field-level. THE BEASTIE BOYZ
  */
 #include <cstddef>
 #include <cstdint>
@@ -42,30 +41,48 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
         }
     }
 
-    // STRUCTURE: already sorted ascending
+    // STRUCTURE: sample-first ascending (full scan only if sample looks sorted)
     {
-        bool asc = true;
-        for (size_t i = 1; i < n; ++i) {
-            if (comp(*(first + (ptrdiff_t)i), *(first + (ptrdiff_t)(i - 1)))) {
-                asc = false; break;
+        const size_t S = n < 256 ? n - 1 : 256;
+        size_t st = (n - 1) / S; if (st < 1) st = 1;
+        bool maybe_asc = true;
+        for (size_t i = 0, c = 0; i + st < n && c < S; i += st, ++c) {
+            if (comp(*(first + (ptrdiff_t)(i + st)), *(first + (ptrdiff_t)i))) {
+                maybe_asc = false; break;
             }
         }
-        if (asc) return 0;
+        if (maybe_asc) {
+            bool asc = true;
+            for (size_t i = 1; i < n; ++i) {
+                if (comp(*(first + (ptrdiff_t)i), *(first + (ptrdiff_t)(i - 1)))) {
+                    asc = false; break;
+                }
+            }
+            if (asc) return 0;
+        }
     }
-    // STRUCTURE: reverse sorted
+    // STRUCTURE: sample-first descending
     {
-        bool desc = true;
-        for (size_t i = 1; i < n; ++i) {
-            if (comp(*(first + (ptrdiff_t)(i - 1)), *(first + (ptrdiff_t)i))) {
-                desc = false; break;
+        const size_t S = n < 256 ? n - 1 : 256;
+        size_t st = (n - 1) / S; if (st < 1) st = 1;
+        bool maybe_desc = true;
+        for (size_t i = 0, c = 0; i + st < n && c < S; i += st, ++c) {
+            if (comp(*(first + (ptrdiff_t)i), *(first + (ptrdiff_t)(i + st)))) {
+                maybe_desc = false; break;
             }
         }
-        if (desc) { std::reverse(first, last); return 0; }
+        if (maybe_desc) {
+            bool desc = true;
+            for (size_t i = 1; i < n; ++i) {
+                if (comp(*(first + (ptrdiff_t)(i - 1)), *(first + (ptrdiff_t)i))) {
+                    desc = false; break;
+                }
+            }
+            if (desc) { std::reverse(first, last); return 0; }
+        }
     }
 
-    // Equal-first (before counting) — high equality → residual_pdqsort
-    // Threshold eq*2 >= S (50%): uniform few_k4 has P(eq)~25% so must NOT trip;
-    // equal_heavy (~80%+) still trips cleanly.
+    // Equal-first 50%
     if (n >= 256) {
         const size_t S = 256;
         size_t eq = 0;
@@ -82,7 +99,7 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
         }
     }
 
-    // Discrete low-card counting: uint32 stack for range<=32, calloc otherwise
+    // Discrete low-card counting
     if (n >= 64) {
         const size_t S = n < 1024 ? n : 1024;
         size_t st = n / S; if (st < 1) st = 1;
@@ -107,6 +124,32 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
                 }
                 range = (size_t)(amax - amin) + 1;
                 if (intish && range <= 4096 && range < n) {
+                    if (range <= 4) {
+                        uint32_t cnt4[4] = {};
+                        for (size_t i = 0; i < n; ++i)
+                            cnt4[(size_t)((double)*(first + (ptrdiff_t)i) - amin)]++;
+                        T keys[4];
+                        for (size_t v = 0; v < range; ++v)
+                            keys[v] = (T)(amin + (double)v);
+                        size_t p = 0;
+                        for (size_t v = 0; v < range; ++v) {
+                            T key = keys[v];
+                            uint32_t c = cnt4[v];
+                            while (c >= 8) {
+                                *(first + (ptrdiff_t)(p)) = key;
+                                *(first + (ptrdiff_t)(p + 1)) = key;
+                                *(first + (ptrdiff_t)(p + 2)) = key;
+                                *(first + (ptrdiff_t)(p + 3)) = key;
+                                *(first + (ptrdiff_t)(p + 4)) = key;
+                                *(first + (ptrdiff_t)(p + 5)) = key;
+                                *(first + (ptrdiff_t)(p + 6)) = key;
+                                *(first + (ptrdiff_t)(p + 7)) = key;
+                                p += 8; c -= 8;
+                            }
+                            while (c--) *(first + (ptrdiff_t)(p++)) = key;
+                        }
+                        return 0;
+                    }
                     if (range <= 32) {
                         uint32_t cnt[32] = {};
                         for (size_t i = 0; i < n; ++i)
@@ -115,9 +158,7 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
                         for (size_t v = 0; v < range; ++v) {
                             T val = (T)(amin + (double)v);
                             uint32_t c0 = cnt[v];
-                            while (c0--) {
-                                *(first + (ptrdiff_t)(p++)) = val;
-                            }
+                            while (c0--) *(first + (ptrdiff_t)(p++)) = val;
                         }
                         return 0;
                     } else {
