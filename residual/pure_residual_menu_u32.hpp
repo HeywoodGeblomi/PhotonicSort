@@ -1,13 +1,13 @@
 #pragma once
 /*
- * pure_residual_menu_u32 — Wave 2 uint32 pure residual entry (soft-spot kill)
+ * pure_residual_menu_u32 — Wave 2 uint32 pure residual entry
  *
- * Menu: constant → FEW_WIDE → STRUCTURE → counting → consecutive_perm →
- *       push_middle → low_disorder → MSD HE
+ * Menu: constant → FEW_WIDE → STRUCTURE → late high-disorder short-circuit →
+ *       counting → consecutive_perm → push_middle → low_disorder → residual_pdqsort HE
  *
- * STRUCTURE v2: asc-first tight scan (closes timestamps u32 verify tax).
+ * pipe_sparse kill: late inv≥0.5 → residual_pdqsort; HE fallback residual_pdqsort (full orlp).
  * EXTERNAL-clean. Not field-level. i64 path protected.
- * THE BEASTIE BOYZ — soft-spot kill 2026-08-12
+ * THE BEASTIE BOYZ — pipe_sparse kill 2026-08-12
  */
 #include <cstdint>
 #include <cstring>
@@ -17,6 +17,7 @@
 #include "residual_consecutive_perm_u32.hpp"
 #include "residual_push_middle_u32.hpp"
 #include "residual_low_disorder_u32.hpp"
+#include "pdqsort_residual.h"
 
 namespace pure_residual {
 
@@ -103,7 +104,7 @@ inline int sort_u32(uint32_t *a, size_t n) {
     if (n >= 64 && residual_few_wide_u32::should_try_few_wide(a, n))
         if (residual_few_wide_u32::residual_few_wide_u32(a, n)) return 0;
 
-    // STRUCTURE v2: asc-first tight scan (closes timestamps u32 verify tax)
+    // STRUCTURE v2: asc-first tight scan
     {
         bool asc = true;
         for (size_t i = 1; i < n; ++i) {
@@ -119,6 +120,20 @@ inline int sort_u32(uint32_t *a, size_t n) {
         if (desc) { std::reverse(a, a + n); return 0; }
     }
 
+    // Late high-disorder short-circuit (after STRUCTURE): skip specialized probes
+    if (n >= 256) {
+        const size_t S = 512;
+        size_t inv = 0;
+        for (size_t c = 0; c < S; ++c) {
+            size_t i = 1 + (c * (n - 1)) / S;
+            if (a[i] < a[i - 1]) ++inv;
+        }
+        if (inv * 2 >= S) {
+            residual_pdqsort(a, a + n);
+            return 0;
+        }
+    }
+
     if (residual_few_wide_u32::should_try_few_wide(a, n))
         if (residual_few_wide_u32::residual_few_wide_u32(a, n)) return 0;
 
@@ -131,7 +146,8 @@ inline int sort_u32(uint32_t *a, size_t n) {
     if (residual_low_disorder_u32::should_try_low_disorder(a, n))
         if (residual_low_disorder_u32::residual_low_disorder_u32(a, n)) return 0;
 
-    return residual_msd_u32::residual_msd_u32(a, n);
+    residual_pdqsort(a, a + n);
+    return 0;
 }
 
 } // namespace pure_residual
