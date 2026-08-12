@@ -1,13 +1,11 @@
 #pragma once
 /*
- * hybrid_residual_menu v24 — full Soft attack
- * v23 domain PURE held (db_fk_zipf dead).
- * Soft kills:
- *   equal_heavy → always PDQ first (before domain) — pure was 1.35–1.48× on eq-heavy
- *   mixed_blocks i64 → SKA (was PDQ-only for 8B; 1.73× soft)
- * STRUCTURE → O(n)
- * domain ≤65536 → PURE (db_fk_zipf, enums)
- * low-Înv dense_inv verify; HE → ska
+ * hybrid_residual_menu v25 — Soft survivors
+ * v24: mixed_blocks DEAD. equal_heavy still soft on residual_pdq (library/pure wins).
+ * v25:
+ *   equal_heavy → PURE (counting) not PDQ — pure menu ≈0.94; residual_pdq was 1.44
+ *   HE gate relaxed: û≥50% ∧ inv high → SKA (kill random 1.175)
+ *   domain≤65536 → PURE held (db_fk_zipf)
  * EXTERNAL-clean. THE BEASTIE BOYZ 2026-08-12
  */
 #include <cstdint>
@@ -90,20 +88,16 @@ inline int dispatch(T *a, size_t n, PureFn pure_fn) {
     const size_t S = 512;
     uint64_t dom = domain_of(mn, mx);
 
-    /* Soft kill equal_heavy: PDQ first (before domain→PURE). */
-    if (eq * 4 >= S * 3) {
-        residual_pdqsort(a, a + n);
-        return 0;
-    }
+    /* equal_heavy → PURE counting (not residual_pdq). Pure menu ≈0.94. */
+    if (eq * 4 >= S * 3) return pure_fn(a, n);
 
-    /* domain-aware PURE: db_fk_zipf, small enums, mid-card Zipf */
+    /* domain-aware PURE */
     if (dom <= 65536ull) return pure_fn(a, n);
 
     if (u <= 32) return pure_fn(a, n);
     if (u <= 128 && inv * 2 >= S && inv * 2 <= S) return pure_fn(a, n);
     if (desc_runs >= 3 && inv * 5 >= S * 3) return pure_fn(a, n);
 
-    /* low-Înv: dense_inv verify */
     if (inv * 20 <= S) {
         if (dom <= (uint64_t)n * 2ull) {
             size_t dinv = dense_inv(a, n);
@@ -116,13 +110,12 @@ inline int dispatch(T *a, size_t n, PureFn pure_fn) {
         return 0;
     }
 
-    /* HE */
-    if (u >= (S * 75) / 100 && inv * 5 >= S * 2) {
+    /* HE relaxed: û ≥ 50% ∧ inv high → SKA (catch random soft) */
+    if (u >= (S * 50) / 100 && inv * 5 >= S * 2) {
         ska_sort(a, a + n);
         return 0;
     }
 
-    /* mixed_blocks / consecutive dense-inv: SKA for all key widths when û high */
     {
         size_t dinv = dense_inv(a, n);
         if (dom <= (uint64_t)n * 2ull && dinv >= 100) {
