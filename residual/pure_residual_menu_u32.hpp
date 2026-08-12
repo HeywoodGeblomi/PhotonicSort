@@ -1,7 +1,7 @@
 #pragma once
 /*
- * pure_residual_menu_u32 — A2 soft-close 2026-08-12
- * STRUCTURE → early equal → late → counting → ...
+ * pure_residual_menu_u32 — A2-EH equal→counting 2026-08-12
+ * STRUCTURE → early equal → counting-first → residual_pdq → ...
  * EXTERNAL-clean. Not field-level. THE BEASTIE BOYZ
  */
 #include <cstdint>
@@ -114,14 +114,18 @@ inline int sort_u32(uint32_t *a, size_t n) {
         if (desc) { std::reverse(a, a + n); return 0; }
     }
 
-    // A2 soft-close: early equal-heavy → residual_pdqsort (before counting tax)
+    // A2-EH: equal-heavy → counting first when domain compact; else residual_pdqsort
     if (n >= 256) {
         const size_t S = 256; size_t eq = 0;
         for (size_t c0 = 0; c0 < S; ++c0) {
             size_t i = (c0 * (n - 1)) / S; size_t j = i + 1 < n ? i + 1 : i;
             if (a[i] == a[j]) ++eq;
         }
-        if (eq * 4 >= S) { residual_pdqsort(a, a + n); return 0; }
+        if (eq * 4 >= S) {
+            if (try_counting_u32(a, n)) return 0;
+            residual_pdqsort(a, a + n);
+            return 0;
+        }
     }
 
     // Late: high-disorder + compact domain + not near-full-unique → residual_pdqsort
