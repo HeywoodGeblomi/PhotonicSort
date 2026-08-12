@@ -1,18 +1,19 @@
 #pragma once
 /*
- * pure_residual_menu_i32 — Wave 2 int32 pure residual entry (expanded + polish)
+ * pure_residual_menu_i32 — Wave 2 int32 pure residual entry (soft-spot kill)
  *
- * Protects i64 path completely. Parallel specialization.
- * Menu: constant → FEW_WIDE → STRUCTURE → counting → push_middle → low_disorder → MSD HE
+ * Menu: constant → FEW_WIDE → STRUCTURE → counting → consecutive_perm →
+ *       push_middle → low_disorder → MSD HE
  *
- * EXTERNAL-clean. Not field-level.
- * THE BEASTIE BOYZ — Wave 2 multi-type residual polish 2026-08-12
+ * EXTERNAL-clean. Not field-level. i64 path protected.
+ * THE BEASTIE BOYZ — soft-spot kill 2026-08-12
  */
 #include <cstdint>
 #include <cstring>
 #include <cstdlib>
 #include <algorithm>
 #include "residual_few_wide_i32.hpp"
+#include "residual_consecutive_perm_i32.hpp"
 #include "residual_push_middle_i32.hpp"
 #include "residual_low_disorder_i32.hpp"
 
@@ -52,10 +53,7 @@ inline void msd_pass(int32_t *a, size_t n, int shift, int32_t *tmp) {
 inline int residual_msd_i32(int32_t *a, size_t n) {
     if (n < 2) return 0;
     int32_t *tmp = (int32_t *)std::malloc(n * sizeof(int32_t));
-    if (!tmp) {
-        std::sort(a, a + n);
-        return 0;
-    }
+    if (!tmp) { std::sort(a, a + n); return 0; }
     msd_pass(a, n, 24, tmp);
     std::free(tmp);
     return 0;
@@ -65,15 +63,8 @@ inline int residual_msd_i32(int32_t *a, size_t n) {
 
 inline bool try_counting_i32(int32_t *a, size_t n) {
     if (n < 2) return true;
-    size_t S = n < 4096 ? n : 4096;
-    size_t st = n / S; if (st < 1) st = 1;
-    int32_t smin = a[0], smax = a[0];
-    for (size_t i = 0; i < n && S; i += st, --S) {
-        if (a[i] < smin) smin = a[i];
-        if (a[i] > smax) smax = a[i];
-    }
-    int32_t amin = smin, amax = smax;
-    for (size_t i = 0; i < n; ++i) {
+    int32_t amin = a[0], amax = a[0];
+    for (size_t i = 1; i < n; ++i) {
         if (a[i] < amin) amin = a[i];
         if (a[i] > amax) amax = a[i];
     }
@@ -101,9 +92,8 @@ inline int sort_i32(int32_t *a, size_t n) {
         size_t st = n / S; if (st < 1) st = 1;
         int32_t v0 = a[0];
         bool maybe = true;
-        for (size_t i = 0, c = 0; i < n && c < S; i += st, ++c) {
+        for (size_t i = 0, c = 0; i < n && c < S; i += st, ++c)
             if (a[i] != v0) { maybe = false; break; }
-        }
         if (maybe) {
             bool all = true;
             for (size_t i = 1; i < n; ++i) if (a[i] != v0) { all = false; break; }
@@ -111,9 +101,8 @@ inline int sort_i32(int32_t *a, size_t n) {
         }
     }
 
-    if (n >= 64 && residual_few_wide_i32::should_try_few_wide(a, n)) {
+    if (n >= 64 && residual_few_wide_i32::should_try_few_wide(a, n))
         if (residual_few_wide_i32::residual_few_wide_i32(a, n)) return 0;
-    }
 
     {
         bool asc = true, desc = true;
@@ -126,17 +115,17 @@ inline int sort_i32(int32_t *a, size_t n) {
         if (desc) { std::reverse(a, a + n); return 0; }
     }
 
-    if (residual_few_wide_i32::should_try_few_wide(a, n)) {
+    if (residual_few_wide_i32::should_try_few_wide(a, n))
         if (residual_few_wide_i32::residual_few_wide_i32(a, n)) return 0;
-    }
 
     if (try_counting_i32(a, n)) return 0;
 
+    if (residual_consecutive_perm_i32::try_consecutive_perm(a, n)) return 0;
+
     if (residual_push_middle_i32::try_push_middle(a, n)) return 0;
 
-    if (residual_low_disorder_i32::should_try_low_disorder(a, n)) {
+    if (residual_low_disorder_i32::should_try_low_disorder(a, n))
         if (residual_low_disorder_i32::residual_low_disorder_i32(a, n)) return 0;
-    }
 
     return residual_msd_i32::residual_msd_i32(a, n);
 }
