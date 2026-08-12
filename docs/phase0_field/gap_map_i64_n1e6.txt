@@ -1,0 +1,35 @@
+# Phase 0 full suite + PO5 i64  n=1000000 reps=7
+# type pattern              menu/pdq   menu_ms    pdq_ms ok
+# === i64 (PO5) ===
+i64  sorted                 0.730     1.069     1.464 1
+i64  reverse                0.616     1.388     2.253 1
+i64  random                 0.802    24.636    30.704 1
+i64  almost_sorted          0.489     2.988     6.105 1
+i64  db_pk                  1.138     9.626     8.462 1
+i64  timestamps             0.723     1.109     1.533 1
+i64  few_k4_dense           1.563     3.934     2.516 1 SOFT
+i64  few_k16_dense          0.842     3.964     4.709 1
+i64  few_k16_wide           0.576     4.051     7.033 1
+i64  equal_heavy            0.719     1.093     1.521 1
+i64  zipf_k16               0.805     4.066     5.049 1
+i64  organpipe              0.613    20.183    32.952 1
+i64  sawtooth               0.254     2.869    11.301 1
+i64  pipe_sparse            0.850     2.160     2.542 1
+i64  push_middle            3.243    19.457     6.000 1 SOFT
+i64  reverse_segments       1.334    17.870    13.391 1 SOFT
+i64  gaussianish            1.087    33.380    30.701 1
+i64  adversarial            0.991    15.090    15.224 1
+i64  runs_noise             0.858    18.151    21.158 1
+# === i32 (Phase 0 continuity) ===
+i32  sorted                 0.500     0.688     1.376 1
+i32  reverse                0.383     0.844     2.202 1
+i32  random                 0.619    18.544    29.957 1
+i32  almost_sorted          0.249     1.564     6.291 1
+i32  db_pk                  0.960     7.915     8.247 1
+i32  timestamps             0.525     0.698     1.330 1
+i32  few_k16_wide           0.857     5.595     6.525 1
+i32  organpipe              0.090     2.906    32.254 1
+i32  pipe_sparse            0.724     1.809     2.497 1
+i32  gaussianish            0.506    14.975    29.600 1
+i32  adversarial            0.089     1.355    15.170 1
+i32  push_middle            0.232     1.552     6.681 1
