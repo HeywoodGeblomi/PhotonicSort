@@ -1,13 +1,12 @@
-# PhotonicSort independent reproduction — pure residual vs std/pdq/ska
+# PhotonicSort PO2 — one-command independent reproduction
 #
-# Build from repo root:
-#   docker build -f reproduce/Dockerfile -t photonic-reproduce .
-# Run:
-#   docker run --rm photonic-reproduce
+# From repo root:
+#   docker build -f reproduce/Dockerfile -t photonic-po2 .
+#   docker run --rm photonic-po2
 #
-# Compare ratios (not absolute ms) to docs/phase0_field/PHASE1_LOW_DISORDER.md
-# EXTERNAL-clean pure residual only. Not field-level.
-# THE BEASTIE BOYZ — Wave 0 complete
+# Compare ratios (not absolute ms) to docs/phase0_field/REFERENCE_RATIOS_PO2.md
+# EXTERNAL-clean pure residual. Not field-level.
+# THE BEASTIE BOYZ — PO2 2026-08-12
 
 FROM debian:bookworm-slim
 
@@ -17,28 +16,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /src
 
-# Residual headers from repo (build context = repo root)
 COPY residual/ residual/
 
-# Baselines: fetch upstream at build time (zlib / BSL-1.0). No large vendored blobs.
 RUN mkdir -p baselines \
- && curl -fsSL -o baselines/pdqsort.h https://raw.githubusercontent.com/orlp/pdqsort/master/pdqsort.h \
- && curl -fsSL -o baselines/ska_sort.hpp https://raw.githubusercontent.com/skarupke/ska_sort/master/ska_sort.hpp
+ && curl -fsSL -o baselines/pdqsort.h https://raw.githubusercontent.com/orlp/pdqsort/master/pdqsort.h
 
-COPY reproduce/harness.cpp ./
+COPY reproduce/harness_po2.cpp ./harness.cpp
 
-# Flat layout Makefile (residual/ + baselines/ next to harness)
 RUN printf '%s\n' \
   'CXX ?= g++' \
   'CXXFLAGS ?= -O3 -std=c++17 -DNDEBUG' \
   'INCLUDES = -I. -Iresidual -Ibaselines' \
   'all: harness' \
-  'harness: harness.cpp residual/*.hpp baselines/pdqsort.h baselines/ska_sort.hpp' \
-  '	$(CXX) $(CXXFLAGS) $(INCLUDES) -o harness harness.cpp' \
+  'harness: harness.cpp residual/*.hpp residual/*.h baselines/pdqsort.h' \
+  '\t$$(CXX) $$(CXXFLAGS) $$(INCLUDES) -o harness harness.cpp' \
   > Makefile
 
 RUN make harness
 
-CMD ./harness --n 1000000 --reps 5 --out results --arch-tag docker \
- && echo "" \
- && cat results/gap_map.md
+CMD ["./harness", "--n", "1000000", "--reps", "7"]
