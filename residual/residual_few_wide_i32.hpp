@@ -1,10 +1,8 @@
 #pragma once
 /*
  * residual_few_wide_i32 — FEW_WIDE pure residual for int32_t
- * v2.6.1: single-pass open-address hash (key+count), then sort-by-key writeback.
- * Target: k ≤ 16 wide or dense. Value-preserving.
- * EXTERNAL-clean. Not field-level.
- * THE BEASTIE BOYZ — soft-spot kill few_k16_wide 2026-08-12
+ * A2: dense k<=4 requires wide — leaves for counting residual.
+ * EXTERNAL-clean. Not field-level. THE BEASTIE BOYZ
  */
 #include <cstdint>
 #include <cstring>
@@ -43,7 +41,6 @@ inline bool residual_two_value(int32_t *a, size_t n) {
 
 inline bool residual_few_wide_i32(int32_t *a, size_t n) {
     if (n < 2) return true;
-
     {
         size_t S = n < 64 ? n : 64;
         size_t st = n / S; if (st < 1) st = 1;
@@ -65,12 +62,10 @@ inline bool residual_few_wide_i32(int32_t *a, size_t n) {
             return residual_two_value(a, n);
         }
     }
-
     int32_t keys[HCAP];
     size_t counts[HCAP];
     uint8_t used[HCAP] = {};
     size_t k = 0;
-
     for (size_t i = 0; i < n; ++i) {
         int32_t v = a[i];
         uint32_t h = mix32((uint32_t)v) & (HCAP - 1);
@@ -83,14 +78,10 @@ inline bool residual_few_wide_i32(int32_t *a, size_t n) {
                 ++k;
                 break;
             }
-            if (keys[h] == v) {
-                ++counts[h];
-                break;
-            }
+            if (keys[h] == v) { ++counts[h]; break; }
             h = (h + 1) & (HCAP - 1);
         }
     }
-
     int32_t uniq[KMAX];
     size_t cnt[KMAX];
     size_t u = 0;
@@ -108,7 +99,6 @@ inline bool residual_few_wide_i32(int32_t *a, size_t n) {
         cnt[j] = c;
         ++u;
     }
-
     size_t p = 0;
     for (size_t r = 0; r < u; ++r) {
         int32_t v = uniq[r];
@@ -140,13 +130,11 @@ inline bool should_try_few_wide(const int32_t *a, size_t n) {
     size_t sample_u = 1;
     for (size_t i = 1; i < ns; ++i)
         if (sample_vals[i] != sample_vals[i - 1]) ++sample_u;
-
-    if (sample_u <= 4) return true;
-
     uint32_t srange = (uint32_t)(smax - smin);
     bool wide = (srange >= (1u << 20)) || (srange >= (uint32_t)(n * 3 / 4));
-    if (!wide) return false;
-    return sample_u <= KMAX + 2;
+    if (sample_u <= 4) return wide;
+    if (sample_u > KMAX + 2) return false;
+    return wide;
 }
 
 } // namespace residual_few_wide_i32
