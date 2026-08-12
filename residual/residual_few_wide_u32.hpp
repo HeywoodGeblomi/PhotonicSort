@@ -1,7 +1,7 @@
 #pragma once
 /*
  * residual_few_wide_u32 — FEW_WIDE pure residual for uint32_t
- * Dense k≤4 leaves for counting (A2 gate). Wide low-card still FEW_WIDE.
+ * A2: HCAP 128 (match i64). Dense k≤4 leaves for counting.
  * EXTERNAL-clean. Not field-level. THE BEASTIE BOYZ 2026-08-12
  */
 #include <cstdint>
@@ -12,7 +12,7 @@
 namespace residual_few_wide_u32 {
 
 static constexpr size_t KMAX = 16;
-static constexpr size_t HCAP = 64;
+static constexpr size_t HCAP = 128;
 
 inline uint32_t mix32(uint32_t x) {
     x ^= x >> 16; x *= 0x7feb352dU;
@@ -111,7 +111,6 @@ inline bool should_try_few_wide(const uint32_t *a, size_t n) {
     size_t sample_u = 1;
     for (size_t i = 1; i < ns; ++i)
         if (sample_vals[i] != sample_vals[i - 1]) ++sample_u;
-    // Dense k≤4 → counting. Wide low-card still FEW_WIDE.
     uint32_t srange = smax - smin;
     bool wide = (srange >= (1u << 20)) || (srange >= (uint32_t)(n * 3 / 4));
     if (sample_u <= 4) return wide;

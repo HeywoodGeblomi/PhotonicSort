@@ -1,7 +1,7 @@
 #pragma once
 /*
  * residual_few_wide_i32 — FEW_WIDE pure residual for int32_t
- * A2: dense k<=4 requires wide — leaves for counting residual.
+ * A2: HCAP 128 (match i64). Dense k<=4 leaves for counting residual.
  * EXTERNAL-clean. Not field-level. THE BEASTIE BOYZ
  */
 #include <cstdint>
@@ -12,7 +12,7 @@
 namespace residual_few_wide_i32 {
 
 static constexpr size_t KMAX = 16;
-static constexpr size_t HCAP = 64;
+static constexpr size_t HCAP = 128;
 
 inline uint32_t mix32(uint32_t x) {
     x ^= x >> 16; x *= 0x7feb352dU;
