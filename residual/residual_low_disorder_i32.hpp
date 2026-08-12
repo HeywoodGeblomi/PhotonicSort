@@ -3,6 +3,7 @@
  * residual_low_disorder_i32 — pure residual for near-monotonic / low-inversion int32
  * Adapted from residual_low_disorder_i64 (Phase 1).
  * Ultra-low inv → insertion; moderate → pattern-defeating introsort.
+ * Post-sort verify: returns false on failure so menu falls through to HE.
  * EXTERNAL-clean. THE BEASTIE BOYZ — Wave 2 multi-type Phase A 2026-08-12
  */
 #include <cstdint>
@@ -140,12 +141,18 @@ inline bool try_insertion_ultralow(int32_t *a, size_t n) {
 inline bool residual_low_disorder_i32(int32_t *a, size_t n) {
     if (n < 2) return true;
     double inv = sample_inv_ratio(a, n);
-    if (inv <= 0.005) return try_insertion_ultralow(a, n);
+    if (inv <= 0.005) {
+        try_insertion_ultralow(a, n);
+        for (size_t i = 1; i < n; ++i) if (a[i] < a[i-1]) return false;
+        return true;
+    }
     int depth = 0;
     size_t m = n;
     while (m > 1) { m >>= 1; ++depth; }
     depth = 2 * depth + 2;
     introsort(a, a + n, depth);
+    // Verify — fall through to HE residual if introsort failed
+    for (size_t i = 1; i < n; ++i) if (a[i] < a[i-1]) return false;
     return true;
 }
 
