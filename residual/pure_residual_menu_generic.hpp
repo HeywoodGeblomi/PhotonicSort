@@ -1,10 +1,5 @@
 #pragma once
-/*
- * pure_residual_menu_generic — EXTERNAL-clean comparator residual for any RandomAccessIter
- * Structure + equal-heavy + discrete float counting + ultra-low inv + run-gate → residual_pdqsort
- * Covers float64 / generic path for path-(a) multi-type gate.
- * Not field-level. THE BEASTIE BOYZ — A3 2026-08-12
- */
+/* pure_residual_menu_generic — counting FIRST for few_k4. Not field-level. THE BEASTIE BOYZ */
 #include <cstddef>
 #include <algorithm>
 #include <iterator>
@@ -56,30 +51,10 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
                 desc = false; break;
             }
         }
-        if (desc) {
-            std::reverse(first, last);
-            return 0;
-        }
+        if (desc) { std::reverse(first, last); return 0; }
     }
 
-    // Early equal-heavy
-    if (n >= 256) {
-        const size_t S = 256;
-        size_t eq = 0;
-        for (size_t c = 0; c < S; ++c) {
-            size_t i = (c * (n - 1)) / S;
-            size_t j = i + 1 < n ? i + 1 : i;
-            if (!comp(*(first + (ptrdiff_t)i), *(first + (ptrdiff_t)j)) &&
-                !comp(*(first + (ptrdiff_t)j), *(first + (ptrdiff_t)i)))
-                ++eq;
-        }
-        if (eq * 4 >= S) {
-            residual_pdqsort(first, last, comp);
-            return 0;
-        }
-    }
-
-    // Discrete low-card counting (integer-valued floats in small range)
+    // Discrete low-card counting FIRST (few_k4 integer-valued floats)
     if (n >= 64) {
         const size_t S = n < 1024 ? n : 1024;
         size_t st = n / S; if (st < 1) st = 1;
@@ -120,6 +95,23 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
         }
     }
 
+    // Early equal-heavy (50%)
+    if (n >= 256) {
+        const size_t S = 256;
+        size_t eq = 0;
+        for (size_t c = 0; c < S; ++c) {
+            size_t i = (c * (n - 1)) / S;
+            size_t j = i + 1 < n ? i + 1 : i;
+            if (!comp(*(first + (ptrdiff_t)i), *(first + (ptrdiff_t)j)) &&
+                !comp(*(first + (ptrdiff_t)j), *(first + (ptrdiff_t)i)))
+                ++eq;
+        }
+        if (eq * 2 >= S) {
+            residual_pdqsort(first, last, comp);
+            return 0;
+        }
+    }
+
     if (n >= 256) {
         const size_t S = 512;
         size_t inv = 0;
@@ -135,18 +127,14 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
     }
 
     {
-        size_t runs = 1;
-        int dir = 0;
+        size_t runs = 1; int dir = 0;
         for (size_t i = 1; i < n; ++i) {
             int d = 0;
             if (comp(*(first + (ptrdiff_t)(i - 1)), *(first + (ptrdiff_t)i))) d = 1;
             else if (comp(*(first + (ptrdiff_t)i), *(first + (ptrdiff_t)(i - 1)))) d = -1;
             if (d == 0) continue;
             if (dir == 0) dir = d;
-            else if (d != dir) {
-                ++runs; dir = d;
-                if (runs > 64) break;
-            }
+            else if (d != dir) { ++runs; dir = d; if (runs > 64) break; }
         }
         if (runs >= 2 && runs <= 64) {
             residual_pdqsort(first, last, comp);
