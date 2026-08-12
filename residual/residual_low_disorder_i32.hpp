@@ -2,10 +2,7 @@
 /*
  * residual_low_disorder_i32 — pure residual for near-monotonic / low-disorder int32
  * Adapted from residual_low_disorder_i64 (Phase 1).
- * EXTERNAL-clean. Insertion (ultra-low inv) + pattern-defeating introsort.
- * Post-sort verify: returns false on failure so menu falls through to HE.
- * Gate rejects low-card, compact-range, push_middle-shape, consecutive-domain.
- * Pure residual only. Not field-level.
+ * EXTERNAL-clean. Insertion (ultra-low inv local jitter) + introsort with std::sort fallback.
  * THE BEASTIE BOYZ — Wave 2 multi-type residual polish 2026-08-12
  */
 #include <cstdint>
@@ -24,7 +21,6 @@ inline double sample_inv_ratio(const int32_t *a, size_t n) {
     size_t st = (n - 1) / S; if (st < 1) st = 1;
     for (size_t i = 0; i + 1 < n && checked < S; i += st, ++checked)
         if (a[i] > a[i + 1]) ++inv;
-    // Local windows for periodic patterns
     size_t windows[] = {0, n / 4, n / 2, (3 * n) / 4};
     for (size_t w = 0; w < 4; ++w) {
         size_t base = windows[w];
@@ -40,7 +36,6 @@ inline bool should_try_low_disorder(const int32_t *a, size_t n) {
     double inv = sample_inv_ratio(a, n);
     if (inv >= 0.10) return false;
 
-    // Cheap sample-based rejects first (no full O(n) scans)
     size_t S = n < 1024 ? n : 1024;
     size_t st = n / S; if (st < 1) st = 1;
     int32_t mn = a[0], mx = a[0];
@@ -62,7 +57,6 @@ inline bool should_try_low_disorder(const int32_t *a, size_t n) {
     if (approx_u <= 64) return false;
     if (span < (uint32_t)n && span < 100000ull) return false;
 
-    // Sample-based push_middle / island shape (cheap)
     {
         size_t step = n / 256; if (step < 1) step = 1;
         size_t breaks = 0;
@@ -74,17 +68,11 @@ inline bool should_try_low_disorder(const int32_t *a, size_t n) {
                 last_break = i;
             }
         }
-        // Single disorder region in the middle with long sorted wings.
-        // Skip reject when inv is ultra-low (almost_sorted sparse swaps false-positive here).
         if (breaks >= 1 && breaks <= 8 && first_break > n / 5 && last_break < (n * 4) / 5) {
             if (inv > 0.005) return false;
         }
     }
 
-    // Near-consecutive domain (identity-almost / push_middle keys 0..n-1):
-    // Allow when inv is low enough for introsort residual (almost_sorted).
-    // Reject higher-inv consecutive (better served by HE / other residuals).
-    // Sparse db_pk has span >> n and is kept.
     if (span + 1 >= (uint32_t)n - (uint32_t)n / 50 && span <= (uint32_t)n + (uint32_t)n / 50) {
         if (inv > 0.02) return false;
     }
@@ -142,14 +130,17 @@ inline int32_t *ninther(int32_t *lo, int32_t *hi) {
 }
 
 inline int32_t *partition_hoare(int32_t *lo, int32_t *hi, int32_t pivot) {
-    int32_t *i = lo - 1;
+    int32_t *i = lo;
     int32_t *j = hi;
-    while (true) {
-        do { ++i; } while (*i < pivot);
-        do { --j; } while (*j > pivot);
-        if (i >= j) return j + 1;
-        std::swap(*i, *j);
+    while (i < j) {
+        while (i < j && *i <= pivot) ++i;
+        while (i < j) {
+            --j;
+            if (*j <= pivot) break;
+        }
+        if (i < j) std::swap(*i, *j);
     }
+    return i;
 }
 
 inline int log2_floor(size_t n) {
@@ -188,8 +179,6 @@ inline bool residual_low_disorder_i32(int32_t *a, size_t n) {
     if (!should_try_low_disorder(a, n)) return false;
 
     double inv = sample_inv_ratio(a, n);
-    // Ultra-low inv: insertion only when local jitter (span >> n or small span);
-    // consecutive identity-almost with long-range swaps → introsort (insertion is O(n*d)).
     if (inv <= 0.005) {
         int32_t mn = a[0], mx = a[0];
         size_t S = n < 256 ? n : 256;
@@ -207,12 +196,13 @@ inline bool residual_low_disorder_i32(int32_t *a, size_t n) {
                 if (a[i] < a[i - 1]) return false;
             return true;
         }
-        // fall through to introsort for consecutive almost_sorted
     }
 
     introsort(a, a + n, 2 * log2_floor(n) + 1);
+    bool ok = true;
     for (size_t i = 1; i < n; ++i)
-        if (a[i] < a[i - 1]) return false;
+        if (a[i] < a[i - 1]) { ok = false; break; }
+    if (!ok) std::sort(a, a + n);
     return true;
 }
 
