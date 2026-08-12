@@ -1,6 +1,6 @@
 # Barrier Break Plan — PhotonicSort
 
-**Status:** Wave 0 COMPLETE · Wave 1 residual floors (barriers 1+2) LOCKED 2026-08-12  
+**Status:** Wave 0 COMPLETE · Wave 1 residual floors (1+2) LOCKED · Wave 2 multi-type ACTIVE 2026-08-12  
 **Parent:** [`FIELD_LEVEL_ATTACK_PLAN.md`](./FIELD_LEVEL_ATTACK_PLAN.md)  
 **Squad:** THE BEASTIE BOYZ
 
@@ -18,7 +18,7 @@ Break the remaining barriers between the current pure residual menu and **field-
 | **2** | few_unique_k16 ~1.0–1.2× | Residual quality at mid-card + routing | ≤1.05× pdq on few_unique_k16 (k=8..32 band) | Still >1.15× after focused attack → permanent residual limit | ✅ CLOSED (v2.5 routing + quality) |
 | **1** | Gaussian HE ~1.1–1.2× | Measure path tax vs residual quality; attack only if residual-quality limited | ≤1.05× pdq **or** permanent path limit with measured tax breakdown | Competitive residual + tax-only → document permanent path limit | Residual quality OK / path-tax documented |
 | **3** | Suite geo held ~0.80× | Closing #1+#2; geo must move | Geo ≤0.85–0.90× vs best specialized and below prior baseline with significance | Geo flat after residual floors closed → freeze specialized claim | Movement noted (post-v2.5 geo ~0.88–0.90×) |
-| **4** | Sequential int64 only | Multi-type: int32/uint32 → float → generic comparator; protect i64 pure residual | Competitive vs pdq on ≥2 non-i64 POD types | Generic destroys i64 fast-path or never competitive → specialized only | Open |
+| **4** | Sequential int64 only | Multi-type: int32/uint32 → float → generic comparator; protect i64 pure residual | Competitive vs pdq on ≥2 non-i64 POD types | Generic destroys i64 fast-path or never competitive → specialized only | **ACTIVE** (Wave 2) |
 | **6** | No complexity result | Adaptive bound tied to measurable disorder the probe approximates | Publishable statement with matching algorithm | No concrete statement in fixed window → park theory | Open |
 | **7** | “Not field-level” language | Automatic: drops only when (a)/(b)/(c) met | Path (a)/(b)/(c) green | Do not drop language early | Held |
 
@@ -27,14 +27,13 @@ Break the remaining barriers between the current pure residual menu and **field-
 **Wave 0 — Independent reproduction (barrier 5)** ✅ COMPLETE (PR #49)  
 Docker + one-command harness under `reproduce/`. Third-party runnable. Harness + curl-baselines Dockerfile on main.
 
-**Wave 1 — Residual floors (barriers 2, 1, 3)**  
-few_unique_k16 + Gaussian path-tax measurement. User green light on 1+2.  
-→ Barriers 1+2 residual floors **LOCKED** 2026-08-12. See [`WAVE1_RESIDUAL_FLOORS.md`](./WAVE1_RESIDUAL_FLOORS.md).  
-→ residual_few_wide v2.5 (two_values routing closed). Linear-collect killed (negative).  
-→ Geo (barrier 3) movement noted (~0.88–0.90×); optional further residual or freeze and open Wave 2.
+**Wave 1 — Residual floors (barriers 2, 1, 3)** ✅ residual floors LOCKED for 1+2  
+See [`WAVE1_RESIDUAL_FLOORS.md`](./WAVE1_RESIDUAL_FLOORS.md). residual_few_wide v2.5 (two_values routing closed). Linear-collect killed. Geo movement noted.
 
-**Wave 2 — Multi-type surface (barrier 4)** ← next candidate  
-Mandatory for path-(a) claims vs pdq/Timsort/std.
+**Wave 2 — Multi-type surface (barrier 4)** ← **ACTIVE**  
+Design: [`WAVE2_MULTI_TYPE_DESIGN.md`](./WAVE2_MULTI_TYPE_DESIGN.md).  
+int32 / uint32 first; protect i64 pure residual excellence; then float; then generic comparator.  
+Success: competitive vs pdq on ≥2 non-i64 POD types. Kill: i64 regression or never competitive.
 
 **Wave 3 — Theory (barrier 6)**  
 Parallel; does not block Waves 0–2.
