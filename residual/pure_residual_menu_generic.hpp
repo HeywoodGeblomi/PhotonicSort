@@ -1,8 +1,9 @@
 #pragma once
 /*
- * pure_residual_menu_generic — FULL ATTACK
- * equal-first 50% + sample-first STRUCTURE + range≤4 specialized + uint32 stack
- * Close x86 f64 few_k4_dense soft. Not field-level. THE BEASTIE BOYZ
+ * pure_residual_menu_generic — FULL ATTACK + Lever A
+ * equal-first 50% + sample-first STRUCTURE + range≤4 single-pass cnt4 + uint32 stack
+ * Drop second O(n) amin/amax verify when sample range≤4; fuse count+validate.
+ * Kill x86 f64 few_k4_dense soft. Not field-level. THE BEASTIE BOYZ
  */
 #include <cstddef>
 #include <cstdint>
@@ -99,7 +100,7 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
         }
     }
 
-    // Discrete low-card counting
+    // Discrete low-card counting (Lever A: single-pass for range≤4)
     if (n >= 64) {
         const size_t S = n < 1024 ? n : 1024;
         size_t st = n / S; if (st < 1) st = 1;
@@ -113,43 +114,52 @@ inline int sort_generic(Iter first, Iter last, Comp comp) {
             if (v != std::floor(v)) intish = false;
         }
         if (intish && have && smax - smin < 65536.0 && smax >= smin) {
-            size_t range = (size_t)(smax - smin) + 1;
-            if (range <= 4096 && range < n) {
+            size_t srange = (size_t)(smax - smin) + 1;
+            // LEVER A: sample range ≤4 → single-pass count+validate (no second O(n) verify)
+            if (srange <= 4 && srange < n) {
+                uint32_t cnt4[4] = {};
+                bool ok = true;
+                for (size_t i = 0; i < n; ++i) {
+                    double v = (double)*(first + (ptrdiff_t)i);
+                    if (v != std::floor(v) || v < smin || v > smax) { ok = false; break; }
+                    cnt4[(size_t)(v - smin)]++;
+                }
+                if (ok) {
+                    T keys[4];
+                    for (size_t v = 0; v < srange; ++v)
+                        keys[v] = (T)(smin + (double)v);
+                    size_t p = 0;
+                    for (size_t v = 0; v < srange; ++v) {
+                        T key = keys[v];
+                        uint32_t c = cnt4[v];
+                        while (c >= 8) {
+                            *(first + (ptrdiff_t)(p)) = key;
+                            *(first + (ptrdiff_t)(p + 1)) = key;
+                            *(first + (ptrdiff_t)(p + 2)) = key;
+                            *(first + (ptrdiff_t)(p + 3)) = key;
+                            *(first + (ptrdiff_t)(p + 4)) = key;
+                            *(first + (ptrdiff_t)(p + 5)) = key;
+                            *(first + (ptrdiff_t)(p + 6)) = key;
+                            *(first + (ptrdiff_t)(p + 7)) = key;
+                            p += 8; c -= 8;
+                        }
+                        while (c--) *(first + (ptrdiff_t)(p++)) = key;
+                    }
+                    return 0;
+                }
+                // fall through if validation failed
+            } else if (srange <= 4096 && srange < n) {
+                // larger range: keep dual-pass for exact amin/amax
                 double amin = smin, amax = smax;
+                intish = true;
                 for (size_t i = 0; i < n; ++i) {
                     double v = (double)*(first + (ptrdiff_t)i);
                     if (v < amin) amin = v;
                     if (v > amax) amax = v;
                     if (v != std::floor(v)) { intish = false; break; }
                 }
-                range = (size_t)(amax - amin) + 1;
+                size_t range = (size_t)(amax - amin) + 1;
                 if (intish && range <= 4096 && range < n) {
-                    if (range <= 4) {
-                        uint32_t cnt4[4] = {};
-                        for (size_t i = 0; i < n; ++i)
-                            cnt4[(size_t)((double)*(first + (ptrdiff_t)i) - amin)]++;
-                        T keys[4];
-                        for (size_t v = 0; v < range; ++v)
-                            keys[v] = (T)(amin + (double)v);
-                        size_t p = 0;
-                        for (size_t v = 0; v < range; ++v) {
-                            T key = keys[v];
-                            uint32_t c = cnt4[v];
-                            while (c >= 8) {
-                                *(first + (ptrdiff_t)(p)) = key;
-                                *(first + (ptrdiff_t)(p + 1)) = key;
-                                *(first + (ptrdiff_t)(p + 2)) = key;
-                                *(first + (ptrdiff_t)(p + 3)) = key;
-                                *(first + (ptrdiff_t)(p + 4)) = key;
-                                *(first + (ptrdiff_t)(p + 5)) = key;
-                                *(first + (ptrdiff_t)(p + 6)) = key;
-                                *(first + (ptrdiff_t)(p + 7)) = key;
-                                p += 8; c -= 8;
-                            }
-                            while (c--) *(first + (ptrdiff_t)(p++)) = key;
-                        }
-                        return 0;
-                    }
                     if (range <= 32) {
                         uint32_t cnt[32] = {};
                         for (size_t i = 0; i < n; ++i)
