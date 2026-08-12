@@ -1,0 +1,57 @@
+# Claim surface multi-arch CI — path-(a) gate
+# x86_64 + aarch64. Not field-level until both PASS geo≤0.90 max≤1.15.
+name: claim-surface
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'residual/**'
+      - 'scripts/claim_surface_bench.cpp'
+      - 'scripts/field_metrics.py'
+      - '.github/workflows/claim-surface.yml'
+  pull_request:
+    paths:
+      - 'residual/**'
+      - 'scripts/claim_surface_bench.cpp'
+      - '.github/workflows/claim-surface.yml'
+  workflow_dispatch:
+
+jobs:
+  claim-surface:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            arch: x86_64
+          - os: ubuntu-24.04-arm
+            arch: aarch64
+    runs-on: ${{ matrix.os }}
+    name: claim-surface-${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++ make
+          mkdir -p baselines
+          curl -fsSL -o baselines/pdqsort.h https://raw.githubusercontent.com/orlp/pdqsort/master/pdqsort.h
+          curl -fsSL -o baselines/ska_sort.hpp https://raw.githubusercontent.com/skarupke/ska_sort/master/ska_sort.hpp
+      - name: build
+        run: |
+          g++ -O3 -std=c++17 -DNDEBUG -I. -Iresidual -Ibaselines \
+            -o claim_surface_bench scripts/claim_surface_bench.cpp
+      - name: run claim surface n=1e6
+        run: |
+          ./claim_surface_bench --n 1000000 --reps 5 --out claim_${{ matrix.arch }}.csv
+      - name: metrics + bootstrap CI
+        run: |
+          python3 scripts/field_metrics.py claim_${{ matrix.arch }}.csv --bootstrap 1000 | tee metrics_${{ matrix.arch }}.txt
+      - name: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: claim-surface-${{ matrix.arch }}
+          path: |
+            claim_${{ matrix.arch }}.csv
+            metrics_${{ matrix.arch }}.txt
