@@ -1,10 +1,9 @@
 #pragma once
 /*
- * hybrid_residual_menu v26 — Soft grind: inline counting for small domain
- * Root cause: pure residual equal-detect routes residual_pdq BEFORE try_counting.
- * equal_heavy / zipf_k16 / db_fk_zipf all small-domain → hybrid counts itself.
- * push_middle: residual_pdq early (no pure intercept tax).
- * EXTERNAL-clean. THE BEASTIE BOYZ 2026-08-12
+ * hybrid_residual_menu v26 + Secondary Parity dual-evidence (flag-gated)
+ * Soft grind: inline counting for small domain
+ * SECONDARY_PARITY: densify polarity stream → σ_Δ → dual-evidence at HE→ska
+ * EXTERNAL-clean. THE BEASTIE BOYZ 2026-08-13
  */
 #include <cstdint>
 #include <cstddef>
@@ -17,6 +16,10 @@
 #include "pure_residual_menu_u32.hpp"
 #include "pdqsort_residual.h"
 #include "ska_sort.hpp"
+
+#ifdef SECONDARY_PARITY
+#include "secondary_parity.hpp"
+#endif
 
 namespace hybrid_residual {
 
@@ -76,7 +79,6 @@ inline uint64_t domain_of(T mn, T mx) {
         return (uint64_t)((int64_t)mx - (int64_t)mn);
 }
 
-/* Inline counting: scan full min/max then count. Beats residual_pdq on equal_heavy/zipf. */
 template<typename T>
 inline bool try_count_sort(T *a, size_t n, T smn, T smx) {
     if (n < 2) return true;
@@ -118,14 +120,30 @@ inline int dispatch(T *a, size_t n, PureFn pure_fn) {
     const size_t S = 512;
     uint64_t dom = domain_of(mn, mx);
 
-    /* Small domain → inline counting (kills equal_heavy / zipf_k16 / db_fk_zipf Soft).
-       Bypass pure residual which residual_pdqs equal-detect before counting. */
+#ifdef SECONDARY_PARITY
+    float stream[512];
+    int Tlen = 0;
+    {
+        size_t step = (n > 1024) ? (n / 512) : 1;
+        if (step < 1) step = 1;
+        for (size_t i = 0; i + step < n && Tlen < 512; i += step) {
+            if (a[i + step] > a[i])      stream[Tlen++] = 1.f;
+            else if (a[i + step] < a[i]) stream[Tlen++] = -1.f;
+            else                         stream[Tlen++] = 0.f;
+        }
+    }
+    secondary_parity::Sigma sig = secondary_parity::compute(stream, Tlen, 0.f);
+    const float sigma_delta = sig.delta;
+    const bool second_solid = secondary_parity::dual_confirm(true, sigma_delta, 0.f, 0.005f);
+#else
+    const bool second_solid = false;
+    (void)second_solid;
+#endif
+
     if (dom <= 65536ull) {
         if (try_count_sort(a, n, mn, mx)) return 0;
-        /* fall through if calloc/range fails */
     }
 
-    /* equal_heavy fallback */
     if (eq * 4 >= S * 3) {
         residual_pdqsort(a, a + n);
         return 0;
@@ -150,10 +168,18 @@ inline int dispatch(T *a, size_t n, PureFn pure_fn) {
         return 0;
     }
 
-    /* HE → SKA */
     if (u >= (S * 50) / 100 && inv * 5 >= S * 2) {
+#ifdef SECONDARY_PARITY
+        if (second_solid) {
+            ska_sort(a, a + n);
+            return 0;
+        }
+        residual_pdqsort(a, a + n);
+        return 0;
+#else
         ska_sort(a, a + n);
         return 0;
+#endif
     }
 
     {
@@ -168,7 +194,6 @@ inline int dispatch(T *a, size_t n, PureFn pure_fn) {
         }
     }
 
-    /* push_middle-ish / default: residual_pdq */
     residual_pdqsort(a, a + n);
     return 0;
 }
