@@ -2,7 +2,8 @@
 /*
  * hybrid_residual_menu v26 + Secondary Parity dual-evidence (flag-gated)
  * Soft grind: inline counting for small domain
- * SECONDARY_PARITY: densify polarity stream → σ_Δ → dual-evidence at HE→ska
+ * SECONDARY_PARITY: densify polarity stream → σ_Δ → dual-evidence on *borderline* HE only
+ * Strong classical HE still takes ska (do not abate library residual on pure random).
  * EXTERNAL-clean. THE BEASTIE BOYZ 2026-08-13
  */
 #include <cstdint>
@@ -168,9 +169,14 @@ inline int dispatch(T *a, size_t n, PureFn pure_fn) {
         return 0;
     }
 
+    /* HE → SKA
+     * SECONDARY_PARITY: strong classical HE always takes ska (library residual).
+     * Dual-evidence only gates *borderline* HE (mid unique) — second solid required
+     * to commit ska; otherwise abate to residual_pdq. Never abate pure random. */
     if (u >= (S * 50) / 100 && inv * 5 >= S * 2) {
 #ifdef SECONDARY_PARITY
-        if (second_solid) {
+        const bool strong_he = (u >= (S * 70) / 100) || (inv * 3 >= S * 2);
+        if (strong_he || second_solid) {
             ska_sort(a, a + n);
             return 0;
         }
