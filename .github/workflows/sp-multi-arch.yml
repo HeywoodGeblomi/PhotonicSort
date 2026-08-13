@@ -1,0 +1,135 @@
+# Secondary Parity dual-evidence multi-arch money-shot
+# x86_64 + aarch64 · classical vs -DSECONDARY_PARITY
+# EXTERNAL-clean. THE BEASTIE BOYZ 2026-08-13
+name: sp-multi-arch
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'residual/**'
+      - 'scripts/expanded_field_bench_hybrid.cpp'
+      - '.github/workflows/sp-multi-arch.yml'
+  pull_request:
+    paths:
+      - 'residual/**'
+      - 'scripts/expanded_field_bench_hybrid.cpp'
+      - '.github/workflows/sp-multi-arch.yml'
+
+jobs:
+  suite:
+    name: ${{ matrix.arch }}-${{ matrix.gate }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+            gate: classical
+          - arch: x86_64
+            runner: ubuntu-24.04
+            gate: secondary_parity
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            gate: classical
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            gate: secondary_parity
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++ make curl ca-certificates
+
+      - name: Fingerprint
+        run: |
+          {
+            echo "arch=${{ matrix.arch }}"
+            echo "gate=${{ matrix.gate }}"
+            echo "runner=${{ matrix.runner }}"
+            echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "uname=$(uname -a)"
+            echo "machine=$(uname -m)"
+            g++ --version | head -1
+          } | tee fingerprint.txt
+
+      - name: Fetch baselines
+        run: |
+          mkdir -p baselines residual
+          curl -fsSL -o baselines/pdqsort.h \
+            https://raw.githubusercontent.com/orlp/pdqsort/master/pdqsort.h
+          curl -fsSL -o baselines/ska_sort.hpp \
+            https://raw.githubusercontent.com/skarupke/ska_sort/master/ska_sort.hpp
+          cp baselines/ska_sort.hpp residual/ska_sort.hpp
+
+      - name: Build hybrid suite
+        run: |
+          EXTRA=""
+          if [ "${{ matrix.gate }}" = "secondary_parity" ]; then
+            EXTRA="-DSECONDARY_PARITY"
+          fi
+          g++ -O3 -std=c++17 -DNDEBUG $EXTRA \
+            -I. -Iresidual -Ibaselines \
+            -o suite_hybrid scripts/expanded_field_bench_hybrid.cpp
+
+      - name: Run suite n=1e6 reps=3
+        run: |
+          ./suite_hybrid --n 1000000 --reps 3 --out results_${{ matrix.arch }}_${{ matrix.gate }}.csv \
+            | tee results.txt
+
+      - name: Soft-spot check
+        run: |
+          python3 - <<'PY'
+          import csv, sys, glob
+          soft115, soft120, major, fails = [], [], [], []
+          path = None
+          for p in glob.glob("results_*.csv"):
+              path = p
+              break
+          if not path:
+              print("no csv"); sys.exit(1)
+          with open(path) as f:
+              r = csv.DictReader(f)
+              for row in r:
+                  try:
+                      ratio = float(row["ratio_best"])
+                      ok = int(row["ok"])
+                      name = f"{row['type']}/{row['pattern']}"
+                  except Exception:
+                      continue
+                  if ok != 1:
+                      fails.append(name)
+                  if ratio > 1.15:
+                      soft115.append((name, ratio))
+                  if ratio > 1.20:
+                      soft120.append((name, ratio))
+                  if ratio > 1.50:
+                      major.append((name, ratio))
+          print("soft@1.15:", soft115)
+          print("soft@1.20:", soft120)
+          print("major:", major)
+          print("fails:", fails)
+          if fails:
+              print("CORRECTNESS FAIL"); sys.exit(1)
+          gate = open("fingerprint.txt").read()
+          if "gate=secondary_parity" in gate:
+              if soft120 or major:
+                  print("SP MONEY-SHOT FAIL soft@1.20 or major")
+                  sys.exit(1)
+              print("SP MONEY-SHOT GREEN soft@1.20=0 major=0 ok=1")
+          else:
+              print("classical run recorded (softs allowed for baseline contrast)")
+          PY
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sp-${{ matrix.arch }}-${{ matrix.gate }}
+          path: |
+            fingerprint.txt
+            results.txt
+            results_*.csv
