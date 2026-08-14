@@ -1,6 +1,8 @@
 # Secondary Parity Dual-Evidence — Multi-Arch Money-Shot
 
-**Status:** Dual-evidence on main (PR #126). Thin CI on main (PR #127). Soft-gate aligned to charged surface (option 1 / Blam, PR #128 + follow-up).
+**Status: LOCKED GREEN** — 2026-08-14 (main `fb8f46d`, PR #126–#129)
+
+Both ISAs under `secondary_parity`: charged soft@1.20 (vs pdq) = 0, major = 0, ok=1.
 
 ## On main
 
@@ -24,21 +26,22 @@ Soft@1.20 and major under SECONDARY_PARITY are evaluated **only** on this surfac
 | *(excluded from hard-fail)* | mixed_blocks — aarch64 residual variance; x86 SP close stands in Field-Level charge |
 
 **Correctness (ok=1) is required on the full suite.**  
-Classical residual softs and arch residual variance outside this surface (e.g. equal_heavy, mixed_blocks, reverse_segments, pipe_sparse, few_k16_wide, zipf_k16, db_fk_zipf, timestamp_drift, uniform_u32) do **not** fail the SP multi-arch money-shot. Dual-evidence never claimed to close them all.
+Classical residual softs and arch residual variance outside this surface do **not** fail the SP multi-arch money-shot. Dual-evidence never claimed to close them all.
 
-## Success criterion (SP gate)
+## Measured result (money-shot)
 
-On **both** ISAs under `secondary_parity`:
+| Cell | Result |
+|------|--------|
+| x86_64-classical | success |
+| x86_64-secondary_parity | **GREEN** charged soft@1.20=0 major=0 ok=1 |
+| arm64-classical | success |
+| arm64-secondary_parity | **GREEN** charged soft@1.20=0 major=0 ok=1 |
 
-- charged soft@1.20 (vs pdq) = 0, charged major = 0
-- all ok=1 (full suite)
-- i32 / u32 / i64
-
-x86 multi-type soft=0 already measured on the charged surface (2026-08-13). This workflow is the aarch64 money-shot.
+Evidence: PR #129 CI run (Actions run on branch pre-merge) + main tip after squash-merge.
 
 ## Non-claims
 
-- Not a completed formal Field-Level Breakthrough until multi-arch numbers are GREEN and CI/stat-sig packaging is complete.
+- **Not** a completed formal Field-Level Breakthrough until statistical CI packaging and third-party reproduce are complete.
 - Does not claim every residual soft on the full 23-pattern expanded suite is closed by dual-evidence.
 - EXTERNAL-clean only. No internal irreversible state.
 
