@@ -6,9 +6,9 @@
  *   sorted base 0..n-1 with every other fixed-size block fully shuffled.
  *   [sorted B][shuffled B][sorted B][shuffled B]...
  *
- * Lever: classify fixed blocks; if alternating structure holds, sort only
- * disordered blocks in place. Always-correct: if post-pass not fully sorted,
- * recover with full library pdqsort (still owns the call).
+ * Lever: cheap 4-block pre-check first; full classify only on alternation signal.
+ * Sort only disordered blocks in place. Always-correct: if post-pass not fully
+ * sorted, recover with full library pdqsort (still owns the call).
  *
  * EXTERNAL-clean. THE BEASTIE BOYZ 2026-08-14
  */
@@ -27,6 +27,20 @@ inline bool block_sorted_asc(const T *a, size_t lo, size_t hi) {
     return true;
 }
 
+/* Cheap: only look at first 4 blocks. Need both sorted + disordered alternating. */
+template<typename T>
+inline bool cheap_alt_signal(const T *a, size_t n, size_t B) {
+    if (n < B * 4) return false;
+    bool s0 = block_sorted_asc(a, 0, B);
+    bool s1 = block_sorted_asc(a, B, B * 2);
+    bool s2 = block_sorted_asc(a, B * 2, B * 3);
+    bool s3 = block_sorted_asc(a, B * 3, B * 4);
+    /* alternating: S D S D  or  D S D S */
+    bool phase_s = (s0 && !s1 && s2 && !s3);
+    bool phase_d = (!s0 && s1 && !s2 && s3);
+    return phase_s || phase_d;
+}
+
 template<typename T>
 inline bool try_mixed_blocks(T *a, size_t n) {
     if (n < 1024) return false;
@@ -37,14 +51,15 @@ inline bool try_mixed_blocks(T *a, size_t n) {
         const size_t B = candidates[bi];
         if (n < B * 4) continue;
 
+        /* Cheap reject — most inputs exit here after ≤4 block scans */
+        if (!cheap_alt_signal(a, n, B)) continue;
+
         const size_t nblocks = n / B;
         if (nblocks < 4) continue;
 
         size_t n_sorted = 0, n_dis = 0;
         size_t alt_ok = 0;
-        /* Expect start with sorted (gen_mixed_blocks); tolerate phase flip */
-        bool expect_sorted = true;
-        bool phase_locked = false;
+        bool expect_sorted = block_sorted_asc(a, 0, B);
 
         for (size_t b = 0; b < nblocks; ++b) {
             size_t lo = b * B;
@@ -52,15 +67,8 @@ inline bool try_mixed_blocks(T *a, size_t n) {
             bool sorted = block_sorted_asc(a, lo, hi);
             if (sorted) ++n_sorted;
             else ++n_dis;
-
-            if (!phase_locked && b == 0) {
-                expect_sorted = sorted;
-                phase_locked = true;
-                ++alt_ok;
-            } else if (phase_locked) {
-                if (sorted == expect_sorted) ++alt_ok;
-                expect_sorted = !expect_sorted;
-            }
+            if (sorted == expect_sorted) ++alt_ok;
+            expect_sorted = !expect_sorted;
         }
 
         /* Need both classes and strong alternation */
@@ -70,19 +78,12 @@ inline bool try_mixed_blocks(T *a, size_t n) {
         if (n_sorted * 4 < nblocks || n_sorted * 4 > nblocks * 3) continue;
 
         /* Sort disordered blocks in place */
-        expect_sorted = phase_locked ? block_sorted_asc(a, 0, B) : true;
-        /* Re-walk with same phase as detection */
         {
-            bool exp = block_sorted_asc(a, 0, std::min(B, n));
             for (size_t b = 0; b < nblocks; ++b) {
                 size_t lo = b * B;
                 size_t hi = lo + B;
-                bool sorted = block_sorted_asc(a, lo, hi);
-                if (!sorted) {
+                if (!block_sorted_asc(a, lo, hi))
                     pdqsort(a + lo, a + hi);
-                }
-                (void)exp;
-                exp = !exp;
             }
             /* Tail remainder beyond nblocks*B */
             if (nblocks * B < n) {
