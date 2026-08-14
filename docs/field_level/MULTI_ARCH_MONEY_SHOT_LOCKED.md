@@ -26,7 +26,7 @@ The multi-arch gate that was open after the 2026-08-13 Field-Level charge (x86 m
 
 ## What remains for formal Field-Level
 
-1. **Statistical CI packaging** — confidence intervals / reps protocol beyond best-of-3 point estimates
+1. **Statistical CI packaging** — protocol locked in `STAT_SIG_PROTOCOL.md`; harness `--raw-out` + `scripts/sp_stat_sig_gate.py` (wire into CI next)
 2. **Third-party reproduce** — Wave 0 / independent Docker one-command path on both ISAs
 3. Optional: residual quality work on excluded softs (equal_heavy, mixed_blocks on ARM) if raising the bar beyond the charged surface
 
