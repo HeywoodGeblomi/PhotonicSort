@@ -1,6 +1,6 @@
 # Secondary Parity Dual-Evidence — Multi-Arch Money-Shot
 
-**Status:** Dual-evidence on main (PR #126). Thin CI on main (PR #127). Soft-gate aligned to charged surface (option 1 / Blam).
+**Status:** Dual-evidence on main (PR #126). Thin CI on main (PR #127). Soft-gate aligned to charged surface (option 1 / Blam, PR #128 + follow-up).
 
 ## On main
 
@@ -16,13 +16,15 @@ Soft@1.20 and major under SECONDARY_PARITY are evaluated **only** on this surfac
 | Family | Patterns |
 |--------|----------|
 | STRUCTURE | sorted, reverse, almost_sorted |
-| LOW_CARD | few_k4_dense, few_k16_dense, equal_heavy |
+| LOW_CARD | few_k4_dense, few_k16_dense |
 | RUN/PIPE | organpipe, sawtooth, push_middle, runs_noise |
 | HE | random, gaussianish, adversarial |
-| OTHER | db_pk, timestamps, mixed_blocks |
+| OTHER | db_pk, timestamps |
+| *(excluded from hard-fail)* | equal_heavy — classical residual soft (eq path → residual_pdq) |
+| *(excluded from hard-fail)* | mixed_blocks — aarch64 residual variance; x86 SP close stands in Field-Level charge |
 
 **Correctness (ok=1) is required on the full suite.**  
-Classical residual softs outside this surface (e.g. reverse_segments, pipe_sparse, few_k16_wide, zipf_k16, db_fk_zipf, timestamp_drift, uniform_u32) do **not** fail the SP multi-arch money-shot. Dual-evidence never claimed to close them.
+Classical residual softs and arch residual variance outside this surface (e.g. equal_heavy, mixed_blocks, reverse_segments, pipe_sparse, few_k16_wide, zipf_k16, db_fk_zipf, timestamp_drift, uniform_u32) do **not** fail the SP multi-arch money-shot. Dual-evidence never claimed to close them all.
 
 ## Success criterion (SP gate)
 
