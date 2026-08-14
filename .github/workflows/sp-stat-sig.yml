@@ -1,0 +1,95 @@
+# Secondary Parity statistical CI packaging
+# Formal Field-Level gate: R≥11 per-trial ratios + bootstrap CI soft-gate
+# Fast money-shot remains sp-multi-arch.yml (R=3 point estimates).
+# EXTERNAL-clean. THE BEASTIE BOYZ 2026-08-14
+name: sp-stat-sig
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'residual/**'
+      - 'scripts/expanded_field_bench_hybrid.cpp'
+      - 'scripts/sp_stat_sig_gate.py'
+      - '.github/workflows/sp-stat-sig.yml'
+  pull_request:
+    paths:
+      - 'residual/**'
+      - 'scripts/expanded_field_bench_hybrid.cpp'
+      - 'scripts/sp_stat_sig_gate.py'
+      - '.github/workflows/sp-stat-sig.yml'
+
+jobs:
+  stat_sig:
+    name: ${{ matrix.arch }}-SP-stat-sig
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++ make curl ca-certificates python3
+
+      - name: Fingerprint
+        run: |
+          {
+            echo "arch=${{ matrix.arch }}"
+            echo "gate=secondary_parity"
+            echo "mode=stat-sig"
+            echo "reps=11"
+            echo "runner=${{ matrix.runner }}"
+            echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "uname=$(uname -a)"
+            echo "machine=$(uname -m)"
+            g++ --version | head -1
+          } | tee fingerprint.txt
+
+      - name: Fetch baselines
+        run: |
+          mkdir -p baselines residual
+          curl -fsSL -o baselines/pdqsort.h \
+            https://raw.githubusercontent.com/orlp/pdqsort/master/pdqsort.h
+          curl -fsSL -o baselines/ska_sort.hpp \
+            https://raw.githubusercontent.com/skarupke/ska_sort/master/ska_sort.hpp
+          cp baselines/ska_sort.hpp residual/ska_sort.hpp
+
+      - name: Build hybrid suite (SECONDARY_PARITY)
+        run: |
+          g++ -O3 -std=c++17 -DNDEBUG -DSECONDARY_PARITY \
+            -I. -Iresidual -Ibaselines \
+            -o suite_hybrid scripts/expanded_field_bench_hybrid.cpp
+
+      - name: Run suite n=1e6 reps=11 + raw trials
+        run: |
+          ./suite_hybrid --n 1000000 --reps 11 \
+            --out results_${{ matrix.arch }}_sp.csv \
+            --raw-out raw_${{ matrix.arch }}_sp.csv \
+            | tee results.txt
+
+      - name: Stat-sig charged soft-gate (CI upper)
+        run: |
+          python3 scripts/sp_stat_sig_gate.py raw_${{ matrix.arch }}_sp.csv \
+            --threshold 1.20 --bootstrap 2000 --min-reps 11 \
+            | tee stat_sig.txt
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sp-stat-sig-${{ matrix.arch }}
+          path: |
+            fingerprint.txt
+            results.txt
+            stat_sig.txt
+            results_*.csv
+            raw_*.csv
