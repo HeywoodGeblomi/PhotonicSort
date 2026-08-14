@@ -27,13 +27,14 @@ import random
 import sys
 from collections import defaultdict
 
-# Matches SP multi-arch charged hard-fail surface (equal_heavy + mixed_blocks excluded)
+# Matches SP multi-arch charged hard-fail surface (mixed_blocks excluded; v0.4 +rseg +equal_heavy)
 CHARGED = {
     "sorted", "reverse", "almost_sorted",
     "few_k4_dense", "few_k16_dense",
     "organpipe", "sawtooth", "push_middle", "runs_noise",
     "random", "gaussianish", "adversarial",
     "db_pk", "timestamps",
+    "reverse_segments", "equal_heavy",  # v0.4 expansion (soft-attack closed)
 }
 
 

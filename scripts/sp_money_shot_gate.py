@@ -18,6 +18,7 @@ CHARGED = {
     "organpipe", "sawtooth", "push_middle", "runs_noise",
     "random", "gaussianish", "adversarial",
     "db_pk", "timestamps",
+    "reverse_segments", "equal_heavy",  # v0.4 expansion (soft-attack closed)
 }
 
 def main() -> int:
