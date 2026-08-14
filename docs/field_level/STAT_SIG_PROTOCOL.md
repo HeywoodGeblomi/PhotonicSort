@@ -1,6 +1,6 @@
 # Statistical CI Packaging — Secondary Parity / Path-(a) Hybrid
 
-**Status:** PROTOCOL LOCKED 2026-08-14  
+**Status:** PROTOCOL LOCKED + CI WIRED 2026-08-14  
 **Squad:** THE BEASTIE BOYZ / Blam  
 **Depends on:** Multi-arch money-shot LOCKED GREEN (`MULTI_ARCH_MONEY_SHOT_LOCKED.md`)
 
@@ -46,15 +46,18 @@ python3 scripts/sp_stat_sig_gate.py results_raw.csv \
 
 Exit 0 iff charged soft (CI upper > 1.20) = 0 and major = 0 and no thin cells.
 
+## CI
+
+| Workflow | Role |
+|----------|------|
+| `sp-multi-arch.yml` | Fast money-shot (R=3 point estimate, both classical + SP) |
+| `sp-stat-sig.yml` | Formal packaging (R=11 raw trials + CI gate, SP only, both ISAs) |
+
+`sp-stat-sig` triggers on `workflow_dispatch` and path filters (residual / harness / gate script). Artifacts: summary CSV, raw trials, `stat_sig.txt`.
+
 ## Geo mean (secondary)
 
 `scripts/field_metrics.py` remains the geo-mean + bootstrap CI helper on the **summary** CSV (`ratio_best` vs specialized). It does **not** replace the charged soft-gate.
-
-## CI integration (next step)
-
-- Optional `stat-sig` job on `sp-multi-arch.yml` (or thin sibling workflow) with `--reps 11 --raw-out` + `sp_stat_sig_gate.py`.
-- Cost: ~2–4× wall time of the point-estimate money-shot (R=11 vs R=3).
-- Fail-soft: keep money-shot job as fast gate; stat-sig as formal packaging job.
 
 ## Non-claims
 
