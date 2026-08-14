@@ -20,16 +20,19 @@
 static size_t n = 1000000;
 static int reps = 5;
 
+static FILE *g_raw = nullptr; // optional per-trial emit (--raw-out)
+
 template<typename F>
-double med(F f, int r) {
+double med(F f, int r, std::vector<double> *out_times = nullptr) {
   std::vector<double> t;
-  f();
+  f(); // warmup
   for (int i = 0; i < r; ++i) {
     auto a = std::chrono::steady_clock::now();
     f();
     auto b = std::chrono::steady_clock::now();
     t.push_back(std::chrono::duration<double, std::milli>(b - a).count());
   }
+  if (out_times) *out_times = t;
   std::sort(t.begin(), t.end());
   return t[t.size() / 2];
 }
@@ -180,8 +183,9 @@ const char *arch_name() {
 template<typename T, typename MenuFn>
 void row(FILE *csv, const char *type, const char *pat, std::vector<T> base, MenuFn menu, int reps, bool use_ska) {
   size_t n = base.size();
-  double m = med([&] { auto a = base; menu(a.data(), n); }, reps);
-  double p = med([&] { auto a = base; pdqsort(a.begin(), a.end()); }, reps);
+  std::vector<double> tm, tp;
+  double m = med([&] { auto a = base; menu(a.data(), n); }, reps, &tm);
+  double p = med([&] { auto a = base; pdqsort(a.begin(), a.end()); }, reps, &tp);
   double s = 0;
   if (use_ska) s = med([&] { auto a = base; ska_sort(a.begin(), a.end()); }, reps);
   double t = med([&] { auto a = base; std::sort(a.begin(), a.end()); }, reps);
@@ -195,6 +199,15 @@ void row(FILE *csv, const char *type, const char *pat, std::vector<T> base, Menu
           arch_name(), type, pat, n, reps, m, p, s, t, best, ratio, ok);
   printf("%s %-4s %-18s ratio=%.3f ok=%d%s\n", arch_name(), type, pat, ratio, ok,
          ratio > 1.15 ? " SOFT" : "");
+  // Stat-sig raw: paired trial times for bootstrap CI on ratio_pdq = menu/pdq
+  if (g_raw) {
+    size_t R = std::min(tm.size(), tp.size());
+    for (size_t i = 0; i < R; ++i) {
+      double rpdq = tm[i] / std::max(1e-12, tp[i]);
+      fprintf(g_raw, "%s,%s,%s,%zu,%zu,%.6f,%.6f,%.6f\n",
+              arch_name(), type, pat, n, i, tm[i], tp[i], rpdq);
+    }
+  }
 }
 
 template<typename T, typename MenuFn>
@@ -226,17 +239,25 @@ void suite_int(FILE *csv, const char *type, size_t n, int reps, MenuFn menu, boo
 
 int main(int argc, char **argv) {
   const char *out = "hybrid_expanded.csv";
+  const char *raw_out = nullptr;
   const char *only = nullptr;
   for (int i = 1; i < argc; ++i) {
     if (!strcmp(argv[i], "--n") && i + 1 < argc) n = (size_t)std::stoull(argv[++i]);
     else if (!strcmp(argv[i], "--reps") && i + 1 < argc) reps = atoi(argv[++i]);
     else if (!strcmp(argv[i], "--out") && i + 1 < argc) out = argv[++i];
+    else if (!strcmp(argv[i], "--raw-out") && i + 1 < argc) raw_out = argv[++i];
     else if (!strcmp(argv[i], "--only") && i + 1 < argc) only = argv[++i];
   }
   FILE *csv = fopen(out, "w");
   if (!csv) return 1;
+  if (raw_out) {
+    g_raw = fopen(raw_out, "w");
+    if (!g_raw) { fclose(csv); return 1; }
+    fprintf(g_raw, "arch,type,pattern,n,trial,menu_ms,pdq_ms,ratio_pdq\n");
+  }
   fprintf(csv, "arch,type,pattern,n,reps,menu_ms,pdq_ms,ska_ms,std_ms,best_ms,ratio_best,ok\n");
-  printf("# expanded_field_bench hybrid arch=%s n=%zu reps=%d patterns=23\n", arch_name(), n, reps);
+  printf("# expanded_field_bench hybrid arch=%s n=%zu reps=%d patterns=23 raw=%s\n",
+         arch_name(), n, reps, raw_out ? raw_out : "off");
   if (!only || !strcmp(only, "i64"))
     suite_int<int64_t>(csv, "i64", n, reps, [](int64_t *a, size_t nn) { hybrid_residual::sort_i64(a, nn); }, true);
   if (!only || !strcmp(only, "i32"))
@@ -244,6 +265,7 @@ int main(int argc, char **argv) {
   if (!only || !strcmp(only, "u32"))
     suite_int<uint32_t>(csv, "u32", n, reps, [](uint32_t *a, size_t nn) { hybrid_residual::sort_u32(a, nn); }, true);
   fprintf(stderr, "# wrote %s\n", out);
+  if (g_raw) { fprintf(stderr, "# wrote raw %s\n", raw_out); fclose(g_raw); }
   fclose(csv);
   return 0;
 }
