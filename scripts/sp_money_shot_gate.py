@@ -18,7 +18,8 @@ CHARGED = {
     "organpipe", "sawtooth", "push_middle", "runs_noise",
     "random", "gaussianish", "adversarial",
     "db_pk", "timestamps",
-    "reverse_segments", "equal_heavy",  # v0.4 expansion (soft-attack closed)
+    "reverse_segments", "equal_heavy",  # v0.4 expansion
+    "mixed_blocks",                     # v0.5 promotion (alternating-block residual)
 }
 
 def main() -> int:

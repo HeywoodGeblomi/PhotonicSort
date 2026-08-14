@@ -6,6 +6,7 @@
 # Classical residual softs + arch residual variance outside dual-evidence claim
 # do not fail the SP multi-arch money-shot.
 # v0.4: CHARGED += reverse_segments + equal_heavy (soft-attack closed).
+# v0.5: CHARGED += mixed_blocks (alternating-block residual); no exclusions remain.
 name: sp-multi-arch
 
 on:
@@ -92,16 +93,16 @@ jobs:
         run: |
           python3 - <<'PY'
           import csv, sys, glob
-          # Charged soft-gate vs pdq (FIELD_LEVEL_CLAIM_v0.4).
-          # Hard-fail exclusion remaining:
-          #   mixed_blocks — residual quality vs specialized + aarch64 history
+          # Charged soft-gate vs pdq (FIELD_LEVEL_CLAIM_v0.5).
+          # No hard-fail exclusions remain on Expanded Field Suite.
           CHARGED = {
               "sorted", "reverse", "almost_sorted",
               "few_k4_dense", "few_k16_dense",
               "organpipe", "sawtooth", "push_middle", "runs_noise",
               "random", "gaussianish", "adversarial",
               "db_pk", "timestamps",
-              "reverse_segments", "equal_heavy",  # v0.4 expansion
+              "reverse_segments", "equal_heavy",  # v0.4
+              "mixed_blocks",                     # v0.5
           }
           soft115, soft120, major, fails = [], [], [], []
           soft120_charged, major_charged = [], []
