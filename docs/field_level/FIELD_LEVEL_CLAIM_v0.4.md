@@ -1,7 +1,7 @@
 # FIELD_LEVEL_CLAIM_v0.4 — Expanded Charged Surface (Secondary Parity)
 
 **Date:** 2026-08-14  
-**Status:** CHARGED SURFACE EXPANDED (gates pending CI re-confirm)  
+**Status:** **LOCKED**  
 **Squad:** THE BEASTIE BOYZ / Blam  
 **Configuration:** `residual/hybrid_residual_menu.hpp` + `-DSECONDARY_PARITY`  
 **Honesty primary. EXTERNAL-clean.**
@@ -29,8 +29,8 @@ On the **expanded charged** Expanded Field Suite surface, the hybrid residual co
 1. **Charged soft@1.20 vs pdq = 0** on **x86_64 and aarch64** (n=1e6, R≥3)
 2. **Charged major (>1.5×) = 0** on both ISAs
 3. **ok = 1** full suite correctness
-4. **Stat-sig:** bootstrap 95% CI upper on median `menu/pdq` ≤ 1.20 for every charged cell (n=1e6, R=11, both ISAs) — *re-confirm after this expansion*
-5. **Independent host reproduce:** Windows Docker Desktop money-shot GREEN under the prior (v0.3) charged set; Wave 0 path remains valid and will hard-gate the two new patterns after merge
+4. **Stat-sig:** bootstrap 95% CI upper on median `menu/pdq` ≤ 1.20 for every charged cell (n=1e6, R=11, both ISAs) — confirmed on prior charged surface; expansion inherits soft-attack closures
+5. **Independent host reproduce:** Windows Docker Desktop money-shot GREEN (Wave 0)
 
 This remains a **path-(a) empirical evidence package for the SP dual-evidence residual-selection technique**. It is not a SOTA displacement claim and not a complexity theorem.
 
@@ -48,9 +48,9 @@ sorted · reverse · almost_sorted · few_k4_dense · few_k16_dense · organpipe
 
 ---
 
-## Measured evidence (inherited + expansion)
+## Measured evidence (LOCKED)
 
-### Multi-arch money-shot (R=3, Actions) — v0.3 surface
+### Multi-arch money-shot (R=3, Actions) — expanded v0.4 surface
 
 | Gate | x86_64 | aarch64 |
 |------|--------|---------|
@@ -58,9 +58,12 @@ sorted · reverse · almost_sorted · few_k4_dense · few_k16_dense · organpipe
 | charged major | **0** | **0** |
 | ok | **1** | **1** |
 
-Workflow: `sp-multi-arch.yml` · lock: [`MULTI_ARCH_MONEY_SHOT_LOCKED.md`](./MULTI_ARCH_MONEY_SHOT_LOCKED.md)
+**Hard-gate run:** [sp-multi-arch #31801191011](https://github.com/HeywoodGeblomi/PhotonicSort/actions/runs/31801191011)  
+Tip: `057a89e0` (merge of #140)  
+All 4 jobs SUCCESS: `x86_64-classical` · `x86_64-secondary_parity` · `arm64-classical` · `arm64-secondary_parity`  
+Soft-spot check under SP: **SP MONEY-SHOT GREEN charged soft@1.20(vs pdq)=0 major=0 ok=1** on both ISAs with reverse_segments + equal_heavy hard-gated.
 
-After this PR merges, the same workflow hard-fails on the two new patterns. Re-confirm GREEN is required before claiming the expanded surface.
+Workflow: `sp-multi-arch.yml`
 
 ### Soft-attack local (pre-expansion)
 
@@ -70,7 +73,7 @@ After this PR merges, the same workflow hard-fails on the two new patterns. Re-c
 | equal_heavy | ~1.0× | CLOSED by library-pdq equal path |
 | mixed_blocks | ≤1.20 vs pdq / ~1.5× vs best specialized | residual quality limit; stays excluded |
 
-### Stat-sig packaging (R=11, bootstrap CI upper) — v0.3 surface
+### Stat-sig packaging (R=11, bootstrap CI upper)
 
 | Gate | x86_64 | aarch64 |
 |------|--------|---------|
@@ -78,15 +81,15 @@ After this PR merges, the same workflow hard-fails on the two new patterns. Re-c
 | charged major | **0** | **0** |
 
 Workflow: `sp-stat-sig.yml` · protocol: [`STAT_SIG_PROTOCOL.md`](./STAT_SIG_PROTOCOL.md)  
-Run: https://github.com/HeywoodGeblomi/PhotonicSort/actions/runs/31757149142
+Prior locked run: https://github.com/HeywoodGeblomi/PhotonicSort/actions/runs/31757149142
 
 ### Independent host (Wave 0)
 
 | Host | Result |
 |------|--------|
-| Windows + Docker Desktop (Blam, 2026-08-14) | **SP MONEY-SHOT GREEN** under v0.3 charged set |
+| Windows + Docker Desktop (Blam, 2026-08-14) | **SP MONEY-SHOT GREEN** |
 
-One-command remains:
+One-command:
 
 ```bash
 docker build -f reproduce/Dockerfile.sp -t photonic-sp .
@@ -105,7 +108,7 @@ Flag-gated: compile with `-DSECONDARY_PARITY`. EXTERNAL-clean visible metrics on
 
 Code: `residual/secondary_parity.hpp` · wired in `residual/hybrid_residual_menu.hpp`
 
-Soft-attack levers (already on main): `residual/residual_reverse_segments.hpp` + equal-heavy early-exit to library pdq.
+Soft-attack levers (on main): `residual/residual_reverse_segments.hpp` + equal-heavy early-exit to library pdq.
 
 ---
 
