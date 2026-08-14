@@ -5,6 +5,7 @@
 # Option 1 (Blam): SP soft-gate aligned to charged pattern surface vs pdq.
 # Classical residual softs + arch residual variance outside dual-evidence claim
 # do not fail the SP multi-arch money-shot.
+# v0.4: CHARGED += reverse_segments + equal_heavy (soft-attack closed).
 name: sp-multi-arch
 
 on:
@@ -14,11 +15,13 @@ on:
     paths:
       - 'residual/**'
       - 'scripts/expanded_field_bench_hybrid.cpp'
+      - 'scripts/sp_money_shot_gate.py'
       - '.github/workflows/sp-multi-arch.yml'
   pull_request:
     paths:
       - 'residual/**'
       - 'scripts/expanded_field_bench_hybrid.cpp'
+      - 'scripts/sp_money_shot_gate.py'
       - '.github/workflows/sp-multi-arch.yml'
 
 jobs:
@@ -89,15 +92,16 @@ jobs:
         run: |
           python3 - <<'PY'
           import csv, sys, glob
-          # Charged soft-gate vs pdq. Hard-fail exclusions (still printed in full diagnostics):
-          #   equal_heavy  — classical residual soft (eq path → residual_pdq)
-          #   mixed_blocks — aarch64 residual variance; x86 SP close stands in Field-Level charge
+          # Charged soft-gate vs pdq (FIELD_LEVEL_CLAIM_v0.4).
+          # Hard-fail exclusion remaining:
+          #   mixed_blocks — residual quality vs specialized + aarch64 history
           CHARGED = {
               "sorted", "reverse", "almost_sorted",
               "few_k4_dense", "few_k16_dense",
               "organpipe", "sawtooth", "push_middle", "runs_noise",
               "random", "gaussianish", "adversarial",
               "db_pk", "timestamps",
+              "reverse_segments", "equal_heavy",  # v0.4 expansion
           }
           soft115, soft120, major, fails = [], [], [], []
           soft120_charged, major_charged = [], []
