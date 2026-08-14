@@ -1,0 +1,2 @@
+*.sh text eol=lf
+reproduce/run_sp.sh text eol=lf
