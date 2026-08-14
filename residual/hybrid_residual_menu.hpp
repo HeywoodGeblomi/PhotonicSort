@@ -4,7 +4,7 @@
  * Soft grind: inline counting for small domain
  * SECONDARY_PARITY: densify polarity stream → σ_Δ → dual-evidence on *borderline* HE only
  * Strong classical HE still takes ska (do not abate library residual on pure random).
- * Soft-attack: reverse_segments O(n) + equal_heavy library pdq.
+ * Soft-attack: reverse_segments O(n) + equal_heavy library pdq + mixed_blocks alternating blocks.
  * EXTERNAL-clean. THE BEASTIE BOYZ 2026-08-14
  */
 #include <cstdint>
@@ -19,6 +19,7 @@
 #include "pdqsort_residual.h"
 #include "ska_sort.hpp"
 #include "residual_reverse_segments.hpp"
+#include "residual_mixed_blocks.hpp"
 #include "pdqsort.h"
 
 #ifdef SECONDARY_PARITY
@@ -120,6 +121,9 @@ inline int dispatch(T *a, size_t n, PureFn pure_fn) {
 
     /* Fixed-size reverse blocks (reverse_segments family) — O(n) */
     if (residual_reverse_segments::try_reverse_segments(a, n)) return 0;
+
+    /* Alternating sorted/disordered blocks (mixed_blocks family) — O(n) */
+    if (residual_mixed_blocks::try_mixed_blocks(a, n)) return 0;
 
     size_t inv, eq, u, desc_runs;
     T mn, mx;
