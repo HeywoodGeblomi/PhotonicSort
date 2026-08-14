@@ -1,7 +1,7 @@
 # FIELD_LEVEL_CLAIM_v0.5 — Full Charged Surface (Secondary Parity)
 
 **Date:** 2026-08-14  
-**Status:** **LOCKED** (pending post-merge money-shot with expanded CHARGED)  
+**Status:** **LOCKED**  
 **Squad:** THE BEASTIE BOYZ / Blam  
 **Configuration:** `residual/hybrid_residual_menu.hpp` + `-DSECONDARY_PARITY`  
 **Honesty primary. EXTERNAL-clean.**
@@ -16,7 +16,9 @@
 
 **No residual exclusions remain** on the Expanded Field Suite charged surface.
 
-Residual attack: PR #144. Post-merge SP multi-arch (prior charged set) GREEN: [run 31805362971](https://github.com/HeywoodGeblomi/PhotonicSort/actions/runs/31805362971).
+Residual attack: PR #144.  
+Claim promote: PR #145.  
+Post-merge SP multi-arch (full v0.5 CHARGED) GREEN: [run 31807222980](https://github.com/HeywoodGeblomi/PhotonicSort/actions/runs/31807222980).
 
 ---
 
@@ -27,7 +29,7 @@ On the **full charged** Expanded Field Suite surface, the hybrid residual config
 1. **Charged soft@1.20 vs pdq = 0** on **x86_64 and aarch64** (n=1e6, R≥3)
 2. **Charged major (>1.5×) = 0** on both ISAs
 3. **ok = 1** full suite correctness
-4. **Stat-sig:** bootstrap 95% CI upper on median `menu/pdq` ≤ 1.20 for every charged cell (n=1e6, R=11, both ISAs) — inherits prior surface; mixed_blocks added under residual attack
+4. **Stat-sig:** bootstrap 95% CI upper on median `menu/pdq` ≤ 1.20 for every charged cell on the prior surface (n=1e6, R=11, both ISAs); mixed_blocks added under residual attack and hard-gated at point estimate
 5. **Independent host reproduce:** Windows Docker Desktop money-shot path remains valid
 
 This remains a **path-(a) empirical evidence package for the SP dual-evidence residual-selection technique**. It is not a SOTA displacement claim and not a complexity theorem.
