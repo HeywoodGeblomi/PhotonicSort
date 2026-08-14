@@ -11,4 +11,8 @@ c/*.a
 !README.md
 benchmarks
 docs
-scripts
+# scripts/ must be visible for reproduce/Dockerfile.sp
+scripts/*
+!scripts/expanded_field_bench_hybrid.cpp
+!scripts/sp_money_shot_gate.py
+!scripts/sp_stat_sig_gate.py
