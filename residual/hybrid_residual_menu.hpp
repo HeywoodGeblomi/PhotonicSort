@@ -4,7 +4,8 @@
  * Soft grind: inline counting for small domain
  * SECONDARY_PARITY: densify polarity stream → σ_Δ → dual-evidence on *borderline* HE only
  * Strong classical HE still takes ska (do not abate library residual on pure random).
- * EXTERNAL-clean. THE BEASTIE BOYZ 2026-08-13
+ * Soft-attack: reverse_segments O(n) + equal_heavy library pdq.
+ * EXTERNAL-clean. THE BEASTIE BOYZ 2026-08-14
  */
 #include <cstdint>
 #include <cstddef>
@@ -17,6 +18,8 @@
 #include "pure_residual_menu_u32.hpp"
 #include "pdqsort_residual.h"
 #include "ska_sort.hpp"
+#include "residual_reverse_segments.hpp"
+#include "orlp_pdqsort.h"
 
 #ifdef SECONDARY_PARITY
 #include "secondary_parity.hpp"
@@ -115,6 +118,9 @@ inline int dispatch(T *a, size_t n, PureFn pure_fn) {
     if (is_sorted_asc(a, n)) return 0;
     if (is_sorted_desc(a, n)) { std::reverse(a, a + n); return 0; }
 
+    /* Fixed-size reverse blocks (reverse_segments family) — O(n) */
+    if (residual_reverse_segments::try_reverse_segments(a, n)) return 0;
+
     size_t inv, eq, u, desc_runs;
     T mn, mx;
     sample_full(a, n, inv, eq, u, desc_runs, mn, mx);
@@ -141,12 +147,20 @@ inline int dispatch(T *a, size_t n, PureFn pure_fn) {
     (void)second_solid;
 #endif
 
+    /* equal-heavy before counting — library pdq beats counting on 90%+ equal */
+    if (eq * 4 >= S * 3) {
+        pdqsort(a, a + n);
+        return 0;
+    }
+
     if (dom <= 65536ull) {
         if (try_count_sort(a, n, mn, mx)) return 0;
     }
 
-    if (eq * 4 >= S * 3) {
-        residual_pdqsort(a, a + n);
+    /* high unique + low inversions = nearly-sorted unique keys (mixed_blocks class)
+     * HE unique estimate alone must not send these to ska */
+    if (u >= (S * 50) / 100 && inv * 10 <= S) {
+        pdqsort(a, a + n);
         return 0;
     }
 
@@ -161,11 +175,13 @@ inline int dispatch(T *a, size_t n, PureFn pure_fn) {
         if (dom <= (uint64_t)n * 2ull) {
             size_t dinv = dense_inv(a, n);
             size_t ds = dense_inv_samples(n);
-            if (ds == 0 || dinv * 20 <= ds) return pure_fn(a, n);
-            residual_pdqsort(a, a + n);
+            /* ultra-low disorder only → pure; else library pdq
+             * (mixed_blocks-class was losing pure vs pdq at dinv*20 gate) */
+            if (ds == 0 || dinv * 50 <= ds) return pure_fn(a, n);
+            pdqsort(a, a + n);
             return 0;
         }
-        residual_pdqsort(a, a + n);
+        pdqsort(a, a + n);
         return 0;
     }
 
@@ -180,7 +196,7 @@ inline int dispatch(T *a, size_t n, PureFn pure_fn) {
             ska_sort(a, a + n);
             return 0;
         }
-        residual_pdqsort(a, a + n);
+        pdqsort(a, a + n);
         return 0;
 #else
         ska_sort(a, a + n);
@@ -191,16 +207,18 @@ inline int dispatch(T *a, size_t n, PureFn pure_fn) {
     {
         size_t dinv = dense_inv(a, n);
         if (dom <= (uint64_t)n * 2ull && dinv >= 100) {
-            if (u >= (S * 70) / 100) {
+            /* ska only for true HE disorder; mid-inv unique keys → library pdq
+             * (mixed_blocks was ska-taxed despite structured layout) */
+            if (u >= (S * 70) / 100 && inv * 5 >= S * 2) {
                 ska_sort(a, a + n);
             } else {
-                residual_pdqsort(a, a + n);
+                pdqsort(a, a + n);
             }
             return 0;
         }
     }
 
-    residual_pdqsort(a, a + n);
+    pdqsort(a, a + n);
     return 0;
 }
 
