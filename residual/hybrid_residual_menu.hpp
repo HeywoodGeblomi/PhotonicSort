@@ -19,7 +19,7 @@
 #include "pdqsort_residual.h"
 #include "ska_sort.hpp"
 #include "residual_reverse_segments.hpp"
-#include "orlp_pdqsort.h"
+#include "pdqsort.h"
 
 #ifdef SECONDARY_PARITY
 #include "secondary_parity.hpp"
