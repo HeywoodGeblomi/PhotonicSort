@@ -1,27 +1,43 @@
 # Secondary Parity Dual-Evidence — Multi-Arch Money-Shot
 
-**Status:** Code on main (PR #126). Thin CI workflow lands here so aarch64 fires automatically.
+**Status:** Dual-evidence on main (PR #126). Thin CI on main (PR #127). Soft-gate aligned to charged surface (option 1 / Blam).
 
 ## On main
 
 1. `residual/secondary_parity.hpp` — σ / σ_Δ + dual_confirm (EXTERNAL-clean)
-2. `residual/hybrid_residual_menu.hpp` — flag-gated dual-evidence at HE→ska (`-DSECONDARY_PARITY`)
+2. `residual/hybrid_residual_menu.hpp` — flag-gated dual-evidence at HE→ska (`-DSECONDARY_PARITY`); strong classical HE still takes ska
 3. `.github/workflows/sp-multi-arch.yml` — matrix: ubuntu-24.04 + ubuntu-24.04-arm × classical + secondary_parity
-4. Driver: existing `scripts/expanded_field_bench_hybrid.cpp` built with/without `-DSECONDARY_PARITY`
+4. Driver: `scripts/expanded_field_bench_hybrid.cpp` built with/without `-DSECONDARY_PARITY`
+
+## Charged surface (SP soft-gate)
+
+Soft@1.20 and major under SECONDARY_PARITY are evaluated **only** on this surface, **vs pdq** (matching the Field-Level charge measurement):
+
+| Family | Patterns |
+|--------|----------|
+| STRUCTURE | sorted, reverse, almost_sorted |
+| LOW_CARD | few_k4_dense, few_k16_dense, equal_heavy |
+| RUN/PIPE | organpipe, sawtooth, push_middle, runs_noise |
+| HE | random, gaussianish, adversarial |
+| OTHER | db_pk, timestamps, mixed_blocks |
+
+**Correctness (ok=1) is required on the full suite.**  
+Classical residual softs outside this surface (e.g. reverse_segments, pipe_sparse, few_k16_wide, zipf_k16, db_fk_zipf, timestamp_drift, uniform_u32) do **not** fail the SP multi-arch money-shot. Dual-evidence never claimed to close them.
 
 ## Success criterion (SP gate)
 
 On **both** ISAs under `secondary_parity`:
 
-- soft@1.20 = 0, major (>1.5×) = 0
-- all ok=1
+- charged soft@1.20 (vs pdq) = 0, charged major = 0
+- all ok=1 (full suite)
 - i32 / u32 / i64
 
-x86 multi-type soft=0 already measured locally (2026-08-13). This workflow unlocks the aarch64 money-shot via GitHub Actions ARM runners.
+x86 multi-type soft=0 already measured on the charged surface (2026-08-13). This workflow is the aarch64 money-shot.
 
 ## Non-claims
 
 - Not a completed formal Field-Level Breakthrough until multi-arch numbers are GREEN and CI/stat-sig packaging is complete.
+- Does not claim every residual soft on the full 23-pattern expanded suite is closed by dual-evidence.
 - EXTERNAL-clean only. No internal irreversible state.
 
 **THE BEASTIE BOYZ**

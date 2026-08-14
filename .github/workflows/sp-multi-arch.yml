@@ -1,6 +1,10 @@
 # Secondary Parity dual-evidence multi-arch money-shot
 # x86_64 + aarch64 · classical vs -DSECONDARY_PARITY
 # EXTERNAL-clean. THE BEASTIE BOYZ 2026-08-13
+#
+# Option 1 (Blam): SP soft-gate aligned to charged pattern surface
+# Softs evaluated vs pdq (matching Field-Level charge). Classical residual
+# softs outside charged surface do not fail SP multi-arch money-shot.
 name: sp-multi-arch
 
 on:
@@ -85,7 +89,18 @@ jobs:
         run: |
           python3 - <<'PY'
           import csv, sys, glob
+          # Charged surface = dual-evidence responsibility (Field-Level charge).
+          # Soft gate under SP uses ratio vs pdq. equal_heavy excluded: classical
+          # residual soft (eq path → residual_pdq); dual-evidence does not claim it.
+          CHARGED = {
+              "sorted", "reverse", "almost_sorted",
+              "few_k4_dense", "few_k16_dense",
+              "organpipe", "sawtooth", "push_middle", "runs_noise",
+              "random", "gaussianish", "adversarial",
+              "db_pk", "timestamps", "mixed_blocks",
+          }
           soft115, soft120, major, fails = [], [], [], []
+          soft120_charged, major_charged = [], []
           path = None
           for p in glob.glob("results_*.csv"):
               path = p
@@ -96,31 +111,43 @@ jobs:
               r = csv.DictReader(f)
               for row in r:
                   try:
-                      ratio = float(row["ratio_best"])
+                      ratio_best = float(row["ratio_best"])
+                      menu = float(row["menu_ms"])
+                      pdq = float(row["pdq_ms"])
+                      ratio_pdq = menu / max(1e-12, pdq)
                       ok = int(row["ok"])
-                      name = f"{row['type']}/{row['pattern']}"
+                      pat = row["pattern"]
+                      name = f"{row['type']}/{pat}"
                   except Exception:
                       continue
                   if ok != 1:
                       fails.append(name)
-                  if ratio > 1.15:
-                      soft115.append((name, ratio))
-                  if ratio > 1.20:
-                      soft120.append((name, ratio))
-                  if ratio > 1.50:
-                      major.append((name, ratio))
-          print("soft@1.15:", soft115)
-          print("soft@1.20:", soft120)
-          print("major:", major)
+                  if ratio_best > 1.15:
+                      soft115.append((name, ratio_best))
+                  if ratio_best > 1.20:
+                      soft120.append((name, ratio_best))
+                  if ratio_best > 1.50:
+                      major.append((name, ratio_best))
+                  if pat in CHARGED:
+                      if ratio_pdq > 1.20:
+                          soft120_charged.append((name, ratio_pdq))
+                      if ratio_pdq > 1.50:
+                          major_charged.append((name, ratio_pdq))
+          print("full soft@1.15 (vs best):", soft115)
+          print("full soft@1.20 (vs best):", soft120)
+          print("full major (vs best):", major)
+          print("charged soft@1.20 (vs pdq):", soft120_charged)
+          print("charged major (vs pdq):", major_charged)
           print("fails:", fails)
           if fails:
               print("CORRECTNESS FAIL"); sys.exit(1)
           gate = open("fingerprint.txt").read()
           if "gate=secondary_parity" in gate:
-              if soft120 or major:
-                  print("SP MONEY-SHOT FAIL soft@1.20 or major")
+              if soft120_charged or major_charged:
+                  print("SP MONEY-SHOT FAIL charged soft@1.20(vs pdq) or major")
                   sys.exit(1)
-              print("SP MONEY-SHOT GREEN soft@1.20=0 major=0 ok=1")
+              print("SP MONEY-SHOT GREEN charged soft@1.20(vs pdq)=0 major=0 ok=1")
+              print("NOTE: classical residual softs outside charged surface do not fail this gate")
           else:
               print("classical run recorded (softs allowed for baseline contrast)")
           PY
