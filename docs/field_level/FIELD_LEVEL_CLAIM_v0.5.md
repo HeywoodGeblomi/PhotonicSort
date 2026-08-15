@@ -3,7 +3,7 @@
 **Date:** 2026-08-14  
 **Status:** **LOCKED**  
 **Squad:** THE BEASTIE BOYZ / Blam  
-**Configuration:** `residual/hybrid_residual_menu.hpp` + `-DSECONDARY_PARITY`  
+**Configuration:** `residual/hybrid_residual_menu.hpp` (DEFAULT dual residual / residual talent; escape `-DCLASSICAL_RESIDUAL`)  
 **Honesty primary. EXTERNAL-clean.**
 
 ---
@@ -59,7 +59,7 @@ sorted · reverse · almost_sorted · few_k4_dense · few_k16_dense · organpipe
 Continuous probe stream → odd-event restriction → ordinal partitions → contrast σ_Δ.  
 Dual-evidence residual commitment: classical HE signal **and** σ_Δ polarity required for ska on borderline HE; single evidence → residual_pdq (abated). Strong classical HE still takes library ska (no abate on pure random).
 
-Flag-gated: compile with `-DSECONDARY_PARITY`. EXTERNAL-clean visible metrics only. No χ. No internal irreversible state.
+DEFAULT production path (no flag required). Escape hatch only: `-DCLASSICAL_RESIDUAL`. EXTERNAL-clean visible metrics only. No χ. No internal irreversible state.
 
 ---
 
@@ -76,12 +76,20 @@ Flag-gated: compile with `-DSECONDARY_PARITY`. EXTERNAL-clean visible metrics on
 
 ```bash
 docker build -f reproduce/Dockerfile.sp -t photonic-sp .
-docker run --rm photonic-sp sh -c \
-  './suite_hybrid --n 1000000 --reps 3 --out results_sp.csv && python3 scripts/sp_money_shot_gate.py results_sp.csv'
+docker run --rm photonic-sp
+# expected: SP MONEY-SHOT GREEN charged soft=0 major=0 ok=1
 ```
 
-Success: `SP MONEY-SHOT GREEN charged soft=0 major=0 ok=1`
+Formal R=11:
+
+```bash
+docker run --rm -e STAT_SIG=1 photonic-sp
+```
 
 ---
 
-**THE BEASTIE BOYZ / Blam**
+## Non-claims reminder
+
+See [`NON_CLAIMS.md`](../../NON_CLAIMS.md). Packaging does not expand claims.
+
+THE BEASTIE BOYZ / Blam · 2026-08-15

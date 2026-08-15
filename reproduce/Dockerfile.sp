@@ -1,4 +1,4 @@
-# PhotonicSort Secondary Parity Field-Level — Wave 0 independent reproduction
+# PhotonicSort Field-Level dual residual (DEFAULT talent path) — Wave 0 independent reproduction
 #
 # From repository root:
 #   docker build -f reproduce/Dockerfile.sp -t photonic-sp .
@@ -7,7 +7,7 @@
 #
 # Reference: docs/field_level/MULTI_ARCH_MONEY_SHOT_LOCKED.md
 #            docs/field_level/STAT_SIG_PROTOCOL.md
-# EXTERNAL-clean. THE BEASTIE BOYZ 2026-08-14
+# EXTERNAL-clean. THE BEASTIE BOYZ 2026-08-15
 
 FROM debian:bookworm-slim
 
@@ -30,7 +30,7 @@ RUN mkdir -p baselines \
       https://raw.githubusercontent.com/skarupke/ska_sort/master/ska_sort.hpp \
  && cp baselines/ska_sort.hpp residual/ska_sort.hpp
 
-RUN g++ -O3 -std=c++17 -DNDEBUG -DSECONDARY_PARITY \
+RUN g++ -O3 -std=c++17 -DNDEBUG \
       -I. -Iresidual -Ibaselines \
       -o suite_hybrid scripts/expanded_field_bench_hybrid.cpp \
  && chmod +x reproduce/run_sp.sh
