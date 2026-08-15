@@ -1,5 +1,7 @@
 #pragma once
-/* hybrid_residual_menu v27 + SP dual-evidence. Residual talent drives borderline HE.
+/* hybrid_residual_menu v28 — DEFAULT dual residual production path.
+ * Residual talent drives borderline HE by default.
+ * Escape hatch: -DCLASSICAL_RESIDUAL restores unconditional ska on mid-band HE.
  * Track 3 thresholds ct=0.04 sf=0.005. EXTERNAL-clean. THE BEASTIE BOYZ */
 #include <cstdint>
 #include <cstddef>
@@ -16,9 +18,7 @@
 #include "residual_reverse_segments.hpp"
 #include "residual_mixed_blocks.hpp"
 #include "pdqsort.h"
-#ifdef SECONDARY_PARITY
 #include "secondary_parity.hpp"
-#endif
 namespace hybrid_residual {
 template<typename T> inline bool is_sorted_asc(const T *a, size_t n) {
   for (size_t i=1;i<n;++i) if (a[i]<a[i-1]) return false; return true;}
@@ -52,7 +52,8 @@ template<typename T, typename PureFn> inline int dispatch(T *a, size_t n, PureFn
   if(residual_mixed_blocks::try_mixed_blocks(a,n)) return 0;
   size_t inv,eq,u,desc_runs; T mn,mx; sample_full(a,n,inv,eq,u,desc_runs,mn,mx);
   const size_t S=512; uint64_t dom=domain_of(mn,mx);
-#ifdef SECONDARY_PARITY
+
+  // Dual residual always computed (production default). CLASSICAL_RESIDUAL is escape hatch only.
   float stream[512]; int Tlen=0;
   { size_t step=(n>1024)?(n/512):1; if(step<1) step=1;
     for(size_t i=0;i+step<n && Tlen<512;i+=step){
@@ -65,10 +66,7 @@ template<typename T, typename PureFn> inline int dispatch(T *a, size_t n, PureFn
   const bool dual_owned=classical_owned&&second_solid;
   int residual_talent=0;
   if(dual_owned){ if(std::fabs(sigma_delta)>0.1f) residual_talent=2; else if(classical_score>0.2f) residual_talent=3; else residual_talent=1;}
-#else
-  const bool second_solid=false; const bool dual_owned=false; const int residual_talent=0;
-  (void)second_solid;(void)dual_owned;(void)residual_talent;
-#endif
+
   if(eq*4>=S*3){ pdqsort(a,a+n); return 0;}
   if(dom<=65536ull){ if(try_count_sort(a,n,mn,mx)) return 0;}
   if(u>=(S*50)/100 && inv*10<=S){ pdqsort(a,a+n); return 0;}
@@ -80,13 +78,15 @@ template<typename T, typename PureFn> inline int dispatch(T *a, size_t n, PureFn
       if(ds==0||dinv*50<=ds) return pure_fn(a,n); pdqsort(a,a+n); return 0;}
     pdqsort(a,a+n); return 0;}
   if(u>=(S*50)/100 && inv*5>=S*2){
-#ifdef SECONDARY_PARITY
+#ifdef CLASSICAL_RESIDUAL
+    // Escape hatch: old classical unconditional ska on mid/high unique HE band
+    ska_sort(a,a+n); return 0;
+#else
+    // DEFAULT production: dual residual talent drive on borderline HE
     const bool strong_he=(u>=(S*70)/100)||(inv*3>=S*2);
     if(strong_he){ ska_sort(a,a+n); return 0;}
     if(dual_owned && (residual_talent==3||residual_talent==1)){ ska_sort(a,a+n); return 0;}
     pdqsort(a,a+n); return 0;
-#else
-    ska_sort(a,a+n); return 0;
 #endif
   }
   { size_t dinv=dense_inv(a,n);
