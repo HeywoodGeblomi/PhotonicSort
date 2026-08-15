@@ -1,13 +1,41 @@
 # Build instructions
 
-PhotonicSort ships two layers:
+PhotonicSort ships multiple layers. The **default production sorter** for Field-Level claims is the C++ hybrid residual (dual residual / residual talent).
 
-| Layer | Path | Toolchain |
-|-------|------|-----------|
-| **C11 core** (recommended for performance) | [`c/`](./c/) | C11 compiler (`gcc` / `clang`) + `make` |
-| **Python reference** | [`photonic_sort.py`](./photonic_sort.py) | Python ≥ 3.10 (stdlib only) |
+| Layer | Path | Toolchain | Notes |
+|-------|------|-----------|-------|
+| **C++ hybrid residual (DEFAULT)** | [`residual/`](./residual/) | C++17 + CMake | Dual residual on by default |
+| **C11 core** | [`c/`](./c/) | C11 + make | Solid portable core; not the dual residual path |
+| **Python reference** | [`photonic_sort.py`](./photonic_sort.py) | Python ≥ 3.10 | Pure-Python; `pip install .` |
+| **Rust** | [`rust/`](./rust/) | cargo | C11 path via photonic-sort-sys |
 
-No third-party libraries are required for either layer.
+---
+
+## C++ hybrid residual (stranger path)
+
+```bash
+git clone https://github.com/HeywoodGeblomi/PhotonicSort.git && cd PhotonicSort
+mkdir -p baselines
+curl -fsSL -o baselines/pdqsort.h \
+  https://raw.githubusercontent.com/orlp/pdqsort/master/pdqsort.h
+curl -fsSL -o baselines/ska_sort.hpp \
+  https://raw.githubusercontent.com/skarupke/ska_sort/master/ska_sort.hpp
+
+cmake -B build -DCMAKE_INSTALL_PREFIX=$HOME/.local
+cmake --build build          # builds examples/hybrid_sort if baselines present
+cmake --install build
+```
+
+```cpp
+#include <PhotonicSort/hybrid_residual_menu.hpp>
+hybrid_residual::sort_i64(a, n);  // DEFAULT dual residual
+```
+
+Options:
+- `-DCLASSICAL_RESIDUAL=ON` — escape hatch (unconditional ska on mid-band HE)
+- `-DPHOTONIC_BUILD_EXAMPLES=OFF` — skip example target
+
+No third-party libraries beyond the two baseline headers above.
 
 ---
 
