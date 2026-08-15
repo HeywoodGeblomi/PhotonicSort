@@ -1,48 +1,66 @@
-# Hacker News submission package
+# External shot — PhotonicSort Field-Level dual residual
 
-Submit at: https://news.ycombinator.com/submit  
-Type: **Show HN**
+No hype. Receipts + invitation.
 
-## Title (copy exactly)
+## One-command money-shot
 
-```text
-Show HN: PhotonicSort – adaptive hybrid sort in C11 with structure early-exits
+```bash
+git clone https://github.com/HeywoodGeblomi/PhotonicSort.git && cd PhotonicSort
+docker build -f reproduce/Dockerfile.sp -t photonic-sp .
+docker run --rm photonic-sp
 ```
 
-## URL
+Expected last line:
 
 ```text
-https://heywoodgeblomi.github.io/PhotonicSort/
+SP MONEY-SHOT GREEN charged soft=0 major=0 ok=1
 ```
 
-Fallback:
+Formal R=11 CI:
 
-```text
-https://github.com/HeywoodGeblomi/PhotonicSort
+```bash
+docker run --rm -e STAT_SIG=1 photonic-sp
 ```
 
-## First comment (post immediately after submitting)
+## What is being claimed
 
-```text
-PhotonicSort is a classical adaptive sort: one O(n) disorder probe, then either a structure early-exit (sorted/reverse/long runs) or a stable residual mergesort.
+On a fixed charged surface (17 patterns, n=1e6, both x86_64 and aarch64):
 
-- Production path: C11, libc only (`photonic_sort_i64` in-place)
-- Python: pure stdlib reference (not a CPython C-extension; no GIL involvement)
-- Worst case O(n log n); no P=NP claim; name is metaphor only
+- charged soft@1.20 vs **pdq** = **0**
+- charged major (>1.5×) = **0**
+- ok = 1
 
-On n=1e6 int64, -O3, best of 5 vs libstdc++ std::sort:
-  sorted   ~0.019 ms vs ~15 ms
-  reverse  ~0.44 ms vs ~9 ms
-  random   ~105 ms vs ~78 ms (std::sort wins on unstructured data, as expected)
+Dual residual / residual talent (Secondary Parity σ_Δ + classical probe agreement) is the **default** production path. Classical residual is behind `-DCLASSICAL_RESIDUAL` only.
 
-Repo: https://github.com/HeywoodGeblomi/PhotonicSort
-Benchmarks: https://github.com/HeywoodGeblomi/PhotonicSort/blob/main/BENCHMARKS.md
-Build: cd c && make && make test
+Full claim package: [`docs/field_level/FIELD_LEVEL_CLAIM_v0.5.md`](./docs/field_level/FIELD_LEVEL_CLAIM_v0.5.md)
 
-Happy to answer questions about the probe heuristics or the residual path.
+## What is not being claimed
+
+- Not a universal replacement for pdq / ska / Timsort / std::sort outside the charged surface.
+- Not a complexity theorem.
+- Not asymptotic novelty.
+- Packaging does not expand claims.
+
+EXTERNAL-clean (visible metrics only). No χ.
+
+## Use it
+
+```bash
+# C++ (DEFAULT dual residual)
+mkdir -p baselines
+curl -fsSL -o baselines/pdqsort.h https://raw.githubusercontent.com/orlp/pdqsort/master/pdqsort.h
+curl -fsSL -o baselines/ska_sort.hpp https://raw.githubusercontent.com/skarupke/ska_sort/master/ska_sort.hpp
+cmake -B build -DCMAKE_INSTALL_PREFIX=$HOME/.local && cmake --build build && cmake --install build
 ```
 
-## Notes
+```cpp
+#include <PhotonicSort/hybrid_residual_menu.hpp>
+hybrid_residual::sort_i64(a, n);   // talent path is default
+```
 
-- Weekday morning US time tends to get more eyes; avoid hype words.
-- Respond to technical comments; correct username digs once and move on.
+## Break this or use it
+
+If the money-shot fails on your machine, open an issue with the full log.  
+If you can expand the charged surface or improve high-entropy talent hit rate while staying EXTERNAL-clean, PRs are welcome (see open issues labeled `good first residual talent` / `soft-gate expansion`).
+
+THE BEASTIE BOYZ / Blam · 2026-08-15
