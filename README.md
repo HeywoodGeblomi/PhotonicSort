@@ -13,8 +13,8 @@
 
 ## Field-Level Claim v0.5 — LOCKED
 
-**Secondary Parity dual-evidence** hybrid residual (`-DSECONDARY_PARITY`).  
-**Full charged surface. Zero hard-fail exclusions.**
+**Secondary Parity dual-evidence** hybrid residual — **DEFAULT production path** (PR #167).  
+**Full charged surface. Zero hard-fail exclusions.** Escape hatch only: `-DCLASSICAL_RESIDUAL`.
 
 Full claim: [`docs/field_level/FIELD_LEVEL_CLAIM_v0.5.md`](./docs/field_level/FIELD_LEVEL_CLAIM_v0.5.md)  
 Prior release tag: [**v1.6.0-sp.2**](https://github.com/HeywoodGeblomi/PhotonicSort/releases/tag/v1.6.0-sp.2) (v0.4 surface; v0.5 claim lives on main tip)
@@ -65,7 +65,7 @@ See [`NON_CLAIMS.md`](./NON_CLAIMS.md).
 
 ## What it is
 
-A classical adaptive hybrid sorter: visible-metric probe → residual talent menu (structure early-exit, low-card counting, few-wide, low-disorder, run merge, HE MSD, residual / library pdq). Pure residual path is self-contained; hybrid residual adds Secondary Parity dual-evidence under `-DSECONDARY_PARITY`.
+A classical adaptive hybrid sorter: visible-metric probe → residual talent menu (structure early-exit, low-card counting, few-wide, low-disorder, run merge, HE MSD, residual / library pdq). Pure residual path is self-contained; hybrid residual uses Secondary Parity dual-evidence by **default** (no flag required). Classical escape: `-DCLASSICAL_RESIDUAL`.
 
 | Layer | Role |
 |-------|------|
@@ -77,14 +77,44 @@ A classical adaptive hybrid sorter: visible-metric probe → residual talent men
 
 ---
 
-## Build
+## Install & use the dual residual (C++)
+
+Dual residual / residual talent is the **default production path**. No special flag required.
 
 ```bash
 git clone https://github.com/HeywoodGeblomi/PhotonicSort.git && cd PhotonicSort
-# residual headers under residual/
-# SP hybrid: -DSECONDARY_PARITY (see reproduce/Dockerfile.sp)
-# C11 core (optional): cd c && make && make test
+
+# fetch library baselines once (pdqsort + ska_sort)
+mkdir -p baselines
+curl -fsSL -o baselines/pdqsort.h \
+  https://raw.githubusercontent.com/orlp/pdqsort/master/pdqsort.h
+curl -fsSL -o baselines/ska_sort.hpp \
+  https://raw.githubusercontent.com/skarupke/ska_sort/master/ska_sort.hpp
+
+cmake -B build -DCMAKE_INSTALL_PREFIX=$HOME/.local
+cmake --build build
+cmake --install build
 ```
+
+```cpp
+#include <PhotonicSort/hybrid_residual_menu.hpp>
+// or from source tree: #include "hybrid_residual_menu.hpp"  with -Iresidual -Ibaselines
+
+int64_t a[n] = { /* ... */ };
+hybrid_residual::sort_i64(a, n);   // DEFAULT = dual residual
+```
+
+Escape hatch (classical residual only):
+
+```bash
+cmake -B build -DCLASSICAL_RESIDUAL=ON -DCMAKE_INSTALL_PREFIX=$HOME/.local
+```
+
+C11 core (optional): `cd c && make && make test`  
+Python reference: `pip install .` (pure-Python; dual residual is the C++ path)  
+Rust (C11 path): `cargo add photonic-sort`
+
+See [BUILD.md](./BUILD.md) for Docker stages and full options.
 
 ---
 
