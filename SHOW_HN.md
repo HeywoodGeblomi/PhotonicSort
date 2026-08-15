@@ -10,6 +10,15 @@ docker build -f reproduce/Dockerfile.sp -t photonic-sp .
 docker run --rm photonic-sp
 ```
 
+**Windows:** clone to a short path (e.g. `C:\ps`) or enable long paths so deep trees do not hit `MAX_PATH`:
+
+```powershell
+git -c core.longpaths=true clone https://github.com/HeywoodGeblomi/PhotonicSort.git C:\ps
+cd C:\ps
+docker build -f reproduce/Dockerfile.sp -t photonic-sp .
+docker run --rm photonic-sp
+```
+
 Expected last line:
 
 ```text
