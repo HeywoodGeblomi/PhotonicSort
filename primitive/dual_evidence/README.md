@@ -1,93 +1,37 @@
-# Dual-Evidence Residual Commitment
+# Dual-Evidence Primitive — PUBLIC
 
-**Standalone EXTERNAL-clean primitive.**  
-Odd-restricted contrast (Secondary Parity Signature) as a **second solid** before irreversible residual choice.
+**THE BEASTIE BOYZ / Blam** · EXTERNAL-clean · MIT
 
-PhotonicSort’s `residual/secondary_parity.hpp` is the sorting-domain instance.  
-This package is the domain-agnostic API.
+Secondary Parity second solid: classical metrics **and** σ_Δ must agree before irreversible residual commit.
 
-THE BEASTIE BOYZ / Blam · 2026-08-14
-
----
-
-## Contract
-
-```
-continuous observable stream
-    → threshold / sign-change events
-    → restrict to odd-indexed events
-    → partition by ordinal parity
-    → σ_Δ = mean(even-ordinal) − mean(odd-ordinal)
-
-residual commit iff classical_evidence AND second_solid(σ_Δ)
-```
-
-| State | Meaning |
-|-------|---------|
-| classical only | PREPARED — abatable |
-| classical + strong σ_Δ | OWNED — commit residual talent |
-| weak / missing σ_Δ | no second solid — abate |
-
-Visible metrics only. No χ. No internal irreversible state.
-
----
-
-## Files
-
-| File | Role |
-|------|------|
-| `dual_evidence.hpp` | C++17 header (stream → Sigma → dual_confirm) |
-| `dual_evidence.py` | Python mirror + self-check |
-| `README.md` | this file |
-
----
-
-## Minimal use (C++)
-
-```cpp
-#include "dual_evidence.hpp"
-
-float stream[T]; // continuous disorder / polarity / any scalar probe
-// ... fill stream ...
-auto s = dual_evidence::compute(stream, T, /*threshold*/ 0.05f);
-bool classical = /* your primary evidence */;
-if (dual_evidence::dual_confirm(classical, s.delta)) {
-    // OWNED — commit irreversible residual choice
-} else {
-    // abate — safe residual / defer
-}
-```
-
-## Minimal use (Python)
-
-```python
-from dual_evidence import compute, dual_confirm
-s = compute(stream, c=0.05)
-if dual_confirm(classical, s.delta):
-    commit()
-```
-
----
-
-## Self-check
+## Headliner — spike agent DEATH MATCH
 
 ```bash
-python3 dual_evidence.py
-# expects: SELF-CHECK GREEN
+python3 demo_spike_agent.py
+# classical goals=0/40  wrong=20  cost=180
+# dual      goals=40/40 wrong=0   cost=12
+# VERDICT: DUAL OWNS
 ```
 
----
+Classical chases loud rate. Dual follows structure. Sensitivity is the weapon.
 
-## Non-claims
+→ [`RESULT_SPIKE_AGENT.md`](./RESULT_SPIKE_AGENT.md)
 
-- Not a sorting algorithm.
-- Not a claim that every domain benefits from odd-restricted contrast.
-- Not χ. EXTERNAL-clean only.
-- Orthogonality to classical summaries is stated for sorting probe streams (see `docs/field_level/ORTHOGONALITY_THEOREM.md`); other domains must re-verify separation.
+## Full public surface
 
----
+| Artifact | Role |
+|----------|------|
+| `dual_evidence.py` / `.hpp` | Core primitive |
+| `demo_spike_agent.py` | **Closed-loop death match** |
+| `demo_spike_neuro.py` | Spike-native phase pairs |
+| `demo_neuro_population.py` | Multi-channel + streaming |
+| `demo_neuro_modulated.py` | Priority-ranked modulation |
+| `demo_stream_residual.py` | Sensor-stream residual |
+| `demo_search_residual.py` | Heuristic B&B gate (NOT P=NP) |
+| `harness_search_tree_orthogonality.py` | STO-A residual policy incompleteness |
+| `harness_sto_sensitivity.py` | Sensitivity + minimax under polarity cost |
+| `stress_claim_b_nonstationary.py` | Claim B survival under non-stationary noise |
 
-## Relation to PhotonicSort
+All RESULT_*.md files are public measurement receipts.
 
-Field-Level Claim v0.5 uses this dual-evidence rule inside hybrid residual selection (`-DSECONDARY_PARITY`).  
-This package exists so the **technique** can travel without the sorter.
+**Release the beasts.**
