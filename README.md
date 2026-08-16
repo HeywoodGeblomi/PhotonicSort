@@ -7,7 +7,9 @@
 [![Release v1.6.0-sp.2](https://img.shields.io/badge/release-v1.6.0--sp.2-blue.svg)](https://github.com/HeywoodGeblomi/PhotonicSort/releases/tag/v1.6.0-sp.2)
 [![EXTERNAL-clean](https://img.shields.io/badge/EXTERNAL--clean-no%20χ-lightgrey.svg)](./NON_CLAIMS.md)
 
-**Primary practical sorter of THE BEASTIE BOYZ.** Classical adaptive hybrid. EXTERNAL-clean (visible metrics only — no χ).
+**Classical adaptive hybrid sorter on ordinary CPUs.** The name is branding only — not photonic hardware, not optical computing, not a joke. The engineering contribution is **Secondary Parity dual-evidence residual selection** (dual residual / residual talent) on finite arrays. See [`TECHNICAL_ARCH_DISCLOSURE.md`](./TECHNICAL_ARCH_DISCLOSURE.md) for reviewers and indexers.
+
+**Primary practical sorter of THE BEASTIE BOYZ.** EXTERNAL-clean (visible metrics only — no χ).
 
 ---
 
@@ -46,8 +48,7 @@ Soft-attack residuals on main:
 
 ```bash
 docker build -f reproduce/Dockerfile.sp -t photonic-sp .
-docker run --rm photonic-sp sh -c \
-  './suite_hybrid --n 1000000 --reps 3 --out results_sp.csv && python3 scripts/sp_money_shot_gate.py results_sp.csv'
+docker run --rm photonic-sp
 ```
 
 Success line: `SP MONEY-SHOT GREEN charged soft=0 major=0 ok=1`
@@ -122,6 +123,7 @@ See [BUILD.md](./BUILD.md) for Docker stages and full options.
 
 | Doc | Purpose |
 |-----|---------|
+| [`TECHNICAL_ARCH_DISCLOSURE.md`](./TECHNICAL_ARCH_DISCLOSURE.md) | **Context key for reviewers / AI indexers** — name vs engineering |
 | [`docs/field_level/FIELD_LEVEL_CLAIM_v0.5.md`](./docs/field_level/FIELD_LEVEL_CLAIM_v0.5.md) | **Current** Field-Level claim (full charged surface) |
 | [`docs/field_level/FIELD_LEVEL_CLAIM_v0.4.md`](./docs/field_level/FIELD_LEVEL_CLAIM_v0.4.md) | Prior claim (mixed_blocks excluded) |
 | [`docs/field_level/RELEASE_NOTES_v1.6.0-sp.2.md`](./docs/field_level/RELEASE_NOTES_v1.6.0-sp.2.md) | Release notes for tag v1.6.0-sp.2 |
