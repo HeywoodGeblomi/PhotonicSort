@@ -1,0 +1,47 @@
+# PhotonicSort — containerized deployment
+# EXTERNAL-clean. THE BEASTIE BOYZ
+#
+# Usage:
+#   docker compose up --build runtime          # C11 tests + demo (default)
+#   docker compose up --build runtime-static  # scratch static binaries
+#   docker compose up --build money-shot      # Field-Level hybrid residual gate
+#   docker compose build lib-export           # extract .a + .h via docker cp
+
+services:
+  runtime:
+    build:
+      context: .
+      target: runtime
+    image: photonicsort:runtime
+    container_name: photonicsort-runtime
+
+  runtime-static:
+    build:
+      context: .
+      target: runtime-static
+    image: photonicsort:static
+    container_name: photonicsort-static
+
+  runtime-distroless:
+    build:
+      context: .
+      target: runtime-distroless
+    image: photonicsort:distroless
+    container_name: photonicsort-distroless
+
+  money-shot:
+    build:
+      context: .
+      dockerfile: reproduce/Dockerfile.sp
+    image: photonicsort:money-shot
+    container_name: photonicsort-money-shot
+    environment:
+      - STAT_SIG=${STAT_SIG:-0}
+      - N=${N:-1000000}
+
+  lib-export:
+    build:
+      context: .
+      target: lib-export
+    image: photonicsort:lib
+    profiles: ["lib"]
