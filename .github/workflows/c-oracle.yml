@@ -1,0 +1,31 @@
+# PHO-ACE-001 Phase A — C product API correctness oracle
+# Hard-fails on any mismatch vs libc qsort. H0: sort body unchanged.
+name: c-oracle
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, pho-ace-001]
+    paths:
+      - 'c/**'
+      - '.github/workflows/c-oracle.yml'
+  pull_request:
+    paths:
+      - 'c/**'
+      - '.github/workflows/c-oracle.yml'
+
+jobs:
+  oracle:
+    runs-on: ubuntu-latest
+    name: C API oracle vs qsort
+    steps:
+      - uses: actions/checkout@v4
+      - name: build + oracle n=1e5
+        working-directory: c
+        run: |
+          make oracle
+      - name: assert ALL_CORRECTNESS_OK
+        working-directory: c
+        run: |
+          ./oracle_c_api --n 100000 | tee oracle.out
+          grep -q 'ALL_CORRECTNESS_OK=1' oracle.out
