@@ -28,7 +28,7 @@ ifeq ($(STATIC),1)
   LDFLAGS += -static
 endif
 
-.PHONY: all clean test demo release native static lib install help bench native-bench
+.PHONY: all clean test demo release native static lib install help bench native-bench oracle test-oracle
 
 all: lib demo test_bin
 
@@ -45,6 +45,14 @@ demo: photonic_sort.o examples/demo.c
 
 test_bin: photonic_sort.o tests/test_photonic_sort.c
 	$(CC) $(CFLAGS) tests/test_photonic_sort.c photonic_sort.o -o test_photonic_sort $(LDFLAGS) $(LDLIBS)
+
+oracle_bin: photonic_sort.o tests/oracle_c_api.c
+	$(CC) $(CFLAGS) tests/oracle_c_api.c photonic_sort.o -o oracle_c_api $(LDFLAGS) $(LDLIBS)
+
+oracle: oracle_bin
+	./oracle_c_api --n 100000
+
+test-oracle: oracle
 
 bench_vs_stdlib: photonic_sort.o examples/bench_vs_stdlib.c
 	$(CC) $(CFLAGS) examples/bench_vs_stdlib.c photonic_sort.o -o bench_vs_stdlib $(LDFLAGS) $(LDLIBS)
@@ -88,8 +96,8 @@ install: libphotonic_sort.a photonic_sort.h
 	install -m 644 libphotonic_sort.a $(DESTDIR)$(LIBDIR)/
 
 clean:
-	rm -f photonic_sort.o demo test_photonic_sort libphotonic_sort.a bench_vs_stdlib
+	rm -f photonic_sort.o demo test_photonic_sort libphotonic_sort.a bench_vs_stdlib oracle_c_api
 
 help:
-	@echo "Targets: all lib demo test bench native-bench release static native install clean"
+	@echo "Targets: all lib demo test oracle bench native-bench release static native install clean"
 	@echo "Options: LTO=1  NATIVE=1  STATIC=1  CC=clang  PREFIX=/usr/local"
