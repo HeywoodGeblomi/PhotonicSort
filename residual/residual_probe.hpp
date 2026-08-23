@@ -1,13 +1,11 @@
 #pragma once
 // residual_probe.hpp — two-stage probe helpers for hybrid residual path
-// Ticket B Dual Residual Deepening. EXTERNAL-clean.
+// Ticket B Dual Residual Deepening + Measurement Option 1. EXTERNAL-clean.
 // THE BEASTIE BOYZ 2026-08-23
 //
-// sample_coarse + sample_dense are LIVE infrastructure.
-// Coarse metrics are intentionally NOT yet wired into is_border_he /
-// is_strong_he or absolute thresholds (those remain calibrated to
-// SAMPLE_SIZE=512). Full two-stage activation requires a measurement
-// pass after soft=0 is held on the current surface.
+// sample_coarse returns the actual number of points sampled (for scale).
+// Option 3: raw coarse for conservative early exits only.
+// Option 1: scale inv/u by SAMPLE_SIZE/coarse_count before HE predicates.
 
 #include <cstddef>
 #include <cstdint>
@@ -17,13 +15,14 @@
 
 namespace residual_probe {
 
-// Stage 1: cheap coarse sample (≤64–128 points)
+// Stage 1: cheap coarse sample (≤64–128 points).
+// Returns the actual number of points written into the sample.
 template<typename T>
-inline void sample_coarse(const T* a, size_t n,
-                          size_t& inv, size_t& eq, size_t& u, size_t& desc_runs,
-                          T& mn, T& mx) {
+inline size_t sample_coarse(const T* a, size_t n,
+                            size_t& inv, size_t& eq, size_t& u, size_t& desc_runs,
+                            T& mn, T& mx) {
   inv = eq = desc_runs = 0;
-  if (n < 2) { mn = mx = a[0]; u = 1; return; }
+  if (n < 2) { mn = mx = a[0]; u = 1; return 1; }
   const size_t stride = std::max<size_t>(1, n / residual_policy::COARSE_STRIDE_DIV);
   const size_t max_pts = 128;
   size_t count = 0;
@@ -45,11 +44,12 @@ inline void sample_coarse(const T* a, size_t n,
     if (a[i] > mx) mx = a[i];
     samp[count++] = a[i];
   }
-  if (count == 0) { u = 1; return; }
+  if (count == 0) { u = 1; return 0; }
   std::sort(samp, samp + count);
   u = 1;
   for (size_t c = 1; c < count; ++c)
     if (samp[c] != samp[c - 1]) ++u;
+  return count;
 }
 
 // Stage 2: dense sample up to DENSE_CONFIRM_MAX (mirrors sample_full)
