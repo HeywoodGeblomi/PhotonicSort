@@ -2,6 +2,15 @@
 // residual_probe.hpp — two-stage probe helpers for hybrid residual path
 // Ticket B Dual Residual Deepening. EXTERNAL-clean.
 // THE BEASTIE BOYZ 2026-08-23
+//
+// SOFT-SAFETY NOTE (Ticket B conservative land):
+// sample_coarse + sample_dense are live infrastructure.
+// Production decision path (is_border_he / is_strong_he / absolute inv-u thresholds
+// against SAMPLE_SIZE=512, early exits that touch the charged Field-Level surface)
+// continues to use the calibrated dense / sample_full surface.
+// Coarse metrics are intentionally NOT yet wired into those predicates.
+// Full two-stage activation requires a measurement pass after soft@1.20=0 is held.
+// dual_evidence remains first and unchanged.
 
 #include <cstddef>
 #include <cstdint>
