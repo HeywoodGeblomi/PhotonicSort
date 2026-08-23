@@ -2,7 +2,7 @@
 
 **Adaptive hybrid sorting library** — Secondary Parity dual-evidence residual + pure residual C++ menu + C11 core + Python/Rust bindings.
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+[![License: Dual AGPL/Commercial](https://img.shields.io/badge/License-Dual%20AGPL%2FCommercial-blue.svg)](./LICENSE)
 [![Field-Level Claim v0.5](https://img.shields.io/badge/field--level-claim%20v0.5%20LOCKED-brightgreen.svg)](./docs/field_level/FIELD_LEVEL_CLAIM_v0.5.md)
 [![Release v1.6.0-sp.2](https://img.shields.io/badge/release-v1.6.0--sp.2-blue.svg)](https://github.com/HeywoodGeblomi/PhotonicSort/releases/tag/v1.6.0-sp.2)
 [![EXTERNAL-clean](https://img.shields.io/badge/EXTERNAL--clean-no%20χ-lightgrey.svg)](./NON_CLAIMS.md)
@@ -153,4 +153,11 @@ See [BUILD.md](./BUILD.md) for Docker stages and full options.
 
 ## License
 
-MIT — [LICENSE](./LICENSE).
+**Dual licensed.**
+
+- Non-commercial / research / evaluation / non-production → **AGPLv3** (see [LICENSE](LICENSE) and [LICENSE-AGPL](LICENSE-AGPL))
+- Any commercial use, production deployment, embedding, SaaS, or redistribution as product → **requires a commercial license** from the copyright holder (see [LICENSE-COMMERCIAL](LICENSE-COMMERCIAL) and [COMMERCIAL.md](COMMERCIAL.md)).
+
+Copyright (c) 2026 Heywood Geblomi.
+
+Third-party baselines (pdqsort, ska_sort) retain their original licenses.
