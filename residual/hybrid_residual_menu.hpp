@@ -3,7 +3,7 @@
  * Residual talent drives borderline HE by default.
  * Escape hatch: -DCLASSICAL_RESIDUAL restores unconditional ska on mid-band HE.
  * Track 3 thresholds via residual_policy. EXTERNAL-clean. THE BEASTIE BOYZ
- * Dual Residual Deepening 2026-08-23 — extraction-only wire.
+ * Dual Residual Deepening 2026-08-23 — Phase 2 pure specialist prefer.
  */
 #include <cstdint>
 #include <cstddef>
@@ -22,6 +22,12 @@
 #include "pdqsort.h"
 #include "secondary_parity.hpp"
 #include "residual_policy.hpp"
+#include "residual_few_wide_i64.hpp"
+#include "residual_low_disorder_i64.hpp"
+#include "residual_sparse_i64.hpp"
+#include "residual_adversarial_i64.hpp"
+#include "residual_he_msd_i64.hpp"
+#include "residual_push_middle_i32.hpp"
 
 namespace hybrid_residual {
 
@@ -71,7 +77,6 @@ template<typename T, typename PureFn> inline int dispatch(T *a, size_t n, PureFn
 
   // ── Dual Residual Deepening extraction ──────────────────────────────
   // Single first-class dual_evidence call. All thresholds + talent from residual_policy.
-  // Surface-identical to locked Field-Level Claim v0.5. No pure-specialist prefer yet.
   auto de = secondary_parity::dual_evidence(a, n);
   const bool dual_owned          = de.confirmed;
   const float sigma_delta        = de.sigma_delta;
@@ -100,12 +105,46 @@ template<typename T, typename PureFn> inline int dispatch(T *a, size_t n, PureFn
     if (residual_policy::is_strong_he(u, inv, S)) {
       ska_sort(a,a+n); return 0;
     }
-    // Extraction-only: keep existing talent → ska routing (T1/T3). Pure-specialist prefer is next deepening.
+    // ── Phase 2: pure specialist prefer on dual_owned border HE ──
+    // Prefer pure residual matching talent before library fallback.
+    // soft@1.20 must stay 0. Fall through is intentional.
+    if (dual_owned) {
+      switch (residual_talent) {
+        case residual_policy::ResidualTalent::T1:
+          // few_wide / low_disorder / sparse
+          if constexpr (std::is_same_v<T, int64_t>) {
+            if (residual_few_wide::should_try_few_wide(a, n) &&
+                residual_few_wide::residual_few_wide_i64(a, n)) return 0;
+            if (residual_low_disorder::should_try_low_disorder(a, n) &&
+                residual_low_disorder::residual_low_disorder_i64(a, n)) return 0;
+            if (residual_sparse::residual_sparse_i64(a, n) == 0) return 0;
+          }
+          // i32 / u32 few_wide & low_disorder exist — wire when type matches
+          break;
+        case residual_policy::ResidualTalent::T2:
+          // push_middle / consecutive_perm
+          if constexpr (std::is_same_v<T, int32_t>) {
+            if (residual_push_middle_i32::try_push_middle(a, n)) return 0;
+          }
+          // consecutive_perm_i32 / u32 exist — wire when type matches
+          break;
+        case residual_policy::ResidualTalent::T3:
+          // adversarial / he_msd / mixed recover
+          if constexpr (std::is_same_v<T, int64_t>) {
+            if (residual_adversarial::residual_adversarial_i64(a, n) == 0) return 0;
+            if (residual_he::residual_he_msd_i64(a, n) == 0) return 0;
+          }
+          break;
+        default: break;
+      }
+    }
+    // ── end Phase 2 prefer ─────────────────────────────────────
+    // Existing talent → ska routing stays as the fall-through
     if (dual_owned && (residual_talent == residual_policy::ResidualTalent::T3 ||
                        residual_talent == residual_policy::ResidualTalent::T1)) {
-      ska_sort(a,a+n); return 0;
+      ska_sort(a, a + n); return 0;
     }
-    pdqsort(a,a+n); return 0;
+    pdqsort(a, a + n); return 0;
 #endif
   }
 
