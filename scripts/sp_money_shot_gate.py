@@ -8,6 +8,7 @@ Soft = menu_ms/pdq_ms > threshold on charged patterns.
 Exit 0 iff charged soft=0, major=0, ok=1 full suite.
 
 EXTERNAL-clean. THE BEASTIE BOYZ 2026-08-14
+PHO-EXT-001 Phase 1: + late_phase_shift_mixed_blocks + near_tie_he_odd_starvation
 """
 from __future__ import annotations
 import argparse, csv, sys
@@ -20,6 +21,8 @@ CHARGED = {
     "db_pk", "timestamps",
     "reverse_segments", "equal_heavy",  # v0.4 expansion
     "mixed_blocks",                     # v0.5 promotion (alternating-block residual)
+    "late_phase_shift_mixed_blocks",    # PHO-EXT-001 Phase 1
+    "near_tie_he_odd_starvation",       # PHO-EXT-001 Phase 1
 }
 
 def main() -> int:
