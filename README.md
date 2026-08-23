@@ -13,25 +13,26 @@
 
 ---
 
-## Field-Level Claim v0.5 — LOCKED
+## Field-Level Claim v0.5 — LOCKED (Phase 1 expanded)
 
 **Secondary Parity dual-evidence** hybrid residual — **DEFAULT production path** (PR #167).  
 **Full charged surface. Zero hard-fail exclusions.** Escape hatch only: `-DCLASSICAL_RESIDUAL`.
 
 Full claim: [`docs/field_level/FIELD_LEVEL_CLAIM_v0.5.md`](./docs/field_level/FIELD_LEVEL_CLAIM_v0.5.md)  
+Phase 1 charged expansion: [`docs/field_level/FIELD_LEVEL_CLAIM_v0.5_PHASE1.md`](./docs/field_level/FIELD_LEVEL_CLAIM_v0.5_PHASE1.md) (tip 3c43b0c8 / PR #177)  
 Prior release tag: [**v1.6.0-sp.2**](https://github.com/HeywoodGeblomi/PhotonicSort/releases/tag/v1.6.0-sp.2) (v0.4 surface; v0.5 claim lives on main tip)
 
 | Gate | Result |
 |------|--------|
 | Charged soft@1.20 vs **pdq** (x86_64 + aarch64) | **0** |
 | Charged major (>1.5×) | **0** |
-| Money-shot multi-arch (v0.5 CHARGED) | [run 31807222980](https://github.com/HeywoodGeblomi/PhotonicSort/actions/runs/31807222980) ALL GREEN |
+| Money-shot multi-arch (v0.5 + Phase 1 CHARGED) | tip 3c43b0c8 Actions GREEN |
 | Stat-sig R=11 bootstrap CI (prior surface) | GREEN both ISAs |
 | Wave 0 independent host (Windows Docker) | GREEN |
 
-### Charged surface (hard-fail) — v0.5
+### Charged surface (hard-fail) — v0.5 + Phase 1
 
-sorted · reverse · almost_sorted · few_k4_dense · few_k16_dense · organpipe · sawtooth · push_middle · runs_noise · random · gaussianish · adversarial · db_pk · timestamps · reverse_segments · equal_heavy · **mixed_blocks**
+sorted · reverse · almost_sorted · few_k4_dense · few_k16_dense · organpipe · sawtooth · push_middle · runs_noise · random · gaussianish · adversarial · db_pk · timestamps · reverse_segments · equal_heavy · mixed_blocks · **late_phase_shift_mixed_blocks** · **near_tie_he_odd_starvation**
 
 **Hard-fail exclusions:** *none*
 
@@ -125,6 +126,7 @@ See [BUILD.md](./BUILD.md) for Docker stages and full options.
 |-----|---------|
 | [`TECHNICAL_ARCH_DISCLOSURE.md`](./TECHNICAL_ARCH_DISCLOSURE.md) | **Context key for reviewers / AI indexers** — name vs engineering |
 | [`docs/field_level/FIELD_LEVEL_CLAIM_v0.5.md`](./docs/field_level/FIELD_LEVEL_CLAIM_v0.5.md) | **Current** Field-Level claim (full charged surface) |
+| [`docs/field_level/FIELD_LEVEL_CLAIM_v0.5_PHASE1.md`](./docs/field_level/FIELD_LEVEL_CLAIM_v0.5_PHASE1.md) | Phase 1 charged expansion (late_phase_shift + near_tie_he) |
 | [`docs/field_level/FIELD_LEVEL_CLAIM_v0.4.md`](./docs/field_level/FIELD_LEVEL_CLAIM_v0.4.md) | Prior claim (mixed_blocks excluded) |
 | [`docs/field_level/RELEASE_NOTES_v1.6.0-sp.2.md`](./docs/field_level/RELEASE_NOTES_v1.6.0-sp.2.md) | Release notes for tag v1.6.0-sp.2 |
 | [`docs/field_level/SP_MULTI_ARCH.md`](./docs/field_level/SP_MULTI_ARCH.md) | Multi-arch money-shot protocol |
