@@ -1,5 +1,6 @@
 // Expanded Field Suite — hybrid residual path-(a) harness
 // EXTERNAL-clean. THE BEASTIE BOYZ 2026-08-12
+// PHO-EXT-001 Phase 1: + late_phase_shift_mixed_blocks + near_tie_he_odd_starvation
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -16,6 +17,7 @@
 #include "residual/pure_residual_menu_i32.hpp"
 #include "residual/pure_residual_menu_u32.hpp"
 #include "residual/hybrid_residual_menu.hpp"
+#include "reproduce/phase1_regime_shift_gens.hpp"
 
 static size_t n = 1000000;
 static int reps = 5;
@@ -197,9 +199,8 @@ void row(FILE *csv, const char *type, const char *pat, std::vector<T> base, Menu
   double ratio = m / best;
   fprintf(csv, "%s,%s,%s,%zu,%d,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%d\n",
           arch_name(), type, pat, n, reps, m, p, s, t, best, ratio, ok);
-  printf("%s %-4s %-18s ratio=%.3f ok=%d%s\n", arch_name(), type, pat, ratio, ok,
+  printf("%s %-4s %-32s ratio=%.3f ok=%d%s\n", arch_name(), type, pat, ratio, ok,
          ratio > 1.15 ? " SOFT" : "");
-  // Stat-sig raw: paired trial times for bootstrap CI on ratio_pdq = menu/pdq
   if (g_raw) {
     size_t R = std::min(tm.size(), tp.size());
     for (size_t i = 0; i < R; ++i) {
@@ -235,6 +236,9 @@ void suite_int(FILE *csv, const char *type, size_t n, int reps, MenuFn menu, boo
   row(csv, type, "timestamp_drift", gen_timestamp_drift<T>(n), menu, reps, use_ska);
   row(csv, type, "mixed_blocks", gen_mixed_blocks<T>(n), menu, reps, use_ska);
   row(csv, type, "uniform_u32", gen_uniform_u32_style<T>(n), menu, reps, use_ska);
+  // PHO-EXT-001 Phase 1 regime-shift patterns (force contested dual_owned=false band)
+  row(csv, type, "late_phase_shift_mixed_blocks", photonic::phase1::gen_late_phase_shift_mixed_blocks<T>(n), menu, reps, use_ska);
+  row(csv, type, "near_tie_he_odd_starvation", photonic::phase1::gen_near_tie_he_odd_starvation<T>(n), menu, reps, use_ska);
 }
 
 int main(int argc, char **argv) {
@@ -256,7 +260,7 @@ int main(int argc, char **argv) {
     fprintf(g_raw, "arch,type,pattern,n,trial,menu_ms,pdq_ms,ratio_pdq\n");
   }
   fprintf(csv, "arch,type,pattern,n,reps,menu_ms,pdq_ms,ska_ms,std_ms,best_ms,ratio_best,ok\n");
-  printf("# expanded_field_bench hybrid arch=%s n=%zu reps=%d patterns=23 raw=%s\n",
+  printf("# expanded_field_bench hybrid arch=%s n=%zu reps=%d patterns=25 raw=%s\n",
          arch_name(), n, reps, raw_out ? raw_out : "off");
   if (!only || !strcmp(only, "i64"))
     suite_int<int64_t>(csv, "i64", n, reps, [](int64_t *a, size_t nn) { hybrid_residual::sort_i64(a, nn); }, true);
