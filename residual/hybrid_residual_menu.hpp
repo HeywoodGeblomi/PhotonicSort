@@ -3,13 +3,14 @@
  * Residual talent drives borderline HE by default.
  * Escape hatch: -DCLASSICAL_RESIDUAL restores unconditional ska on mid-band HE.
  * Track 3 thresholds via residual_policy. EXTERNAL-clean. THE BEASTIE BOYZ
- * Dual Residual Deepening 2026-08-23 — Phase 2 prefer + Ticket B probe helpers.
+ * Dual Residual Deepening 2026-08-23 — Phase 2 prefer + Ticket B probe helpers
+ * + Measurement Option 3 (coarse only for conservative early exits).
  *
- * Ticket B note: residual_probe.hpp provides sample_coarse + sample_dense.
- * Coarse metrics are intentionally NOT yet wired into is_border_he / is_strong_he
- * or the absolute thresholds (those remain calibrated to SAMPLE_SIZE=512).
- * Full two-stage activation requires a measurement pass after soft=0 is held.
- * Production path continues to use sample_full for the charged decision surface.
+ * Measurement Option 3 (locked):
+ * sample_coarse is used ONLY for conservative early exits that never touch the
+ * charged Field-Level band. is_border_he / is_strong_he / absolute thresholds
+ * remain fed exclusively by calibrated sample_full (SAMPLE_SIZE=512).
+ * dual_evidence + Phase 1 extraction + Phase 2 pure specialist prefer unchanged.
  */
 #include <cstdint>
 #include <cstddef>
@@ -77,9 +78,20 @@ template<typename T, typename PureFn> inline int dispatch(T *a, size_t n, PureFn
   if(residual_reverse_segments::try_reverse_segments(a,n)) return 0;
   if(residual_mixed_blocks::try_mixed_blocks(a,n)) return 0;
 
-  // Production path: calibrated dense sample (SAMPLE_SIZE=512) for HE predicates
-  // and absolute thresholds. sample_coarse is available but not yet wired into
-  // is_border_he / is_strong_he (soft-safety). Full two-stage activation deferred.
+  // Measurement Option 3: coarse only for conservative early exits that never
+  // touch the charged band. If coarse shows zero inversions, the array is
+  // extremely structured; fall through to pure residual (already a safe path).
+  // is_border_he / is_strong_he remain fed exclusively by calibrated sample_full.
+  {
+    size_t c_inv=0, c_eq=0, c_u=0, c_desc=0; T c_mn, c_mx;
+    residual_probe::sample_coarse(a, n, c_inv, c_eq, c_u, c_desc, c_mn, c_mx);
+    if (c_inv == 0 && c_u <= 4) {
+      // Extreme structure on coarse sample → pure residual (never HE band)
+      return pure_fn(a, n);
+    }
+  }
+
+  // Production charged path: calibrated dense sample (SAMPLE_SIZE=512)
   size_t inv,eq,u,desc_runs; T mn,mx;
   sample_full(a,n,inv,eq,u,desc_runs,mn,mx);
   const size_t S = residual_policy::SAMPLE_SIZE;
