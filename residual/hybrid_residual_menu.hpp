@@ -4,13 +4,12 @@
  * Escape hatch: -DCLASSICAL_RESIDUAL restores unconditional ska on mid-band HE.
  * Track 3 thresholds via residual_policy. EXTERNAL-clean. THE BEASTIE BOYZ
  * Dual Residual Deepening 2026-08-23 — Phase 2 prefer + Ticket B probe helpers
- * + Measurement Option 3 (coarse only for conservative early exits).
+ * + Measurement Option 3 (conservative early exit)
+ * + Measurement Option 1 (scale coarse inv/u before HE predicates).
  *
- * Measurement Option 3 (locked):
- * sample_coarse is used ONLY for conservative early exits that never touch the
- * charged Field-Level band. is_border_he / is_strong_he / absolute thresholds
- * remain fed exclusively by calibrated sample_full (SAMPLE_SIZE=512).
- * dual_evidence + Phase 1 extraction + Phase 2 pure specialist prefer unchanged.
+ * Option 1: scaled_inv / scaled_u feed ONLY is_border_he / is_strong_he and
+ * absolute HE thresholds. dual_evidence + Phase 1+2 prefer untouched.
+ * sample_full still supplies eq / desc_runs / domain for non-HE paths.
  */
 #include <cstdint>
 #include <cstddef>
@@ -78,23 +77,22 @@ template<typename T, typename PureFn> inline int dispatch(T *a, size_t n, PureFn
   if(residual_reverse_segments::try_reverse_segments(a,n)) return 0;
   if(residual_mixed_blocks::try_mixed_blocks(a,n)) return 0;
 
-  // Measurement Option 3: coarse only for conservative early exits that never
-  // touch the charged band. If coarse shows zero inversions, the array is
-  // extremely structured; fall through to pure residual (already a safe path).
-  // is_border_he / is_strong_he remain fed exclusively by calibrated sample_full.
-  {
-    size_t c_inv=0, c_eq=0, c_u=0, c_desc=0; T c_mn, c_mx;
-    residual_probe::sample_coarse(a, n, c_inv, c_eq, c_u, c_desc, c_mn, c_mx);
-    if (c_inv == 0 && c_u <= 4) {
-      // Extreme structure on coarse sample → pure residual (never HE band)
-      return pure_fn(a, n);
-    }
+  // Coarse sample + Option 3 early exit (raw counts)
+  size_t c_inv=0, c_eq=0, c_u=0, c_desc=0; T c_mn, c_mx;
+  size_t coarse_count = residual_probe::sample_coarse(a, n, c_inv, c_eq, c_u, c_desc, c_mn, c_mx);
+  if (c_inv == 0 && c_u <= 4) {
+    return pure_fn(a, n);  // Option 3: extreme structure, never HE band
   }
 
-  // Production charged path: calibrated dense sample (SAMPLE_SIZE=512)
+  // Measurement Option 1: scale coarse inv/u to SAMPLE_SIZE space
+  const size_t S = residual_policy::SAMPLE_SIZE;
+  double scale = (double)S / (double)std::max(size_t(1), coarse_count);
+  size_t scaled_inv = (size_t)(c_inv * scale + 0.5);
+  size_t scaled_u   = (size_t)(c_u * scale + 0.5);
+
+  // sample_full for eq / desc_runs / domain on non-HE paths
   size_t inv,eq,u,desc_runs; T mn,mx;
   sample_full(a,n,inv,eq,u,desc_runs,mn,mx);
-  const size_t S = residual_policy::SAMPLE_SIZE;
   uint64_t dom = domain_of(mn,mx);
 
   // Dual evidence (unchanged)
@@ -104,6 +102,7 @@ template<typename T, typename PureFn> inline int dispatch(T *a, size_t n, PureFn
 
   if(eq*4 >= S*3){ pdqsort(a,a+n); return 0;}
   if(dom <= residual_policy::COUNT_DOMAIN_MAX){ if(try_count_sort(a,n,mn,mx)) return 0;}
+  // Absolute thresholds that use inv/u for structure — keep dense for non-HE safety
   if(u >= (S*50)/100 && inv*10 <= S){ pdqsort(a,a+n); return 0;}
   if(u <= 32){ if(dom <= residual_policy::COUNT_DOMAIN_MAX && try_count_sort(a,n,mn,mx)) return 0; return pure_fn(a,n);}
   if(u <= 128 && inv*2 >= S && inv*2 <= S) return pure_fn(a,n);
@@ -113,12 +112,12 @@ template<typename T, typename PureFn> inline int dispatch(T *a, size_t n, PureFn
       if(ds==0 || dinv*50 <= ds) return pure_fn(a,n); pdqsort(a,a+n); return 0;}
     pdqsort(a,a+n); return 0;}
 
-  // Border HE band (exact policy predicate — still calibrated to S=512)
-  if (residual_policy::is_border_he(u, inv, S)) {
+  // HE band — Option 1: use scaled coarse metrics for is_border_he / is_strong_he
+  if (residual_policy::is_border_he(scaled_u, scaled_inv, S)) {
 #ifdef CLASSICAL_RESIDUAL
     ska_sort(a,a+n); return 0;
 #else
-    if (residual_policy::is_strong_he(u, inv, S)) {
+    if (residual_policy::is_strong_he(scaled_u, scaled_inv, S)) {
       ska_sort(a,a+n); return 0;
     }
     // Phase 2 pure specialist prefer (untouched)
@@ -157,7 +156,7 @@ template<typename T, typename PureFn> inline int dispatch(T *a, size_t n, PureFn
 
   { size_t dinv = dense_inv(a,n);
     if (dom <= (uint64_t)n*2ull && dinv >= 100) {
-      if (residual_policy::is_strong_he(u, inv, S) && residual_policy::is_border_he(u, inv, S))
+      if (residual_policy::is_strong_he(scaled_u, scaled_inv, S) && residual_policy::is_border_he(scaled_u, scaled_inv, S))
         ska_sort(a,a+n);
       else
         pdqsort(a,a+n);

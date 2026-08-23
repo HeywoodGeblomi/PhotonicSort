@@ -3,9 +3,8 @@
 // Ticket B Dual Residual Deepening + Measurement Option 1. EXTERNAL-clean.
 // THE BEASTIE BOYZ 2026-08-23
 //
-// sample_coarse returns the actual number of points sampled (for scale).
-// Option 3: raw coarse for conservative early exits only.
-// Option 1: scale inv/u by SAMPLE_SIZE/coarse_count before HE predicates.
+// sample_coarse returns the actual number of points sampled (coarse_count).
+// Measurement Option 1 scales inv/u by SAMPLE_SIZE/coarse_count before HE predicates.
 
 #include <cstddef>
 #include <cstdint>
@@ -15,8 +14,7 @@
 
 namespace residual_probe {
 
-// Stage 1: cheap coarse sample (≤64–128 points).
-// Returns the actual number of points written into the sample.
+// Stage 1: cheap coarse sample (≤64–128 points). Returns actual point count.
 template<typename T>
 inline size_t sample_coarse(const T* a, size_t n,
                             size_t& inv, size_t& eq, size_t& u, size_t& desc_runs,
