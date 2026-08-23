@@ -3,14 +3,11 @@
 // Ticket B Dual Residual Deepening. EXTERNAL-clean.
 // THE BEASTIE BOYZ 2026-08-23
 //
-// SOFT-SAFETY NOTE (Ticket B conservative land):
-// sample_coarse + sample_dense are live infrastructure.
-// Production decision path (is_border_he / is_strong_he / absolute inv-u thresholds
-// against SAMPLE_SIZE=512, early exits that touch the charged Field-Level surface)
-// continues to use the calibrated dense / sample_full surface.
-// Coarse metrics are intentionally NOT yet wired into those predicates.
-// Full two-stage activation requires a measurement pass after soft@1.20=0 is held.
-// dual_evidence remains first and unchanged.
+// sample_coarse + sample_dense are LIVE infrastructure.
+// Coarse metrics are intentionally NOT yet wired into is_border_he /
+// is_strong_he or absolute thresholds (those remain calibrated to
+// SAMPLE_SIZE=512). Full two-stage activation requires a measurement
+// pass after soft=0 is held on the current surface.
 
 #include <cstddef>
 #include <cstdint>
@@ -55,7 +52,7 @@ inline void sample_coarse(const T* a, size_t n,
     if (samp[c] != samp[c - 1]) ++u;
 }
 
-// Stage 2: dense sample up to DENSE_CONFIRM_MAX (current sample_full behaviour)
+// Stage 2: dense sample up to DENSE_CONFIRM_MAX (mirrors sample_full)
 template<typename T>
 inline void sample_dense(const T* a, size_t n,
                          size_t& inv, size_t& eq, size_t& u, size_t& desc_runs,

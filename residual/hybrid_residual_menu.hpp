@@ -3,7 +3,13 @@
  * Residual talent drives borderline HE by default.
  * Escape hatch: -DCLASSICAL_RESIDUAL restores unconditional ska on mid-band HE.
  * Track 3 thresholds via residual_policy. EXTERNAL-clean. THE BEASTIE BOYZ
- * Dual Residual Deepening 2026-08-23 — Phase 2 pure specialist prefer.
+ * Dual Residual Deepening 2026-08-23 — Phase 2 prefer + Ticket B probe helpers.
+ *
+ * Ticket B note: residual_probe.hpp provides sample_coarse + sample_dense.
+ * Coarse metrics are intentionally NOT yet wired into is_border_he / is_strong_he
+ * or the absolute thresholds (those remain calibrated to SAMPLE_SIZE=512).
+ * Full two-stage activation requires a measurement pass after soft=0 is held.
+ * Production path continues to use sample_full for the charged decision surface.
  */
 #include <cstdint>
 #include <cstddef>
@@ -22,6 +28,7 @@
 #include "pdqsort.h"
 #include "secondary_parity.hpp"
 #include "residual_policy.hpp"
+#include "residual_probe.hpp"
 #include "residual_few_wide_i64.hpp"
 #include "residual_low_disorder_i64.hpp"
 #include "residual_sparse_i64.hpp"
@@ -70,19 +77,18 @@ template<typename T, typename PureFn> inline int dispatch(T *a, size_t n, PureFn
   if(residual_reverse_segments::try_reverse_segments(a,n)) return 0;
   if(residual_mixed_blocks::try_mixed_blocks(a,n)) return 0;
 
+  // Production path: calibrated dense sample (SAMPLE_SIZE=512) for HE predicates
+  // and absolute thresholds. sample_coarse is available but not yet wired into
+  // is_border_he / is_strong_he (soft-safety). Full two-stage activation deferred.
   size_t inv,eq,u,desc_runs; T mn,mx;
   sample_full(a,n,inv,eq,u,desc_runs,mn,mx);
   const size_t S = residual_policy::SAMPLE_SIZE;
   uint64_t dom = domain_of(mn,mx);
 
-  // ── Dual Residual Deepening extraction ──────────────────────────────
-  // Single first-class dual_evidence call. All thresholds + talent from residual_policy.
+  // Dual evidence (unchanged)
   auto de = secondary_parity::dual_evidence(a, n);
   const bool dual_owned          = de.confirmed;
-  const float sigma_delta        = de.sigma_delta;
-  const float classical_score    = de.classical_score;
   const residual_policy::ResidualTalent residual_talent = de.suggested;
-  // ────────────────────────────────────────────────────────────────────
 
   if(eq*4 >= S*3){ pdqsort(a,a+n); return 0;}
   if(dom <= residual_policy::COUNT_DOMAIN_MAX){ if(try_count_sort(a,n,mn,mx)) return 0;}
@@ -95,23 +101,18 @@ template<typename T, typename PureFn> inline int dispatch(T *a, size_t n, PureFn
       if(ds==0 || dinv*50 <= ds) return pure_fn(a,n); pdqsort(a,a+n); return 0;}
     pdqsort(a,a+n); return 0;}
 
-  // Border HE band (exact policy predicate)
+  // Border HE band (exact policy predicate — still calibrated to S=512)
   if (residual_policy::is_border_he(u, inv, S)) {
 #ifdef CLASSICAL_RESIDUAL
-    // Escape hatch: unconditional ska on mid/high unique HE band
     ska_sort(a,a+n); return 0;
 #else
-    // DEFAULT production: dual residual talent drive on borderline HE
     if (residual_policy::is_strong_he(u, inv, S)) {
       ska_sort(a,a+n); return 0;
     }
-    // ── Phase 2: pure specialist prefer on dual_owned border HE ──
-    // Prefer pure residual matching talent before library fallback.
-    // soft@1.20 must stay 0. Fall through is intentional.
+    // Phase 2 pure specialist prefer (untouched)
     if (dual_owned) {
       switch (residual_talent) {
         case residual_policy::ResidualTalent::T1:
-          // few_wide / low_disorder / sparse
           if constexpr (std::is_same_v<T, int64_t>) {
             if (residual_few_wide::should_try_few_wide(a, n) &&
                 residual_few_wide::residual_few_wide_i64(a, n)) return 0;
@@ -119,17 +120,13 @@ template<typename T, typename PureFn> inline int dispatch(T *a, size_t n, PureFn
                 residual_low_disorder::residual_low_disorder_i64(a, n)) return 0;
             if (residual_sparse::residual_sparse_i64(a, n) == 0) return 0;
           }
-          // i32 / u32 few_wide & low_disorder exist — wire when type matches
           break;
         case residual_policy::ResidualTalent::T2:
-          // push_middle / consecutive_perm
           if constexpr (std::is_same_v<T, int32_t>) {
             if (residual_push_middle_i32::try_push_middle(a, n)) return 0;
           }
-          // consecutive_perm_i32 / u32 exist — wire when type matches
           break;
         case residual_policy::ResidualTalent::T3:
-          // adversarial / he_msd / mixed recover
           if constexpr (std::is_same_v<T, int64_t>) {
             if (residual_adversarial::residual_adversarial_i64(a, n) == 0) return 0;
             if (residual_he::residual_he_msd_i64(a, n) == 0) return 0;
@@ -138,8 +135,6 @@ template<typename T, typename PureFn> inline int dispatch(T *a, size_t n, PureFn
         default: break;
       }
     }
-    // ── end Phase 2 prefer ─────────────────────────────────────
-    // Existing talent → ska routing stays as the fall-through
     if (dual_owned && (residual_talent == residual_policy::ResidualTalent::T3 ||
                        residual_talent == residual_policy::ResidualTalent::T1)) {
       ska_sort(a, a + n); return 0;
