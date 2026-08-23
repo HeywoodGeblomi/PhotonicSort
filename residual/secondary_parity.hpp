@@ -2,15 +2,17 @@
 /*
  * secondary_parity.hpp — Secondary Parity Signature (σ / σ_Δ)
  * EXTERNAL-clean. Visible metrics only. Flag-gated use in residual menus.
- * THE BEASTIE BOYZ 2026-08-13
+ * THE BEASTIE BOYZ 2026-08-13 / Dual Residual Deepening 2026-08-23
  *
  * Formal definition locked in SECONDARY_PARITY_SIGNATURE_PHASE0.md
  * Event logic matches the verified Python generator (Claim A GREEN on F1/F2).
+ * DualEvidence API added: polarity → compute → dual_confirm → residual_policy talent.
  */
 #include <cstddef>
 #include <cstdint>
 #include <cmath>
 #include <algorithm>
+#include "residual_policy.hpp"
 
 #ifndef SECONDARY_PARITY_MAX_EVENTS
 #define SECONDARY_PARITY_MAX_EVENTS 512
@@ -25,10 +27,17 @@ struct Sigma {
     int   n_odd_events = 0;
 };
 
+struct DualEvidence {
+    bool confirmed = false;
+    float sigma_delta = 0.f;
+    residual_policy::ResidualTalent suggested = residual_policy::ResidualTalent::None;
+    float classical_score = 0.f;
+};
+
 /** Compute σ from a continuous stream of local disorder metrics.
  *  stream[0..T), threshold c.
  *  Events = threshold crossings (or sign changes when c≈0).
- *  Restrict to odd-indexed events; partition those by ordinal parity;
+ *  Restrict to even-indexed events of the event list; partition those by ordinal parity;
  *  return contrast of means.
  */
 inline Sigma compute(const float* stream, int T, float c = 0.05f) {
@@ -47,20 +56,20 @@ inline Sigma compute(const float* stream, int T, float c = 0.05f) {
     }
     if (ne < 4) return s;
 
-    // Odd-indexed events of the full event list (0-based even indices = 1st, 3rd, ...)
-    int odd_events[SECONDARY_PARITY_MAX_EVENTS / 2];
+    // Even indices of the full event list (0-based: 0,2,4… = 1st, 3rd, … events)
+    int even_event_indices[SECONDARY_PARITY_MAX_EVENTS / 2];
     int no = 0;
     for (int i = 0; i < ne; i += 2) {
-        if (no < (int)(sizeof(odd_events)/sizeof(odd_events[0])))
-            odd_events[no++] = events[i];
+        if (no < (int)(sizeof(even_event_indices)/sizeof(even_event_indices[0])))
+            even_event_indices[no++] = events[i];
     }
     if (no < 2) return s;
 
     float sum_even = 0.f, sum_odd = 0.f;
     int n_even = 0, n_odd = 0;
     for (int i = 0; i < no; ++i) {
-        float val = stream[odd_events[i]];
-        if ((i % 2) == 0) { sum_even += val; ++n_even; }  // even ordinal among odd-events
+        float val = stream[even_event_indices[i]];
+        if ((i % 2) == 0) { sum_even += val; ++n_even; }  // even ordinal among selected events
         else              { sum_odd  += val; ++n_odd;  }
     }
     s.even_mean = n_even ? sum_even / n_even : 0.f;
@@ -111,6 +120,33 @@ inline bool dual_confirm(bool classical, float sigma_delta,
     if (expected_polarity == 0.f)
         return true;  // any strong σ_Δ counts as second solid
     return (sigma_delta * expected_polarity) > 0.f;
+}
+
+/** First-class dual evidence: polarity stream → σ_Δ → dual_confirm → talent suggestion.
+ *  Matches live hybrid_residual_menu v28 polarity construction (stride n/SAMPLE_SIZE).
+ */
+template <typename T>
+inline DualEvidence dual_evidence(const T* a, size_t n,
+                                  size_t max_events = SECONDARY_PARITY_MAX_EVENTS,
+                                  float classical_thresh = residual_policy::CLASSICAL_OWNED_THRESH,
+                                  float sigma_floor = residual_policy::SECOND_SOLID_FLOOR) {
+    DualEvidence de;
+    if (n < 2 || max_events < 4) return de;
+    float stream[SECONDARY_PARITY_MAX_EVENTS];
+    size_t stride = (n > 1024) ? (n / residual_policy::SAMPLE_SIZE) : 1;
+    if (stride < 1) stride = 1;
+    int Tlen = polarity_stream_strided(a, n, stride, stream,
+        (int)std::min(max_events, (size_t)SECONDARY_PARITY_MAX_EVENTS));
+    if (Tlen < 4) return de;
+    Sigma sig = compute(stream, Tlen, 0.f);
+    de.sigma_delta = sig.delta;
+    float sum = 0.f;
+    for (int i = 0; i < Tlen; ++i) sum += std::fabs(stream[i]);
+    de.classical_score = sum / (float)Tlen;
+    bool classical = de.classical_score > classical_thresh;
+    de.confirmed = dual_confirm(classical, de.sigma_delta, 0.f, sigma_floor);
+    de.suggested = residual_policy::compute_talent(de.classical_score, de.sigma_delta, de.confirmed);
+    return de;
 }
 
 } // namespace secondary_parity
