@@ -1,6 +1,7 @@
 // Expanded Field Suite — hybrid residual path-(a) harness
 // EXTERNAL-clean. THE BEASTIE BOYZ 2026-08-12
 // PHO-EXT-001 Phase 1: + late_phase_shift_mixed_blocks + near_tie_he_odd_starvation
+// PHO-EXT-002 Phase 2: + late_phase_shift_dense + near_tie_he_even_starvation
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -239,6 +240,9 @@ void suite_int(FILE *csv, const char *type, size_t n, int reps, MenuFn menu, boo
   // PHO-EXT-001 Phase 1 regime-shift patterns (force contested dual_owned=false band)
   row(csv, type, "late_phase_shift_mixed_blocks", photonic::phase1::gen_late_phase_shift_mixed_blocks<T>(n), menu, reps, use_ska);
   row(csv, type, "near_tie_he_odd_starvation", photonic::phase1::gen_near_tie_he_odd_starvation<T>(n), menu, reps, use_ska);
+  // PHO-EXT-002 Phase 2 / Tranche 2 — dual_owned boundary stress (pure dual-evidence)
+  row(csv, type, "late_phase_shift_dense", photonic::phase1::gen_late_phase_shift_dense<T>(n), menu, reps, use_ska);
+  row(csv, type, "near_tie_he_even_starvation", photonic::phase1::gen_near_tie_he_even_starvation<T>(n), menu, reps, use_ska);
 }
 
 int main(int argc, char **argv) {
@@ -260,7 +264,7 @@ int main(int argc, char **argv) {
     fprintf(g_raw, "arch,type,pattern,n,trial,menu_ms,pdq_ms,ratio_pdq\n");
   }
   fprintf(csv, "arch,type,pattern,n,reps,menu_ms,pdq_ms,ska_ms,std_ms,best_ms,ratio_best,ok\n");
-  printf("# expanded_field_bench hybrid arch=%s n=%zu reps=%d patterns=25 raw=%s\n",
+  printf("# expanded_field_bench hybrid arch=%s n=%zu reps=%d patterns=27 raw=%s\n",
          arch_name(), n, reps, raw_out ? raw_out : "off");
   if (!only || !strcmp(only, "i64"))
     suite_int<int64_t>(csv, "i64", n, reps, [](int64_t *a, size_t nn) { hybrid_residual::sort_i64(a, nn); }, true);
