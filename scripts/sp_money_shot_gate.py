@@ -9,6 +9,7 @@ Exit 0 iff charged soft=0, major=0, ok=1 full suite.
 
 EXTERNAL-clean. THE BEASTIE BOYZ 2026-08-14
 PHO-EXT-001 Phase 1: + late_phase_shift_mixed_blocks + near_tie_he_odd_starvation
+PHO-EXT-002 Phase 2: + late_phase_shift_dense + near_tie_he_even_starvation
 """
 from __future__ import annotations
 import argparse, csv, sys
@@ -23,6 +24,8 @@ CHARGED = {
     "mixed_blocks",                     # v0.5 promotion (alternating-block residual)
     "late_phase_shift_mixed_blocks",    # PHO-EXT-001 Phase 1
     "near_tie_he_odd_starvation",       # PHO-EXT-001 Phase 1
+    "late_phase_shift_dense",           # PHO-EXT-002 Phase 2
+    "near_tie_he_even_starvation",      # PHO-EXT-002 Phase 2
 }
 
 def main() -> int:
@@ -64,4 +67,4 @@ def main() -> int:
     return 0
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())
