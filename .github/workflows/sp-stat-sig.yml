@@ -38,7 +38,7 @@ jobs:
       - name: Install toolchain
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq g++ make curl ca-certificates python3
+          sudo apt-get install -y -qq g++ make python3
 
       - name: Fingerprint
         run: |
@@ -54,14 +54,13 @@ jobs:
             g++ --version | head -1
           } | tee fingerprint.txt
 
-      - name: Fetch baselines
+      - name: Fetch baselines (vendored — zero network)
         run: |
           mkdir -p baselines residual
-          curl -fsSL -o baselines/pdqsort.h \
-            https://raw.githubusercontent.com/orlp/pdqsort/master/pdqsort.h
-          curl -fsSL -o baselines/ska_sort.hpp \
-            https://raw.githubusercontent.com/skarupke/ska_sort/master/ska_sort.hpp
-          cp baselines/ska_sort.hpp residual/ska_sort.hpp
+          # residual/baselines/ is SHA-pinned; do not curl at build time
+          cp residual/baselines/pdqsort.h baselines/pdqsort.h
+          cp residual/baselines/ska_sort.hpp baselines/ska_sort.hpp
+          cp residual/baselines/ska_sort.hpp residual/ska_sort.hpp
 
       - name: Build hybrid suite (SECONDARY_PARITY)
         run: |
