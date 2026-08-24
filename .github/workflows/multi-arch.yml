@@ -37,7 +37,7 @@ jobs:
       - name: Install toolchain
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq g++ make curl ca-certificates
+          sudo apt-get install -y -qq g++ make
 
       - name: Fingerprint
         run: |
@@ -52,11 +52,10 @@ jobs:
             nproc
           } | tee fingerprint.txt
 
-      - name: Fetch baseline
+      - name: Fetch baseline (vendored — zero network)
         run: |
           mkdir -p baselines
-          curl -fsSL -o baselines/pdqsort.h \
-            https://raw.githubusercontent.com/orlp/pdqsort/master/pdqsort.h
+          cp residual/baselines/pdqsort.h baselines/pdqsort.h
 
       - name: Build harness
         run: |
