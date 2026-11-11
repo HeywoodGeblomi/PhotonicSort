@@ -50,6 +50,62 @@
 
 ---
 
+## One-machine int64 comparison (2026-11-11)
+
+**Status: one KVM guest.** Dated side-by-side on a single machine. The multi-arch PRIMARY gates and the claim-surface table above stay the charged results. This section does not replace them and does not relax them. Classical CPU sort on ordinary hardware — not photonic hardware. **Non-claims:** [`NON_CLAIMS.md`](./NON_CLAIMS.md).
+
+**PhotonicSort commit:** `9a41a4c4eb867930b4c96e85916562aef1aafa88`  
+**Comparators:** GeblomiSort `a5420c062e5967b894361ba331cc8d5fd7d026cb` · ska_sort `2c14d4bf7b667032ed28a481065f721385e33849` · pdqsort `b1ef26a55cdb60d236a5cb199c4234c704f46726` · libstdc++ 14 `std::stable_sort` (mergesort)
+
+**Machine:** Intel Xeon (model 207) KVM guest, 8 vCPU, 15 GB RAM, Debian 13, Linux 6.12.113.  
+**Compiler:** g++ 14.2.0, `-O3 -std=c++20 -DNDEBUG`, no `-march`. Pinned with `taskset -c 3`. Single-threaded.  
+**Harness:** `int64_t` keys. Sizes 10k, 100k, 1M, and 10M. 23 input patterns. Two full suite runs. Timed only the sort call (`steady_clock`) on a fresh copy of the same input. Every run checked byte-for-byte against `std::sort`. Each dot is the mean of the two run medians; the thin bar is the two medians. The four charts are the 1M and 10M panels.
+
+### Uniform random int64
+
+On uniform random int64, PhotonicSort, GeblomiSort, and ska_sort are a statistical tie (within about 4–10% noise on this VM). Both Geblomi projects hand uniform random int64 to ska_sort internally. pdqsort is about 1.3× slower there; `std::stable_sort` is about 4× slower.
+
+Printed chart labels, mean of the two run medians (ms). Rows follow the 1M panel. At 10M the printed order is ska_sort, GeblomiSort, PhotonicSort, pdqsort, `std::stable_sort`.
+
+| Sorter | n = 1,000,000 | n = 10,000,000 |
+|--------|-------------:|---------------:|
+| GeblomiSort | 18.3 | 261.5 |
+| PhotonicSort | 18.5 | 266.0 |
+| ska_sort | 18.9 | 256.6 |
+| pdqsort | 25.0 | 295.7 |
+| std::stable_sort | 79.6 | 953.6 |
+
+![Median sort time on uniform random int64 keys at 1M and 10M](./benchmarks/charts/dotchart_random.png)
+
+### Geometric mean across 23 patterns
+
+Ranking is the geometric mean of median times. Only sorters that always produced correct output are in the official ranking. GeblomiSort's chart means (4.09 ms at 1M, 50.80 ms at 10M) would lead, and it is left out: it left arrays unsorted on `almost_sorted` and `db_pk` at 10k and 100k, and on `mixed_blocks` at 100k, in both runs (sampled already-sorted check). Those failures did not occur at 1M or 10M in this suite. The same sampled early-exit produces its very fast already-sorted times. The chart notes that those sub-microsecond times pull the geometric mean down, and that the check can miss inversions.
+
+Among always-correct sorters, PhotonicSort is first at both plotted sizes.
+
+Two run medians at n = 1,000,000 (ms), next to the printed chart dot (mean of the two run medians):
+
+| Sorter | run medians | chart dot |
+|--------|-------------|----------:|
+| PhotonicSort | 4.50 / 4.29 | 4.39 |
+| pdqsort | 7.28 / 7.00 | 7.14 |
+| ska_sort | 20.7 / 19.6 | 20.14 |
+| std::stable_sort | 26.0 / 24.3 | 25.17 |
+
+Chart dots at n = 10,000,000 (ms), always-correct order: PhotonicSort 64.40, pdqsort 88.50, ska_sort 214.75, `std::stable_sort` 321.20. GeblomiSort's unranked dot is 50.80.
+
+![Geometric mean of median sort times across 23 patterns at 1M and 10M](./benchmarks/charts/dotchart_overall.png)
+
+### All 23 patterns
+
+Log-scale median for each of the 23 patterns at 1M and at 10M. On the already-sorted row, GeblomiSort's leftmost mark is the sampled early-exit.
+
+![Median sort time by input pattern at n = 1,000,000](./benchmarks/charts/dotchart_patterns_1M.png)
+
+![Median sort time by input pattern at n = 10,000,000](./benchmarks/charts/dotchart_patterns_10M.png)
+
+---
+
 ## Historical freezes
 
 ### Pure residual freeze (2026-08-10)
